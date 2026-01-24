@@ -83,7 +83,7 @@ export function FeaturesGrid() {
               initial={{ opacity: 0, y: 0, x: index % 2 !== 0 ? 100 : -100 }}
               whileInView={{ opacity: 1, y: 0, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.4 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
               className="relative group"
             >
               <FeatureCard feature={feature} />
