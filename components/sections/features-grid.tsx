@@ -2,19 +2,23 @@
 
 import { motion } from "framer-motion";
 import { Dumbbell, Shield, Clock, LucideProps } from "lucide-react";
-import FeatureImage1 from "@/public/assets/Landing Image 1.png"
-import FeatureImage2 from "@/public/assets/Landing Image 2.png"
-import FeatureImage3 from "@/public/assets/Landing Image 3.png"
+import FeatureImage1 from "@/public/assets/Landing Image 1.png";
+import FeatureImage2 from "@/public/assets/Landing Image 2.png";
+import FeatureImage3 from "@/public/assets/Landing Image 3.png";
 import Image, { StaticImageData } from "next/image";
 import { ForwardRefExoticComponent, ReactNode, RefAttributes } from "react";
+import { Pointer } from "../ui/pointer";
 
-type TFeature = {image?: StaticImageData;
-    color: string;
-    number?: string;
-    title?: string;
-    description?: string;
-    icon?: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
-  }
+type TFeature = {
+  image?: StaticImageData;
+  color: string;
+  number?: string;
+  title?: string;
+  description?: string;
+  icon?: ForwardRefExoticComponent<
+    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
+  >;
+};
 
 const FEATURES: TFeature[] = [
   {
@@ -75,13 +79,28 @@ export function FeaturesGrid() {
           {FEATURES.map((feature, index) => (
             <motion.div
               key={feature.title ?? index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 0, x: index % 2 !== 0 ? 100 : -100 }}
+              whileInView={{ opacity: 1, y: 0, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.15 }}
+              transition={{ duration: 0.6, delay: index * 0.4 }}
               className="relative group"
-            > 
-              <FeatureCard feature={feature}/>
+            >
+              <FeatureCard feature={feature} />
+              <Pointer>
+                <motion.div
+                  animate={{
+                    scale: [0.8, 1, 0.8],
+                    rotate: [0, 5, -5, 0],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <div className="text-5xl">💪</div>
+                </motion.div>
+              </Pointer>
             </motion.div>
           ))}
         </div>
@@ -90,47 +109,42 @@ export function FeaturesGrid() {
   );
 }
 
-
-
-function FeatureCard ({feature}: {feature: TFeature}) {
-  if(feature.image){
+function FeatureCard({ feature }: { feature: TFeature }) {
+  if (feature.image) {
     return (
       <div
         className={`relative bg-coral rounded-2xl p-8 lg:p-10 h-full transition-transform duration-300 group-hover:-translate-y-2`}
       >
         <div className="flex flex-col h-full">
-          <div
-            className={`p-3 rounded-xl w-fit mb-6`}
-          >
-            <Image src={feature.image} alt="test"/>
+          <div className={`p-3 rounded-xl w-fit mb-6`}>
+            <Image src={feature.image} alt="test" />
           </div>
         </div>
       </div>
-      )
+    );
   }
   return (
-  <div
-    className={`relative ${feature.color} rounded-2xl p-8 lg:pt-32 h-full transition-transform duration-300 group-hover:-translate-y-2 overflow-hidden`}
-  >
-    <div className="flex flex-col h-full max-w-md">
-      <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-4">
-        {feature.title}
-      </h3>
+    <div
+      className={`relative ${feature.color} rounded-2xl p-8 lg:pt-32 h-full transition-transform duration-300 group-hover:-translate-y-2 overflow-hidden`}
+    >
+      <div className="flex flex-col h-full max-w-md">
+        <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-4">
+          {feature.title}
+        </h3>
 
-      <p
-        className={`${
-          feature.color === "bg-coral"
-            ? "text-white/80"
-            : "text-neutral-400"
-        } leading-relaxed`}
-      >
-        {feature.description}
-      </p>
-      <div className="absolute -bottom-20 -left-24 pointer-events-none">
-        <span className="font-display text-[120px] lg:text-[500px] font-bold text-white/5 leading-none select-none">
-          {feature.number}
-        </span>
+        <p
+          className={`${
+            feature.color === "bg-coral" ? "text-white/80" : "text-neutral-400"
+          } leading-relaxed`}
+        >
+          {feature.description}
+        </p>
+        <div className="absolute -bottom-20 -left-24 pointer-events-none">
+          <span className="font-display text-[120px] lg:text-[500px] font-bold text-white/5 leading-none select-none">
+            {feature.number}
+          </span>
+        </div>
       </div>
     </div>
-  </div>)
+  );
 }
