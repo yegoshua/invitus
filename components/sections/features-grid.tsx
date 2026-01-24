@@ -8,6 +8,7 @@ import FeatureImage3 from "@/public/assets/Landing Image 3.png";
 import Image, { StaticImageData } from "next/image";
 import { ForwardRefExoticComponent, ReactNode, RefAttributes } from "react";
 import { Pointer } from "../ui/pointer";
+import IvanCursor from '@/public/assets/IvanCursor.png'
 
 type TFeature = {
   image?: StaticImageData;
@@ -89,16 +90,22 @@ export function FeaturesGrid() {
               <Pointer>
                 <motion.div
                   animate={{
-                    scale: [0.8, 1, 0.8],
-                    rotate: [0, 5, -5, 0],
+                    scale: [1, 1.2, 1, 1.1, 1],
+                    rotate: [0, -10, 10, -5, 0],
+                    y: [0, -20, 0, -10, 0],
                   }}
                   transition={{
-                    duration: 1.5,
+                    duration: 2,
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
+                  className="drop-shadow-2xl"
                 >
-                  <div className="text-5xl">💪</div>
+                  <Image
+                    className="h-48 w-48 lg:h-64 lg:w-64"
+                    src={IvanCursor}
+                    alt="Ivan Cursor"
+                  />
                 </motion.div>
               </Pointer>
             </motion.div>
