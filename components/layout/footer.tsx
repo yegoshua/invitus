@@ -50,12 +50,12 @@ export function Footer() {
         </div>
 
         {/* Large Logo */}
-        <div className="overflow-hidden">
+      </div>
+       <div className="">
           <span className="font-druk text-[20vw] lg:text-[18vw] font-bold text-white leading-none block -mb-[0.15em]">
             INVITUS
           </span>
         </div>
-      </div>
     </footer>
   );
 }
