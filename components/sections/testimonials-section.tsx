@@ -40,6 +40,13 @@ export function TestimonialsSection() {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
+  const scrollTo = useCallback(
+    (index: number) => {
+      if (emblaApi) emblaApi.scrollTo(index);
+    },
+    [emblaApi]
+  );
+
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
     setSelectedIndex(emblaApi.selectedScrollSnap());
@@ -109,12 +116,15 @@ export function TestimonialsSection() {
                   className="flex-[0_0_384px] px-2 lg:px-3 h-[720px] flex items-center justify-center"
                 >
                   <div
-                    className="relative bg-[#212121] rounded-[32px] lg:rounded-[40px] overflow-hidden w-[384px] h-[682px]"
+                    className={`relative bg-[#212121] rounded-[32px] lg:rounded-[40px] overflow-hidden w-[384px] h-[682px] ${
+                      !isSelected ? "cursor-pointer" : ""
+                    }`}
                     style={{
                       transform: `scale(${scale})`,
                       opacity: isSelected ? 1 : 0.5,
                       transition: "transform 0.4s ease-out, opacity 0.4s ease-out",
                     }}
+                    onClick={() => !isSelected && scrollTo(index)}
                   >
                     <video
                       ref={(el) => {
