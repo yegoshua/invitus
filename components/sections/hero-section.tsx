@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 export function HeroSection() {
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
-      <section className="relative h-[calc(90vh-16px)] sm:h-[calc(90vh-24px)] lg:h-[calc(90vh-32px)] flex items-end bg-[#1a1a1a] overflow-hidden rounded-2xl lg:rounded-3xl">
+      <section className="relative h-[calc(100vh-16px)] sm:h-[calc(100vh-24px)] lg:h-[calc(100vh-32px)] flex items-end bg-[#1a1a1a] overflow-hidden rounded-section">
         {/* Video Background */}
         <div className="absolute inset-0 z-0">
           <video

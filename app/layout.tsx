@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     "спортивне екіпірування",
     "Україна",
   ],
+  icons: {
+    icon: "/assets/icons/favico.jpeg",
+  },
 };
 
 export default function RootLayout({

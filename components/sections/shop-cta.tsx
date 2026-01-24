@@ -40,7 +40,7 @@ const featuredProducts: Product[] = [
 export function ShopCTA() {
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
-      <section className="relative bg-coral overflow-hidden rounded-2xl lg:rounded-3xl py-16 lg:py-24">
+      <section className="relative bg-coral overflow-hidden rounded-section py-16 lg:py-24">
         <div className="container-main relative z-10">
           {/* Heading */}
           <motion.div

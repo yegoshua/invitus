@@ -41,7 +41,7 @@ export function WhySection() {
     <div className="bg-black p-2 sm:p-3 lg:p-4">
       <div
         ref={containerRef}
-        className="relative bg-coral rounded-2xl lg:rounded-3xl"
+        className="relative bg-coral rounded-section"
         style={{ height: "250vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">

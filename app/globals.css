@@ -59,6 +59,7 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --radius-section: 48px;
 
   /* Custom font family for display text */
   --font-display: 'Display', ui-sans-serif, system-ui, sans-serif;
