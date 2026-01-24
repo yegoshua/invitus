@@ -42,7 +42,7 @@ export function WhySection() {
       <div
         ref={containerRef}
         className="relative bg-coral rounded-section"
-        style={{ height: "250vh" }}
+        style={{ height: "1200vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">
           <div className="container-main relative z-10 h-full flex flex-col py-16 lg:py-24">
