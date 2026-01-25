@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { CTALink } from "@/components/ui/cta-link";
 
 export function HeroSection() {
   return (
@@ -45,13 +44,9 @@ export function HeroSection() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="shrink-0"
             >
-              <Link
-                href="/shop/belts"
-                className="group inline-flex items-center gap-4 bg-coral text-black font-druk font-bold text-base lg:text-base px-8 lg:px-10 py-5 rounded-full transition-all duration-300 hover:brightness-110"
-              >
+              <CTALink href="/shop/belts" variant="solid" size="large">
                 ЗАБРАТИ СВІЙ ПОЯС
-                <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-              </Link>
+              </CTALink>
             </motion.div>
           </div>
         </div>

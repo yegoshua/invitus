@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { CTALink } from "@/components/ui/cta-link";
 import { ProductCard } from "@/components/ui/product-card";
 import type { Product } from "@/types";
 
@@ -54,13 +53,9 @@ export function ProductShowcase() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
-          <Link
-            href="/shop"
-            className="group inline-flex items-center gap-6 border-2 border-coral text-coral font-druk font-bold px-12 py-5 rounded-full hover:bg-coral hover:text-black transition-all duration-300"
-          >
+          <CTALink href="/shop" variant="outline" color="coral">
             ЧЕКНУТИ УСЕ
-            <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-          </Link>
+          </CTALink>
         </motion.div>
       </div>
     </section>

@@ -1,12 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Pointer } from "@/components/ui/pointer";
 
 const faqItems = [
   {
@@ -38,7 +39,25 @@ const faqItems = [
 
 export function FAQSection() {
   return (
-    <section className="bg-black py-20 lg:py-32 lg:pb-4 pb-4">
+    <section className="bg-black py-20 lg:py-32 lg:pb-4 pb-4 relative">
+      {/* Custom cursor */}
+      <Pointer>
+        <motion.div
+          className="text-4xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 10, -10, 0],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          ❓
+        </motion.div>
+      </Pointer>
+
       <div className="container-main">
         {/* Heading */}
         <motion.div
@@ -67,7 +86,7 @@ export function FAQSection() {
                 value={`item-${index}`}
                 className="bg-[#212121] rounded-2xl lg:rounded-3xl border-none overflow-hidden"
               >
-                <AccordionTrigger className="text-white text-left text-xl lg:text-2xl font-bold hover:no-underline p-8 lg:p-12">
+                <AccordionTrigger className="font-druk text-white text-left text-xl lg:text-2xl font-bold hover:no-underline p-8 lg:p-12 cursor-none">
                   {item.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-neutral-400 text-base lg:text-lg px-8 lg:px-12 pb-8 lg:pb-12">

@@ -42,7 +42,7 @@ export function ProductCard({ product, index = 0, variant = "dark" }: ProductCar
               alt={product.images[0].alt}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              className="object-cover"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -56,10 +56,8 @@ export function ProductCard({ product, index = 0, variant = "dark" }: ProductCar
         {/* Product info */}
         <div className="space-y-1">
           <h3
-            className={`text-[clamp(0.875rem,1.5vw,1rem)] font-medium leading-tight transition-colors duration-300 ${
-              isCoral
-                ? "text-black group-hover:text-white"
-                : "text-white group-hover:text-coral"
+            className={`text-[clamp(0.875rem,1.5vw,1rem)] font-medium leading-tight ${
+              isCoral ? "text-black" : "text-white"
             }`}
           >
             {product.name}
