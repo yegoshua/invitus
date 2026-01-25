@@ -60,7 +60,7 @@ const ctaLinkVariants = cva(
 );
 
 interface CTALinkProps
-  extends React.AnchorHTMLAttributes<HTMLAnchorElement>,
+  extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "color">,
     VariantProps<typeof ctaLinkVariants> {
   href: string;
   children: React.ReactNode;
