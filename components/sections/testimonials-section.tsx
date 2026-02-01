@@ -95,7 +95,7 @@ export function TestimonialsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12 lg:mb-16"
         >
-          <h2 className="font-druk text-[32px] lg:text-[40px] font-bold text-white">
+          <h2 className="text-h2 font-bold text-white">
             Ті, хто вже рвуть рекорди
           </h2>
         </motion.div>
@@ -163,17 +163,17 @@ export function TestimonialsSection() {
         <div className="flex justify-center gap-3 mt-8 lg:mt-12">
           <button
             onClick={scrollPrev}
-            className="p-3 lg:p-4 border-2 border-coral rounded-xl text-coral hover:bg-coral hover:text-black transition-all duration-300"
+            className="w-12 h-12 flex items-center justify-center border-2 border-coral rounded-[16px] text-coral hover:bg-coral hover:text-black transition-all duration-300"
             aria-label="Previous"
           >
-            <ArrowLeft className="w-5 h-5 lg:w-6 lg:h-6" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
           <button
             onClick={scrollNext}
-            className="p-3 lg:p-4 border-2 border-coral rounded-xl text-coral hover:bg-coral hover:text-black transition-all duration-300"
+            className="w-12 h-12 flex items-center justify-center border-2 border-coral rounded-[16px] text-coral hover:bg-coral hover:text-black transition-all duration-300"
             aria-label="Next"
           >
-            <ArrowRight className="w-5 h-5 lg:w-6 lg:h-6" />
+            <ArrowRight className="w-5 h-5" />
           </button>
         </div>
       </div>

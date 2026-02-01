@@ -45,7 +45,7 @@ export function BenefitsGrid() {
                 />
               </div>
               <div className="max-w-74.5 w-full self-center">
-                <h3 className="font-druk font-bold italic text-white mb-3">
+                <h3 className="font-heading font-bold italic text-white mb-3">
                   {benefit.title}
                 </h3>
                 <p className="text-white text-base leading-relaxed">

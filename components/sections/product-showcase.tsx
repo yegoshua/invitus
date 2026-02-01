@@ -8,28 +8,28 @@ import type { Product } from "@/types";
 const mockProducts: Product[] = [
   {
     id: "1",
-    name: "Атлетичний пояс Classic",
+    name: "Classic Lifting Belt",
     slug: "belt-classic",
     price: 4100,
     images: [],
   },
   {
     id: "2",
-    name: "Атлетичний пояс Pro",
+    name: "Pro Lifting Belt",
     slug: "belt-pro",
     price: 4500,
     images: [],
   },
   {
     id: "3",
-    name: "Атлетичний пояс Elite",
+    name: "Elite Lifting Belt",
     slug: "belt-elite",
     price: 5200,
     images: [],
   },
   {
     id: "4",
-    name: "Атлетичний пояс Limited",
+    name: "Limited Lifting Belt",
     slug: "belt-limited",
     price: 5900,
     images: [],

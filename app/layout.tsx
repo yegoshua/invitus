@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
-import { Archivo } from "next/font/google";
+import { Archivo, Golos_Text } from "next/font/google";
 import { Providers } from "./providers";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const archivo = Archivo({
-  variable: "--font-archivo",
-  subsets: ["latin", "latin-ext"],
+// 1. Golos з Google
+const golosText = Golos_Text({
+  variable: "--font-golos",
+  subsets: ["latin", "cyrillic"],
   display: "swap",
+});
+
+// Шлях './fonts/...' означає "в папці fonts поруч з цим файлом"
+const drukWide = localFont({
+  src: [
+    {
+      path: './fonts/Display-font.woff2', 
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-druk',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -33,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk" className="dark">
-      <body className={`${archivo.variable} font-sans antialiased`}>
+      <body className={`${golosText.variable} ${drukWide.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

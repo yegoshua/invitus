@@ -46,7 +46,7 @@ export function ProductCard({ product, index = 0, variant = "dark" }: ProductCar
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-druk text-[clamp(1.5rem,3vw,2.5rem)] text-neutral-800 select-none">
+              <span className="font-heading text-[clamp(1.5rem,3vw,2.5rem)] text-neutral-800 select-none">
                 INVITUS
               </span>
             </div>
@@ -56,13 +56,13 @@ export function ProductCard({ product, index = 0, variant = "dark" }: ProductCar
         {/* Product info */}
         <div className="space-y-1">
           <h3
-            className={`text-[clamp(0.875rem,1.5vw,1rem)] font-medium leading-tight ${
+            className={`font-golos text-xl leading-6 tracking-[0.01em] font-medium ${
               isCoral ? "text-black" : "text-white"
             }`}
           >
             {product.name}
           </h3>
-          <p className={`text-[clamp(0.875rem,1.5vw,1rem)] ${isCoral ? "text-black/70" : "text-neutral-400"}`}>
+          <p className={`font-golos text-xl leading-6 tracking-[0.01em] font-medium ${isCoral ? "text-black" : "text-white"}`}>
             {formattedPrice} ₴
           </p>
         </div>

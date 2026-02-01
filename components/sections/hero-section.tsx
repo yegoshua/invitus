@@ -30,7 +30,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="font-druk flex-1 text-[32px] sm:text-[40px] md:text-[48px] lg:text-[56px] font-bold text-white leading-[1.1] max-w-4xl"
+              className="flex-1 text-h1 text-white leading-[1.1] max-w-4xl"
             >
               Твій Gym Bro
               <br />

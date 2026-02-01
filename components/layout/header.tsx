@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X, ShoppingCart } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/stores/cart";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const itemCount = useCartStore((state) => state.getItemCount());
+  const openCart = useCartStore((state) => state.openCart);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,7 +34,7 @@ export function Header() {
       className={cn(
         "fixed left-0 right-0 z-50 transition-all duration-300",
         isScrolled
-          ? "top-0 bg-[#0A0A0A]/95 backdrop-blur-md shadow-lg"
+          ? "top-0 bg-[#0A0A0A]/48 backdrop-blur-md shadow-lg"
           : "top-4 lg:top-6 bg-transparent"
       )}
     >
@@ -41,7 +42,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <span className="font-display text-xl lg:text-2xl font-bold text-white tracking-wider">
+            <span className="font-heading text-xl lg:text-2xl font-bold text-white tracking-wider">
               INVITUS
             </span>
           </Link>
@@ -62,17 +63,12 @@ export function Header() {
           {/* Right side: Cart + Mobile menu */}
           <div className="flex items-center gap-4">
             {/* Cart */}
-            <Link
-              href="/cart"
-              className="relative p-2 text-white hover:text-coral transition-colors"
+            <button
+              onClick={openCart}
+              className="p-2 text-white text-base leading-6 font-semibold cursor-pointer"
             >
-              <ShoppingCart className="w-6 h-6" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-coral text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {itemCount > 99 ? "99+" : itemCount}
-                </span>
-              )}
-            </Link>
+              Кошик ({itemCount})
+            </button>
 
             {/* Mobile menu button */}
             <button

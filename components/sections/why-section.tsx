@@ -52,7 +52,7 @@ export function WhySection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="font-druk text-[32px] lg:text-[40px] font-bold text-black leading-[1.1] max-w-xl"
+              className="text-h2 font-bold text-black leading-[1.1] max-w-xl"
             >
               Чому наші пояси —
               <br />
@@ -168,7 +168,7 @@ function FeatureCard({
       >
         {/* Main card */}
         <div className="relative bg-black rounded-[32px] lg:rounded-[40px] p-8 lg:p-12 h-full flex flex-col justify-center">
-          <h3 className="font-druk text-xl lg:text-2xl font-bold text-white mb-4">
+          <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-4">
             {feature.title}
           </h3>
           <p className="text-neutral-400 text-base lg:text-lg leading-relaxed max-w-sm">

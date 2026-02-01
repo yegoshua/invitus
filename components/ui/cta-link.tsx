@@ -23,7 +23,7 @@ function ArrowRightUpIcon({ className }: { className?: string }) {
 }
 
 const ctaLinkVariants = cva(
-  "group inline-flex items-center justify-center gap-4 font-druk font-bold text-base leading-6 tracking-[0.05em] uppercase rounded-full transition-all duration-300",
+  "group inline-flex items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300",
   {
     variants: {
       variant: {

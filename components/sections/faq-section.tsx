@@ -67,7 +67,7 @@ export function FAQSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12 lg:mb-16"
         >
-          <h2 className="font-druk text-[32px] lg:text-[40px] font-bold text-white">
+          <h2 className="font-heading text-[32px] lg:text-[40px] font-bold text-white">
             Щось неясно? Розповідаємо як є
           </h2>
         </motion.div>
@@ -86,7 +86,7 @@ export function FAQSection() {
                 value={`item-${index}`}
                 className="bg-[#212121] rounded-2xl lg:rounded-3xl border-none overflow-hidden"
               >
-                <AccordionTrigger className="font-druk text-white text-left text-xl lg:text-2xl font-bold hover:no-underline p-8 lg:p-12 cursor-none">
+                <AccordionTrigger className="font-heading text-white text-left text-xl lg:text-2xl font-bold hover:no-underline p-8 lg:p-12 cursor-none">
                   {item.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-neutral-400 text-base lg:text-lg px-8 lg:px-12 pb-8 lg:pb-12">

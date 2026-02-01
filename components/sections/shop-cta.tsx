@@ -49,7 +49,7 @@ export function ShopCTA() {
             transition={{ duration: 0.6 }}
             className="text-center mb-12 lg:mb-16"
           >
-            <h2 className="font-druk text-[32px] lg:text-[40px] font-bold text-black">
+            <h2 className="font-heading text-h2 font-bold text-black">
               Обирай екіп для нових рекордів
             </h2>
           </motion.div>
