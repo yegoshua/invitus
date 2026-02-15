@@ -57,28 +57,11 @@ export default async function ProductPage({ params }: Props) {
     products.filter((p) => p.slug !== slug).slice(0, 4)
   );
 
-  // Transform to ProductDetail format expected by ProductPageContent
-  const productDetail = {
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    price: product.price,
-    category: product.category,
-    images: product.images,
-    sizes: product.sizes || [],
-    description: product.description || "",
-    howToMeasure: product.howToMeasure || "",
-    careInstructions: product.careInstructions || "",
-    heroImage: product.heroImage || product.images[0]?.url || "",
-    bgImage: product.bgImage || "/assets/img/product_bg.png",
-    galleryImages: product.galleryImages || [],
-  };
-
   return (
     <>
       <Header />
-      <ProductPageContent product={productDetail} />
-      <ProductImagesSection images={productDetail.galleryImages} />
+      <ProductPageContent product={product} />
+      <ProductImagesSection images={product.galleryImages || []} />
       <RelatedProducts products={relatedProducts} />
       <FAQSection />
       <Footer />
