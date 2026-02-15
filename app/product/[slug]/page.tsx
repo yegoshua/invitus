@@ -49,13 +49,14 @@ export default async function ProductPage({ params }: Props) {
     notFound();
   }
 
-  // Fetch related products (same category, exclude current product)
   const relatedProducts = await getProducts({
     category: product.category,
     limit: 4,
   }).then((products) =>
     products.filter((p) => p.slug !== slug).slice(0, 4)
   );
+
+  console.log("product page = ", product)
 
   return (
     <>

@@ -94,7 +94,7 @@ export async function getProducts(options?: {
 }): Promise<TransformedProduct[]> {
   const params = new URLSearchParams();
 
-  // Populate all relations (Strapi 5 syntax)
+  // Populate all relations
   params.append("populate", "*");
 
   // Filters
@@ -131,13 +131,21 @@ export async function getProducts(options?: {
 export async function getProductBySlug(
   slug: string
 ): Promise<TransformedProduct | null> {
-  const params = new URLSearchParams();
-
-  params.append("filters[slug][$eq]", slug);
-  params.append("populate", "*");
+  // Build query with deep populate for nested component media
+  const query = new URLSearchParams({
+    "filters[slug][$eq]": slug,
+    "populate[mainImage]": "true",
+    "populate[heroImage]": "true",
+    "populate[backgroundImage]": "true",
+    "populate[category]": "true",
+    "populate[filterTags]": "true",
+    "populate[variants]": "true",
+    "populate[attributes]": "true",
+    "populate[galleryImages][populate]": "*",
+  });
 
   const response = await fetchStrapi<StrapiResponse<StrapiProduct[]>>(
-    `/products?${params.toString()}`,
+    `/products?${query.toString()}`,
     {
       next: { revalidate: 60, tags: ["products", `product-${slug}`] },
     }
