@@ -78,7 +78,7 @@ export function CartDrawer() {
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 lg:p-8">
-              <h2 className="font-heading text-2xl lg:text-3xl font-bold text-black">
+              <h2 className="font-heading text-h3 font-bold text-black">
                 Кошик ({itemCount})
               </h2>
               <button
@@ -117,7 +117,7 @@ export function CartDrawer() {
                   <Link
                     href="/checkout"
                     onClick={closeCart}
-                    className="group flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 py-5"
+                    className="group flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
                   >
                     Перейти до оплати
                     <ArrowRightUpIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
@@ -127,7 +127,7 @@ export function CartDrawer() {
                 <Link
                   href="/shop"
                   onClick={closeCart}
-                  className="group flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 py-5"
+                  className="group flex w-full items-center text-btn justify-center gap-4 font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
                 >
                   Знайти свій пояс
                   <ArrowRightUpIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
@@ -144,7 +144,7 @@ export function CartDrawer() {
 function EmptyState({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
-      <div className="relative w-48 h-48 mb-8">
+      <div className="relative w-[320px] h-80">
         <Image
           src="/assets/img/cart-empry-state.png"
           alt="Порожній кошик"
@@ -152,7 +152,7 @@ function EmptyState({ onClose }: { onClose: () => void }) {
           className="object-contain"
         />
       </div>
-      <p className="font-heading text-xl lg:text-2xl font-bold text-black leading-tight">
+      <p className="font-heading text-h4 font-bold text-black leading-tight">
         Кошик поки порожній,
         <br />
         виправимо це?

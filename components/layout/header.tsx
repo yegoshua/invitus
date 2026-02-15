@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/stores/cart";
@@ -17,8 +18,14 @@ const navLinks = [
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const pathname = usePathname();
   const itemCount = useCartStore((state) => state.getItemCount());
   const openCart = useCartStore((state) => state.openCart);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,15 +56,21 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-base leading-6 font-medium text-white hover:font-semibold transition-all"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "text-base leading-6 text-white transition-all",
+                    isActive ? "font-bold" : "font-medium hover:font-semibold"
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right side: Cart + Mobile menu */}
@@ -67,7 +80,7 @@ export function Header() {
               onClick={openCart}
               className="p-2 text-white text-base leading-6 font-semibold cursor-pointer"
             >
-              Кошик ({itemCount})
+              Кошик ({isMounted ? itemCount : 0})
             </button>
 
             {/* Mobile menu button */}
@@ -89,16 +102,24 @@ export function Header() {
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-[#0A0A0A] border-t border-neutral-800">
           <nav className="container mx-auto px-4 py-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block py-3 text-neutral-300 hover:text-white transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={cn(
+                    "block py-3 transition-colors",
+                    isActive
+                      ? "text-white font-bold"
+                      : "text-neutral-300 hover:text-white"
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       )}

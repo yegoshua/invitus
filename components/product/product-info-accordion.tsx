@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/accordion";
 
 interface ProductInfoAccordionProps {
-  description: string;
-  howToMeasure: string;
-  careInstructions: string;
+  description?: string;
+  howToMeasure?: string;
+  careInstructions?: string;
 }
 
 export function ProductInfoAccordion({
@@ -26,7 +26,7 @@ export function ProductInfoAccordion({
       title: "Інструкція з догляду",
       content: careInstructions,
     },
-  ];
+  ].filter((item) => item.content);
 
   return (
     <Accordion type="single" collapsible className="flex flex-col gap-4">

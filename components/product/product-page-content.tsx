@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useCartStore } from "@/stores/cart";
-import type { ProductDetail } from "@/data/products";
+import type { TransformedProduct } from "@/types/strapi";
 import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
 import { Canvas } from "@react-three/fiber";
@@ -12,7 +12,7 @@ import { OrbitControls, Environment, ContactShadows, Float } from "@react-three/
 import {BlackBeltModel} from "@/components/models/Black_belt"
 
 interface ProductPageContentProps {
-  product: ProductDetail;
+  product: TransformedProduct;
 }
 
 export function ProductPageContent({ product }: ProductPageContentProps) {
@@ -34,15 +34,17 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black">
       {/* Background image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={product.bgImage}
-          alt=""
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+      {product.bgImage && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={product.bgImage}
+            alt=""
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+      )}
 
       {/* 3D Product model */}
       <div className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing">
@@ -66,7 +68,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
             floatIntensity={0.4}
             floatingRange={[-0.05, 0.05]}
           >
-            <BlackBeltModel position={[0, 0, 0]} />
+            <BlackBeltModel position={[0, 0.1, 0]} />
           </Float>
           <ContactShadows
             position={[0, -1, 0]}

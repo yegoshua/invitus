@@ -25,6 +25,8 @@ export function ProductCard({ product, index = 0, variant = "dark" }: ProductCar
     coral: "bg-black",
   }[variant];
 
+  console.log("product = ", product);
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -35,7 +37,7 @@ export function ProductCard({ product, index = 0, variant = "dark" }: ProductCar
     >
       <Link href={`/product/${product.slug}`} className="block">
         {/* Image container with fluid aspect ratio */}
-        <div className={`relative aspect-[3/4] ${bgColor} rounded-[24px] lg:rounded-[32px] overflow-hidden mb-4`}>
+        <div className={`relative aspect-[3/4] bg-[#212121] rounded-[24px] lg:rounded-[32px] overflow-hidden mb-4`}>
           {product.images[0] ? (
             <Image
               src={product.images[0].url}

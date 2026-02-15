@@ -5,38 +5,16 @@ import { CTALink } from "@/components/ui/cta-link";
 import { ProductCard } from "@/components/ui/product-card";
 import type { Product } from "@/types";
 
-const relatedProducts: Product[] = [
-  {
-    id: "related-1",
-    name: "Berserk Lifting Belt",
-    slug: "belt-berserk",
-    price: 4100,
-    images: [],
-  },
-  {
-    id: "related-2",
-    name: "Tiger Lifting Belt",
-    slug: "belt-tiger",
-    price: 4100,
-    images: [],
-  },
-  {
-    id: "related-3",
-    name: "Koi Lifting Belt",
-    slug: "belt-koi",
-    price: 4100,
-    images: [],
-  },
-  {
-    id: "related-4",
-    name: "Poseidon Lifting Belt",
-    slug: "belt-poseidon",
-    price: 4100,
-    images: [],
-  },
-];
+interface RelatedProductsProps {
+  products?: Product[];
+}
 
-export function RelatedProducts() {
+export function RelatedProducts({ products }: RelatedProductsProps) {
+  // If no products provided, don't render
+  if (!products || products.length === 0) {
+    return null;
+  }
+
   return (
     <section className="bg-black py-20 lg:py-32">
       <div className="container-main">
@@ -51,7 +29,7 @@ export function RelatedProducts() {
         </motion.h2>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12">
-          {relatedProducts.map((product, index) => (
+          {products.map((product, index) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -68,7 +46,7 @@ export function RelatedProducts() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
-          <CTALink href="/shop" variant="outline" color="coral">
+          <CTALink href="/shop/belts" variant="outline" color="coral">
             ЧЕКНУТИ УСЕ
           </CTALink>
         </motion.div>

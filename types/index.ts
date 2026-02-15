@@ -7,6 +7,7 @@ export interface Product {
   category?: string;
   description?: string;
   sizes?: string[];
+  filterTags?: string[];
 }
 
 export interface CartItem extends Product {
