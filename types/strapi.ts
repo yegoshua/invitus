@@ -105,6 +105,7 @@ export interface StrapiProduct {
   mainImage: StrapiMedia | null;
   heroImage: StrapiMedia | null;
   backgroundImage: StrapiMedia | null;
+  model3d: StrapiMedia | null;
   galleryImages: StrapiGalleryImage[];
   variants: StrapiVariant[];
   attributes: StrapiAttribute[];
@@ -133,6 +134,7 @@ export interface TransformedProduct {
   careInstructions?: string;
   heroImage?: string;
   bgImage?: string;
+  model3dUrl?: string;
   galleryImages?: { src: string; alt: string }[];
   variants?: { name: string; stock: number; sku?: string; priceModifier?: number }[];
   attributes?: { name: string; value: string }[];

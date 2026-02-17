@@ -5,38 +5,13 @@ import { CTALink } from "@/components/ui/cta-link";
 import { ProductCard } from "@/components/ui/product-card";
 import type { Product } from "@/types";
 
-const featuredProducts: Product[] = [
-  {
-    id: "5",
-    name: "Berserk Lifting Belt",
-    slug: "belt-naruto",
-    price: 2800,
-    images: [{ url: "/assets/img/belts/berserk-belt.jpeg", alt: "Пояс Berserk" }],
-  },
-  {
-    id: "6",
-    name: "Akatsuki Lifting Belt",
-    slug: "belt-akatsuki",
-    price: 2800,
-    images: [{ url: "/assets/img/belts/akatsuki-belt.jpeg", alt: "Пояс Akatsuki" }],
-  },
-  {
-    id: "7",
-    name: "Poseidon Lifting Belt",
-    slug: "belt-poseidon",
-    price: 3200,
-    images: [{ url: "/assets/img/belts/poseidon-belt.jpeg", alt: "Пояс Poseidon" }],
-  },
-  {
-    id: "8",
-    name: "Dragon Wave Belt",
-    slug: "belt-dragon",
-    price: 3000,
-    images: [{ url: "/assets/img/belts/berserk-belt.jpeg", alt: "Пояс Dragon Wave" }],
-  },
-];
+interface ShopCTAProps {
+  products?: Product[];
+}
 
-export function ShopCTA() {
+export function ShopCTA({ products = [] }: ShopCTAProps) {
+  if (products.length === 0) return null;
+
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
       <section className="relative bg-coral overflow-hidden rounded-section py-16 lg:py-24">
@@ -56,12 +31,11 @@ export function ShopCTA() {
 
           {/* Products Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12 lg:mb-16">
-            {featuredProducts.map((product, index) => (
+            {products.map((product, index) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 index={index}
-                variant="coral"
               />
             ))}
           </div>

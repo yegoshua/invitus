@@ -9,19 +9,21 @@ import { ShopCTA } from "@/components/sections/shop-cta";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { MotivationSection } from "@/components/sections/motivation-section";
+import { getFeaturedProducts } from "@/lib/api";
 
-export default function Home() {
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts(4);
   return (
     <>
       <Header />
       <main>
         <HeroSection />
-        <ProductShowcase />
+        <ProductShowcase products={featuredProducts} />
         <WhySection />
         <MotivationSection/>
         <FeaturesGrid />
         <TestimonialsSection />
-        <ShopCTA />
+        <ShopCTA products={featuredProducts} />
         <FAQSection />
         <BenefitsGrid />
       </main>

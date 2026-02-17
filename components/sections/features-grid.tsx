@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { Dumbbell, Shield, Clock, LucideProps } from "lucide-react";
-import FeatureImage1 from "@/public/assets/Landing Image 1.png";
-import FeatureImage2 from "@/public/assets/Landing Image 2.png";
-import FeatureImage3 from "@/public/assets/Landing Image 3.png";
+import FeatureImage1 from "@/public/assets/Landing Image 1.svg";
+import FeatureImage2 from "@/public/assets/Landing Image 2.svg";
+import FeatureImage3 from "@/public/assets/Landing Image 3.svg";
 import Image, { StaticImageData } from "next/image";
 import { ForwardRefExoticComponent, ReactNode, RefAttributes } from "react";
 

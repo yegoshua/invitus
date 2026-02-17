@@ -39,6 +39,9 @@ function transformProduct(product: StrapiProduct): TransformedProduct {
     bgImage: product.backgroundImage
       ? getStrapiMedia(product.backgroundImage.url)
       : undefined,
+    model3dUrl: product.model3d
+      ? getStrapiMedia(product.model3d.url)
+      : undefined,
     galleryImages:
       product.galleryImages?.map((img) => ({
         src: getStrapiMedia(img.image?.url),
@@ -137,6 +140,7 @@ export async function getProductBySlug(
     "populate[mainImage]": "true",
     "populate[heroImage]": "true",
     "populate[backgroundImage]": "true",
+    "populate[model3d]": "true",
     "populate[category]": "true",
     "populate[filterTags]": "true",
     "populate[variants]": "true",

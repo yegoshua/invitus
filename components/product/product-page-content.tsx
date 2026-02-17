@@ -7,9 +7,7 @@ import { useCartStore } from "@/stores/cart";
 import type { TransformedProduct } from "@/types/strapi";
 import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, ContactShadows, Float } from "@react-three/drei";
-import {BlackBeltModel} from "@/components/models/Black_belt"
+import { ModelLoader } from "@/components/models/model-loader";
 
 interface ProductPageContentProps {
   product: TransformedProduct;
@@ -34,51 +32,21 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black">
       {/* Background image */}
-      {product.bgImage && (
-        <div className="absolute inset-0 z-0">
-          <Image
-            src={product.bgImage}
-            alt=""
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-      )}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src={product.bgImage || "/assets/img/product_bg.png"}
+          alt=""
+          fill
+          className="object-cover"
+          priority
+        />
+      </div>
 
       {/* 3D Product model */}
-      <div className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing">
-        <Canvas id="canvas" camera={{ position: [0, 0.5, 3], fov: 45 }}>
-          <ambientLight intensity={0.1} />
-          <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-          <directionalLight position={[-3, 2, -2]} intensity={0.3} />
-          <Environment preset="city" background={false} />
-          <OrbitControls
-            target={[0, 0, 0]}
-            enablePan={false}
-            enableZoom={false}
-            autoRotate
-            autoRotateSpeed={0.7}
-            enableDamping
-            dampingFactor={0.05}
-          />
-          <Float
-            speed={1.5}
-            rotationIntensity={0.2}
-            floatIntensity={0.4}
-            floatingRange={[-0.05, 0.05]}
-          >
-            <BlackBeltModel position={[0, 0.1, 0]} />
-          </Float>
-          <ContactShadows
-            position={[0, -1, 0]}
-            opacity={0.4}
-            scale={5}
-            blur={2.5}
-            far={4}
-          />
-        </Canvas>
-      </div>
+      <ModelLoader
+        modelUrl={product.model3dUrl}
+        fallbackModelUrl="/models/black_belt-transformed.glb"
+      />
 
       {/* Bottom content overlay */}
       <div className="absolute inset-x-0 bottom-0 z-20">
