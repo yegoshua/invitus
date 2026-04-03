@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionItem,
@@ -11,12 +12,14 @@ interface ProductInfoAccordionProps {
   description?: string;
   howToMeasure?: string;
   careInstructions?: string;
+  itemClassName?: string;
 }
 
 export function ProductInfoAccordion({
   description,
   howToMeasure,
   careInstructions,
+  itemClassName,
 }: ProductInfoAccordionProps) {
   const items = [
     { id: "description", title: "Опис товару", content: description },
@@ -34,7 +37,7 @@ export function ProductInfoAccordion({
         <AccordionItem
           key={item.id}
           value={item.id}
-          className="bg-[#0000007A] backdrop-blur-sm rounded-2xl border-none px-5"
+          className={cn("bg-[#0000007A] backdrop-blur-sm rounded-2xl border-none px-5", itemClassName)}
         >
           <AccordionTrigger className="text-white font-heading text-base leading-6 font-bold tracking-[0.03em] py-6 cursor-pointer">
             {item.title}

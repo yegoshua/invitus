@@ -43,6 +43,7 @@ function Model({ url, position = [0, 0, 0], scale = 2.5 }: DynamicModelProps) {
       object={scene.clone()}
       position={position}
       scale={scale}
+      rotation={[0, 0.3, 0]}
       dispose={null}
     />
   );

@@ -40,7 +40,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
   return (
     <section className="bg-black">
       <div className="container-main">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-12">
           {products.map((product, index) => {
             const size = getItemSize(index);
             const isLarge = size === "large";
@@ -52,7 +52,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: (index % 4) * 0.1 }}
-                className={isLarge ? "col-span-1 lg:col-span-2" : "col-span-1"}
+                className={isLarge ? "lg:col-span-2" : "lg:col-span-1"}
               >
                 <ProductCard product={product} variant="dark" />
               </motion.div>

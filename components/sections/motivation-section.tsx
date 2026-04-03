@@ -20,9 +20,9 @@ export function MotivationSection() {
   };
 
   return (
-    <section className="bg-black py-20 lg:py-32 relative overflow-hidden">
+    <section className="bg-black pt-20 lg:pt-45 relative overflow-hidden">
       {/* Background ScrollVelocity */}
-      <ScrollVelocityContainer className="font-heading text-4xl md:text-[237px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold absolute text-[#212121] z-0">
+      <ScrollVelocityContainer className="font-heading text-4xl md:text-[237px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold absolute text-surface z-0">
         <ScrollVelocityRow baseVelocity={10} direction={1}>
           &nbsp;INVITUS&nbsp;
         </ScrollVelocityRow>

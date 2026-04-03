@@ -85,7 +85,7 @@ export function TestimonialsSection() {
   };
 
   return (
-    <section className="bg-black py-20 lg:py-32 overflow-hidden">
+    <section className="bg-black pt-20 lg:pt-45 overflow-hidden">
       <div className="container-main">
         {/* Heading */}
         <motion.div
@@ -93,7 +93,7 @@ export function TestimonialsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12 lg:mb-16"
+          className="text-center mb-12 lg:mb-20"
         >
           <h2 className="text-h2 font-bold text-white">
             Ті, хто вже рвуть рекорди
@@ -116,7 +116,7 @@ export function TestimonialsSection() {
                   className="flex-[0_0_384px] px-2 lg:px-3 h-[720px] flex items-center justify-center"
                 >
                   <div
-                    className={`relative bg-[#212121] rounded-[32px] lg:rounded-[40px] overflow-hidden w-[384px] h-[682px] ${
+                    className={`relative bg-surface rounded-[32px] lg:rounded-[40px] overflow-hidden w-[384px] h-[682px] ${
                       !isSelected ? "cursor-pointer" : ""
                     }`}
                     style={{

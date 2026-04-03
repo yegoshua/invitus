@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/stores/cart";
+import { useMenuStore } from "@/stores/menu";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -17,11 +18,11 @@ const navLinks = [
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const itemCount = useCartStore((state) => state.getItemCount());
   const openCart = useCartStore((state) => state.openCart);
+  const openMenu = useMenuStore((state) => state.openMenu);
 
   useEffect(() => {
     setIsMounted(true);
@@ -48,7 +49,7 @@ export function Header() {
       <div className="container-main">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="shrink-0">
             <span className="font-heading text-xl lg:text-2xl font-bold text-white tracking-wider">
               INVITUS
             </span>
@@ -75,7 +76,6 @@ export function Header() {
 
           {/* Right side: Cart + Mobile menu */}
           <div className="flex items-center gap-4">
-            {/* Cart */}
             <button
               onClick={openCart}
               className="p-2 text-white text-base leading-6 font-semibold cursor-pointer"
@@ -83,46 +83,15 @@ export function Header() {
               Кошик ({isMounted ? itemCount : 0})
             </button>
 
-            {/* Mobile menu button */}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-white"
+              className="lg:hidden p-2 text-white cursor-pointer"
+              onClick={openMenu}
             >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              <Menu className="w-6 h-6" />
             </button>
           </div>
         </div>
       </div>
-
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden bg-[#0A0A0A] border-t border-neutral-800">
-          <nav className="container mx-auto px-4 py-4">
-            {navLinks.map((link) => {
-              const isActive = pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={cn(
-                    "block py-3 transition-colors",
-                    isActive
-                      ? "text-white font-bold"
-                      : "text-neutral-300 hover:text-white"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
     </header>
   );
 }

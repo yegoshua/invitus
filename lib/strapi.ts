@@ -30,33 +30,49 @@ export async function fetchStrapi<T>(
   };
 
   const url = `${STRAPI_URL}/api${endpoint}`;
+  const maxRetries = 3;
 
-  try {
-    const response = await fetch(url, mergedOptions);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, mergedOptions);
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.error(`Strapi API error: ${response.status} ${response.statusText}`);
-      console.error(`URL: ${url}`);
-      console.error(`Response: ${errorText}`);
-
-      if (response.status === 403) {
-        console.error("⚠️  Permission denied. Enable public access in Strapi Admin:");
-        console.error("   Settings → Users & Permissions → Roles → Public");
+      if (response.status >= 500 && attempt < maxRetries) {
+        console.warn(`Strapi ${response.status} on attempt ${attempt}/${maxRetries}, retrying...`);
+        await new Promise((r) => setTimeout(r, attempt * 1000));
+        continue;
       }
 
-      throw new Error(`Failed to fetch ${endpoint}: ${response.status} ${response.statusText}`);
-    }
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        console.error(`Strapi API error: ${response.status} ${response.statusText}`);
+        console.error(`URL: ${url}`);
+        console.error(`Response: ${errorText}`);
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      console.error("⚠️  Cannot connect to Strapi. Is it running at", STRAPI_URL, "?");
+        if (response.status === 403) {
+          console.error("⚠️  Permission denied. Enable public access in Strapi Admin:");
+          console.error("   Settings → Users & Permissions → Roles → Public");
+        }
+
+        throw new Error(`Failed to fetch ${endpoint}: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      if (attempt < maxRetries && !(error instanceof Error && error.message.includes("Failed to fetch"))) {
+        console.warn(`Strapi fetch error on attempt ${attempt}/${maxRetries}, retrying...`);
+        await new Promise((r) => setTimeout(r, attempt * 1000));
+        continue;
+      }
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        console.error("⚠️  Cannot connect to Strapi. Is it running at", STRAPI_URL, "?");
+      }
+      console.error(`Error fetching from Strapi:`, error);
+      throw error;
     }
-    console.error(`Error fetching from Strapi:`, error);
-    throw error;
   }
+
+  throw new Error(`Failed to fetch ${endpoint} after ${maxRetries} attempts`);
 }
 
 export function getStrapiURL(path = "") {

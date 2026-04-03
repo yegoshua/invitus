@@ -14,10 +14,12 @@ export function ProductShowcase({ products = [] }: ProductShowcaseProps) {
 
   return (
     <section className="bg-black pb-20 pt-4 lg:pb-44">
-      <div className="container-main">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12">
+      <div className="container-main lg:overflow-visible">
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible mb-12">
           {products.map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
+            <div key={product.id} className="min-w-[70vw] md:min-w-[318px] lg:min-w-0">
+              <ProductCard product={product} index={index} />
+            </div>
           ))}
         </div>
 
@@ -28,7 +30,7 @@ export function ProductShowcase({ products = [] }: ProductShowcaseProps) {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
-          <CTALink href="/shop" variant="outline" color="coral">
+          <CTALink href="/shop" variant="outline" size="large" color="coral" className="md:w-full lg:w-auto">
             ЧЕКНУТИ УСЕ
           </CTALink>
         </motion.div>

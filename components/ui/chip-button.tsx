@@ -22,7 +22,7 @@ export function ChipButton({
         "px-6 py-4 rounded-[16px] cursor-pointer font-heading text-base leading-6 font-bold tracking-[0.1em] text-center transition-colors whitespace-nowrap",
         isActive
           ? "bg-white text-black"
-          : "bg-white/10 text-white hover:bg-white/20",
+          : "bg-[#0000007A] text-white",
         className
       )}
     >

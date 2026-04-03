@@ -14,7 +14,7 @@ export function ShopCTA({ products = [] }: ShopCTAProps) {
 
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
-      <section className="relative bg-coral overflow-hidden rounded-section py-16 lg:py-24">
+      <section className="relative overflow-hidden rounded-section pt-20 lg:pt-45">
         <div className="container-main relative z-10">
           {/* Heading */}
           <motion.div
@@ -22,21 +22,22 @@ export function ShopCTA({ products = [] }: ShopCTAProps) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12 lg:mb-16"
+            className="text-center mb-12 lg:mb-20"
           >
-            <h2 className="font-heading text-h2 font-bold text-black">
+            <h2 className="font-heading text-h2 font-bold text-white">
               Обирай екіп для нових рекордів
             </h2>
           </motion.div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12 lg:mb-16">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible mb-12 lg:mb-16">
             {products.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                index={index}
-              />
+              <div key={product.id} className="min-w-[70vw] md:min-w-[318px] lg:min-w-0">
+                <ProductCard
+                  product={product}
+                  index={index}
+                />
+              </div>
             ))}
           </div>
 
@@ -48,7 +49,7 @@ export function ShopCTA({ products = [] }: ShopCTAProps) {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="text-center"
           >
-            <CTALink href="/shop" variant="outline" color="black">
+            <CTALink href="/shop" variant="outline" size="large" color="coral" className="md:w-full lg:w-auto">
               ЧЕКНУТИ УСЕ
             </CTALink>
           </motion.div>

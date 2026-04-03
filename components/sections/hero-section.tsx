@@ -24,13 +24,13 @@ export function HeroSection() {
 
         {/* Content */}
         <div className="container-main relative z-10 pb-12 lg:pb-16">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-16">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 lg:gap-16">
             {/* H1 Title - Left Bottom */}
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="flex-1 text-h1 text-white leading-[1.1] max-w-4xl"
+              className="flex-1 md:text-h3 lg:text-h1 text-white leading-[1.1] max-w-4xl"
             >
               Твій Gym Bro
               <br />
@@ -42,7 +42,6 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="shrink-0"
             >
               <CTALink href="/shop/belts" variant="solid" size="large">
                 ЗАБРАТИ СВІЙ ПОЯС

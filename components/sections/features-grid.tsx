@@ -60,7 +60,7 @@ const FEATURES: TFeature[] = [
 
 export function FeaturesGrid() {
   return (
-    <section className="bg-black py-20 lg:py-32 overflow-hidden">
+    <section className="bg-black pt-20 lg:pt-45 overflow-hidden">
       <div className="container-main">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

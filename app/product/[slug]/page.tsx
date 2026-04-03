@@ -6,6 +6,7 @@ import { ProductPageContent } from "@/components/product/product-page-content";
 import { ProductImagesSection } from "@/components/product/product-images-section";
 import { RelatedProducts } from "@/components/product/related-products";
 import { FAQSection } from "@/components/sections/faq-section";
+import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { getProductBySlug, getAllProductSlugs, getProducts } from "@/lib/api";
 
 interface Props {
@@ -65,6 +66,7 @@ export default async function ProductPage({ params }: Props) {
       <ProductImagesSection images={product.galleryImages || []} />
       <RelatedProducts products={relatedProducts} />
       <FAQSection />
+      <BenefitsGrid />
       <Footer />
     </>
   );

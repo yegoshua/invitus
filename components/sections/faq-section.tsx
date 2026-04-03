@@ -7,7 +7,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Pointer } from "@/components/ui/pointer";
 
 const faqItems = [
   {
@@ -39,25 +38,7 @@ const faqItems = [
 
 export function FAQSection() {
   return (
-    <section className="bg-black py-20 lg:py-32 lg:pb-4 pb-4 relative">
-      {/* Custom cursor */}
-      <Pointer>
-        <motion.div
-          className="text-4xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 10, -10, 0],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          ❓
-        </motion.div>
-      </Pointer>
-
+    <section className="bg-black pt-20 lg:pt-45 lg:pb-4 pb-4 relative">
       <div className="container-main">
         {/* Heading */}
         <motion.div
@@ -65,9 +46,9 @@ export function FAQSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12 lg:mb-16"
+          className="text-center mb-12 lg:mb-20"
         >
-          <h2 className="font-heading text-[32px] lg:text-[40px] font-bold text-white">
+          <h2 className="font-heading sm:text-center text-left text-h2 font-bold text-white">
             Щось неясно? Розповідаємо як є
           </h2>
         </motion.div>
@@ -84,12 +65,12 @@ export function FAQSection() {
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="bg-[#212121] rounded-2xl lg:rounded-3xl border-none overflow-hidden"
+                className="bg-surface rounded-2xl lg:rounded-3xl border-none overflow-hidden"
               >
-                <AccordionTrigger className="font-heading text-white text-left text-xl lg:text-2xl font-bold hover:no-underline p-8 lg:p-12 cursor-none">
+                <AccordionTrigger className="font-heading text-white text-left text-base lg:text-2xl font-bold hover:no-underline px-6 py-5 lg:p-12">
                   {item.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-neutral-400 text-base lg:text-lg px-8 lg:px-12 pb-8 lg:pb-12">
+                <AccordionContent className="text-neutral-400 text-base lg:text-lg lg:px-12 px-6 pb-5 lg:pb-12">
                   {item.answer}
                 </AccordionContent>
               </AccordionItem>

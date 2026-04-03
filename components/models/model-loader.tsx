@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
@@ -10,7 +10,26 @@ import {
   Float,
   useProgress,
 } from "@react-three/drei";
+import * as THREE from "three";
 import { DynamicModel, FallbackModel } from "./dynamic-model";
+
+function CameraController() {
+  const { camera, size } = useThree();
+
+  useEffect(() => {
+    const cam = camera as THREE.PerspectiveCamera;
+    if (size.width >= 1024) {
+      cam.fov = 38; // desktop — slightly zoomed out
+    } else if (size.width >= 768) {
+      cam.fov = 32; // tablet — zoomed in
+    } else {
+      cam.fov = 42; // mobile
+    }
+    cam.updateProjectionMatrix();
+  }, [camera, size.width]);
+
+  return null;
+}
 
 interface ModelLoaderProps {
   modelUrl?: string;
@@ -101,6 +120,7 @@ export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
   return (
     <div className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing">
       <Canvas camera={{ position: [0, 0.5, 3], fov: 45 }}>
+        <CameraController />
         <ambientLight intensity={0.1} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
         <directionalLight position={[-3, 2, -2]} intensity={0.3} />

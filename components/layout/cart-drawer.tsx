@@ -74,7 +74,7 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "105%" }}
             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed right-4 top-4 bottom-4 z-[70] w-[calc(100%-32px)] sm:w-[calc(50%-32px)] bg-white rounded-3xl flex flex-col"
+            className="fixed right-4 top-4 bottom-4 z-[70] w-[calc(100%-32px)] lg:w-[calc(50%-32px)] bg-white rounded-3xl flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 lg:p-8">
@@ -119,13 +119,13 @@ export function CartDrawer() {
                     onClick={closeCart}
                     className="group flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
                   >
-                    Перейти до оплати
+                    До оплати
                     <ArrowRightUpIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                   </Link>
                 </>
               ) : (
                 <Link
-                  href="/shop"
+                  href="/shop/belts"
                   onClick={closeCart}
                   className="group flex w-full items-center text-btn justify-center gap-4 font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
                 >
@@ -181,7 +181,7 @@ function CartItems({
         return (
           <div key={`${item.id}-${item.size}`} className="flex gap-4">
             {/* Thumbnail */}
-            <div className="relative w-24 h-30 bg-[#212121] rounded-[12px] overflow-hidden shrink-0">
+            <div className="relative w-24 h-30 bg-surface rounded-[12px] overflow-hidden shrink-0">
               {item.images[0] ? (
                 <Image
                   src={item.images[0].url}

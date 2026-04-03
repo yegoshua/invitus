@@ -23,19 +23,20 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="font-heading text-[32px] lg:text-[40px] font-bold text-white text-center mb-12 lg:mb-16"
+          className="font-heading text-h2 font-bold text-white text-left lg:text-center mb-8 lg:mb-20"
         >
           Твій фул-сет тут
         </motion.h2>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12">
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible mb-12">
           {products.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              index={index}
-              variant="gray"
-            />
+            <div key={product.id} className="min-w-[70vw] md:min-w-[318px] lg:min-w-0">
+              <ProductCard
+                product={product}
+                index={index}
+                variant="gray"
+              />
+            </div>
           ))}
         </div>
 
@@ -46,7 +47,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
-          <CTALink href="/shop/belts" variant="outline" color="coral">
+          <CTALink href="/shop/belts" variant="outline" size="large" color="coral">
             ЧЕКНУТИ УСЕ
           </CTALink>
         </motion.div>

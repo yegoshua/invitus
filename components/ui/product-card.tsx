@@ -23,11 +23,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group"
+      className="group md:flex-shrink-0 md:w-[318px] lg:w-auto"
     >
       <Link href={`/product/${product.slug}`} className="block">
         {/* Image container with fluid aspect ratio */}
-        <div className={`relative aspect-[3/4] bg-[#212121] rounded-[24px] lg:rounded-[32px] overflow-hidden`}>
+        <div className={`relative aspect-[3/4] md:aspect-[318/398] md:h-[398px] lg:aspect-[3/4] lg:h-auto bg-surface rounded-[24px] lg:rounded-[32px] overflow-hidden`}>
           {product.images[0] ? (
             <Image
               src={product.images[0].url}

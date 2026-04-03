@@ -25,7 +25,7 @@ export function BenefitsGrid() {
   return (
     <section className="bg-black pb-32">
       <div className="container-main">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {benefits.map((benefit, index) => (
             <motion.div
               key={benefit.title}
@@ -33,9 +33,9 @@ export function BenefitsGrid() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-[#212121] rounded-[32px] p-8 lg:p-12 text-center h-[358px] flex flex-col justify-center"
+              className="bg-surface rounded-[24px] lg:rounded-[32px] px-6 py-10 lg:p-12 text-center flex flex-col items-center gap-6"
             >
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center">
                 <Image
                   src={benefit.icon}
                   alt={benefit.title}
@@ -44,7 +44,7 @@ export function BenefitsGrid() {
                   className="w-12 h-12"
                 />
               </div>
-              <div className="max-w-74.5 w-full self-center">
+              <div>
                 <h3 className="font-heading font-bold italic text-white mb-3">
                   {benefit.title}
                 </h3>

@@ -1,7 +1,10 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
+import { useRef, useEffect } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
@@ -32,10 +35,118 @@ const features = [
 
 export function WhySection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
+    // iOS activation
+    const activate = () => { video.play(); video.pause(); };
+    document.documentElement.addEventListener("touchstart", activate, { once: true });
+
+    const setupTimeline = () => {
+      const ctx = gsap.context(() => {
+        const total = features.length;
+
+        // ── Video scroll scrub (fromTo on currentTime) ───────────────
+        const tl = gsap.timeline({
+          defaults: { duration: 1 },
+          scrollTrigger: {
+            trigger: container,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: true,
+          },
+        });
+
+        tl.fromTo(
+          video,
+          { currentTime: 0 },
+          { currentTime: video.duration || 1 }
+        );
+
+        // Blob the video source to prevent browser from dropping segments
+        const src = video.currentSrc || video.src;
+        if (typeof window !== "undefined") {
+          fetch(src)
+            .then((res) => res.blob())
+            .then((blob) => {
+              const blobURL = URL.createObjectURL(blob);
+              const t = video.currentTime;
+              video.src = blobURL;
+              video.currentTime = t + 0.01;
+            });
+        }
+
+        // ── Card animations ──────────────────────────────────────────
+        cardRefs.current.forEach((card, index) => {
+          if (!card) return;
+
+          const segmentSize = 1 / total;
+          const start = index * segmentSize;
+          const enterEnd = start + segmentSize * 0.4;
+          const nextStart = (index + 1) * segmentSize;
+          const exitEnd = nextStart + segmentSize * 0.4;
+
+          const inner = card.querySelector("[data-card-inner]") as HTMLElement;
+          if (!inner) return;
+
+          // Set initial state explicitly so reverse restores it
+          gsap.set(inner, { scale: 1, opacity: 1, filter: "blur(0px)" });
+
+          // Enter: slide up from below (except first card)
+          if (index > 0) {
+            gsap.set(card, { yPercent: 100 });
+            gsap.to(card, {
+              yPercent: 0,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: container,
+                start: `${start * 100}% top`,
+                end: `${enterEnd * 100}% top`,
+                scrub: true,
+              },
+            });
+          }
+
+          // Exit: scale down + blur + fade (except last card)
+          if (index < total - 1) {
+            gsap.to(inner, {
+              scale: 0.9,
+              opacity: 0.6,
+              filter: "blur(8px)",
+              ease: "power1.in",
+              scrollTrigger: {
+                trigger: container,
+                start: `${nextStart * 100}% top`,
+                end: `${exitEnd * 100}% top`,
+                scrub: true,
+              },
+            });
+          }
+        });
+      }, container);
+
+      return ctx;
+    };
+
+    let ctx: gsap.Context | undefined;
+
+    if (video.readyState >= 1) {
+      ctx = setupTimeline();
+    } else {
+      video.addEventListener("loadedmetadata", () => {
+        ctx = setupTimeline();
+      }, { once: true });
+    }
+
+    return () => {
+      ctx?.revert();
+    };
+  }, []);
 
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
@@ -45,31 +156,52 @@ export function WhySection() {
         style={{ height: "1000vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">
-          <div className="container-main relative z-10 h-full flex flex-col py-16 lg:py-24">
-            {/* Heading - Top Left */}
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-h2 font-bold text-black leading-[1.1] max-w-xl"
-            >
+          <div className="container-main relative z-10 h-full flex flex-col py-16 lg:py-30">
+            {/* Heading */}
+            <h2 className="text-h2 font-bold text-black leading-[1.1] max-w-xl">
               Чому наші пояси —
-              <br />
+              <br className="lg:block hidden" />
               це база
-            </motion.h2>
+            </h2>
 
-            {/* Feature Cards - Right Side */}
-            <div className="flex-1 flex justify-end items-center">
-              <div className="relative w-full max-w-[576px] h-[500px] lg:h-[720px] overflow-hidden rounded-[32px] lg:rounded-[40px]">
+            {/* Main content row */}
+            <div className="flex-1 flex items-center justify-between gap-8">
+              {/* Left: scroll-controlled video (desktop only) */}
+              <div className="hidden lg:flex flex-1 items-center justify-center">
+                <video
+                  ref={videoRef}
+                  src="/assets/belt-benefits-section-video-scrub.webm"
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="w-full max-w-[816px] object-contain"
+                  style={{ background: "transparent" }}
+                />
+              </div>
+
+              {/* Right: Feature Cards */}
+              <div className="relative w-full max-w-xl h-125 lg:h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
                 {features.map((feature, index) => (
-                  <FeatureCard
+                  <div
                     key={feature.id}
-                    feature={feature}
-                    index={index}
-                    total={features.length}
-                    scrollYProgress={scrollYProgress}
-                  />
+                    ref={(el) => { cardRefs.current[index] = el; }}
+                    style={{ zIndex: index + 1 }}
+                    className="absolute inset-0 will-change-transform"
+                  >
+                    <div
+                      data-card-inner
+                      className="w-full h-full will-change-transform origin-center"
+                    >
+                      <div className="relative bg-black rounded-[32px] lg:rounded-[40px] p-8 lg:p-12 h-full flex flex-col justify-center">
+                        <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-4">
+                          {feature.title}
+                        </h3>
+                        <p className="text-neutral-400 text-base lg:text-lg leading-relaxed max-w-sm">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -77,117 +209,5 @@ export function WhySection() {
         </div>
       </div>
     </div>
-  );
-}
-
-interface FeatureCardProps {
-  feature: {
-    id: number;
-    title: string;
-    description: string;
-  };
-  index: number;
-  total: number;
-  scrollYProgress: MotionValue<number>;
-}
-
-function FeatureCard({
-  feature,
-  index,
-  total,
-  scrollYProgress,
-}: FeatureCardProps) {
-  // Each card has its own segment of the scroll
-  const segmentSize = 1 / total;
-  const start = index * segmentSize;
-  const enterEnd = start + segmentSize * 0.5; // Card fully visible at 50% of its segment
-
-  // When next card starts entering
-  const nextStart = (index + 1) * segmentSize;
-  const exitEnd = nextStart + segmentSize * 0.5;
-
-  // Incoming animation - slide up from bottom
-  const y = useTransform(
-    scrollYProgress,
-    index === 0 ? [0, 1] : [start, enterEnd],
-    index === 0 ? ["0%", "0%"] : ["100%", "0%"],
-    { clamp: true }
-  );
-
-  // Scale animation - starts slightly smaller, grows to full, then shrinks when replaced
-  const scale = useTransform(
-    scrollYProgress,
-    index === 0
-      ? index === total - 1
-        ? [0, 1]
-        : [0, nextStart, exitEnd]
-      : index === total - 1
-        ? [start, enterEnd]
-        : [start, enterEnd, nextStart, exitEnd],
-    index === 0
-      ? index === total - 1
-        ? [1, 1]
-        : [1, 1, 0.9]
-      : index === total - 1
-        ? [0.95, 1]
-        : [0.95, 1, 1, 0.9],
-    { clamp: true }
-  );
-
-  // Exit animation - blur when next card comes
-  const blur = useTransform(
-    scrollYProgress,
-    index === total - 1 ? [0, 1] : [nextStart, exitEnd],
-    index === total - 1 ? [0, 0] : [0, 8],
-    { clamp: true }
-  );
-
-  // Exit animation - fade slightly when next card comes
-  const opacity = useTransform(
-    scrollYProgress,
-    index === total - 1 ? [0, 1] : [nextStart, exitEnd],
-    index === total - 1 ? [1, 1] : [1, 0.6],
-    { clamp: true }
-  );
-
-  return (
-    <motion.div
-      style={{
-        y,
-        zIndex: index + 1,
-      }}
-      className="absolute inset-0 will-change-transform"
-    >
-      <motion.div
-        style={{
-          scale,
-          opacity,
-          filter: useTransform(blur, (v) => `blur(${v}px)`),
-        }}
-        className="w-full h-full will-change-transform origin-center"
-      >
-        {/* Main card */}
-        <div className="relative bg-black rounded-[32px] lg:rounded-[40px] p-8 lg:p-12 h-full flex flex-col justify-center">
-          <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-4">
-            {feature.title}
-          </h3>
-          <p className="text-neutral-400 text-base lg:text-lg leading-relaxed max-w-sm">
-            {feature.description}
-          </p>
-
-          {/* Card indicator */}
-          <div className="absolute bottom-8 left-8 lg:bottom-12 lg:left-12 flex gap-2">
-            {Array.from({ length: total }).map((_, i) => (
-              <div
-                key={i}
-                className={`w-2 h-2 rounded-full ${
-                  i === index ? "bg-coral" : "bg-neutral-700"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
   );
 }
