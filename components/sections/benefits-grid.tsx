@@ -23,8 +23,8 @@ const benefits = [
 
 export function BenefitsGrid() {
   return (
-    <section className="bg-black pb-32">
-      <div className="container-main">
+    <section className="bg-black pb-10 md:pb-30">
+      <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1.5rem,5vw,2rem)]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {benefits.map((benefit, index) => (
             <motion.div
@@ -45,7 +45,7 @@ export function BenefitsGrid() {
                 />
               </div>
               <div>
-                <h3 className="font-heading font-bold italic text-white mb-3">
+                <h3 className="font-heading font-bold text-white mb-3">
                   {benefit.title}
                 </h3>
                 <p className="text-white text-base leading-relaxed">

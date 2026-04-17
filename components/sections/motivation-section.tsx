@@ -29,7 +29,7 @@ export function MotivationSection() {
       </ScrollVelocityContainer>
 
       {/* Centered Video Container */}
-      <div className="container-main relative z-10">
+      <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1rem,5vw,2rem)] relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}

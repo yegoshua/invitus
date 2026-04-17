@@ -43,13 +43,13 @@ export function Header() {
         "fixed left-0 right-0 z-50 transition-all duration-300",
         isScrolled
           ? "top-0 bg-[#0A0A0A]/48 backdrop-blur-md shadow-lg"
-          : "top-4 lg:top-6 bg-transparent"
+          : `${pathname === "/" ? "top-4 lg:top-6" : "top-0"} bg-transparent`
       )}
     >
       <div className="container-main">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="shrink-0">
+          <Link href="/" className="shrink-0 pl-2 lg:pl-0">
             <span className="font-heading text-xl lg:text-2xl font-bold text-white tracking-wider">
               INVITUS
             </span>
@@ -78,7 +78,7 @@ export function Header() {
           <div className="flex items-center gap-4">
             <button
               onClick={openCart}
-              className="p-2 text-white text-base leading-6 font-semibold cursor-pointer"
+              className="p-2 text-white text-base leading-6 font-medium cursor-pointer"
             >
               Кошик ({isMounted ? itemCount : 0})
             </button>

@@ -35,9 +35,9 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       {/* ===== MOBILE LAYOUT ===== */}
       <div className="lg:hidden bg-black pb-4 sm:pb-28">
         {/* Hero Card */}
-        <div className="relative mx-4 mt-4 rounded-[28px] overflow-hidden">
+        <div className="relative mx-2 mt-16 rounded-[28px]">
           {/* Background image */}
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 rounded-[28px] overflow-hidden">
             <Image
               src={product.bgImage || "/assets/img/product_bg.png"}
               alt=""
@@ -48,7 +48,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           </div>
 
           {/* 3D Model area */}
-          <div className="relative h-[340px] sm:h-[440px] md:h-[540px]">
+          <div className="relative h-[340px] sm:h-[440px] md:h-[540px] rounded-t-[28px] overflow-hidden">
             <ModelLoader
               modelUrl={product.model3dUrl}
               fallbackModelUrl="/models/black_belt-transformed.glb"
@@ -56,13 +56,15 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           </div>
 
           {/* Name / price / sizes */}
-          <div className="relative z-10 px-5 pb-6 pt-2 bg-gradient-to-t from-black/70 to-transparent">
-            <h1 className="font-heading text-h3 font-bold text-white">
-              {product.name}
-            </h1>
-            <p className="font-heading text-h3 font-bold text-white mt-1">
-              {formattedPrice}
-            </p>
+          <div className="relative z-10 pt-2 pb-6 bg-gradient-to-t from-black/70 to-transparent">
+            <div className="px-5">
+              <h1 className="font-heading text-h3 font-bold text-white">
+                {product.name}
+              </h1>
+              <p className="font-heading text-h3 font-bold text-white mt-4">
+                {formattedPrice}
+              </p>
+            </div>
             <div className="mt-4">
               <SizeSelector
                 sizes={product.sizes}
@@ -85,10 +87,10 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       </div>
 
       {/* Fixed CTA — mobile only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm">
         <button
           onClick={handleAddToCart}
-          className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full bg-coral text-black py-5"
+          className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-3xl bg-coral text-black py-5"
         >
           Додати в кошик
           <Plus className="w-5 h-5" />

@@ -156,10 +156,10 @@ export function WhySection() {
         style={{ height: "1000vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">
-          <div className="container-main relative z-10 h-full flex flex-col py-16 lg:py-30">
+          <div className="container-main relative z-10 h-full flex flex-col py-6 lg:py-30">
             {/* Heading */}
             <h2 className="text-h2 font-bold text-black leading-[1.1] max-w-xl">
-              Чому наші пояси —
+              Чому наші пояси —&nbsp;
               <br className="lg:block hidden" />
               це база
             </h2>
@@ -180,7 +180,7 @@ export function WhySection() {
               </div>
 
               {/* Right: Feature Cards */}
-              <div className="relative w-full max-w-xl h-125 lg:h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
+              <div className="relative w-full max-w-xl h-[264px] lg:h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
                 {features.map((feature, index) => (
                   <div
                     key={feature.id}
@@ -192,11 +192,11 @@ export function WhySection() {
                       data-card-inner
                       className="w-full h-full will-change-transform origin-center"
                     >
-                      <div className="relative bg-black rounded-[32px] lg:rounded-[40px] p-8 lg:p-12 h-full flex flex-col justify-center">
-                        <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-4">
+                      <div className="relative bg-black rounded-[32px] lg:rounded-[40px] p-6 lg:p-12 h-full flex flex-col justify-start lg:justify-center">
+                        <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-3 lg:mb-4">
                           {feature.title}
                         </h3>
-                        <p className="text-neutral-400 text-base lg:text-lg leading-relaxed max-w-sm">
+                        <p className="text-white text-base lg:text-lg leading-relaxed max-w-sm">
                           {feature.description}
                         </p>
                       </div>

@@ -42,7 +42,7 @@ export function ProductInfoAccordion({
           <AccordionTrigger className="text-white font-heading text-base leading-6 font-bold tracking-[0.03em] py-6 cursor-pointer">
             {item.title}
           </AccordionTrigger>
-          <AccordionContent className="text-neutral-300 text-sm leading-relaxed">
+          <AccordionContent className="text-sm leading-relaxed">
             {item.content}
           </AccordionContent>
         </AccordionItem>

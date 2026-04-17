@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
-import { ArrowLeft, ArrowRight, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 // Gym/fitness videos from Pexels (portrait orientation)
 const testimonials = [
@@ -30,7 +30,15 @@ export function TestimonialsSection() {
 
   const [selectedIndex, setSelectedIndex] = useState(5);
   const [isMuted, setIsMuted] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1280);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -93,7 +101,7 @@ export function TestimonialsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12 lg:mb-20"
+          className="text-left md:text-center mb-10 lg:mb-20"
         >
           <h2 className="text-h2 font-bold text-white">
             Ті, хто вже рвуть рекорди
@@ -103,20 +111,19 @@ export function TestimonialsSection() {
 
       {/* Carousel - full width */}
       <div className="relative">
-        <div className="overflow-hidden" ref={emblaRef}>
+        <div ref={emblaRef}>
           <div className="flex">
             {testimonials.map((testimonial, index) => {
               const isSelected = index === selectedIndex;
-              // Scale factor: 330/384 ≈ 0.86 for width, 568/682 ≈ 0.83 for height
-              const scale = isSelected ? 1 : 0.83;
+              const scale = isSelected ? 1 : (isMobile ? 0.95 : 0.83);
 
               return (
                 <div
                   key={testimonial.id}
-                  className="flex-[0_0_384px] px-2 lg:px-3 h-[720px] flex items-center justify-center"
+                  className="flex-[0_0_318px] xl:flex-[0_0_384px] px-2 lg:px-3 h-[604px] xl:h-[720px] flex items-center justify-center"
                 >
                   <div
-                    className={`relative bg-surface rounded-[32px] lg:rounded-[40px] overflow-hidden w-[384px] h-[682px] ${
+                    className={`relative bg-surface rounded-[32px] lg:rounded-[40px] overflow-hidden w-[318px] h-[566px] xl:w-[384px] xl:h-[682px] ${
                       !isSelected ? "cursor-pointer" : ""
                     }`}
                     style={{
@@ -142,14 +149,16 @@ export function TestimonialsSection() {
                     {isSelected && (
                       <button
                         onClick={toggleMute}
-                        className="absolute top-4 right-4 p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-black/70 transition-colors z-20"
+                        className="absolute bottom-6 right-6 z-20"
                         aria-label={isMuted ? "Unmute" : "Mute"}
                       >
-                        {isMuted ? (
-                          <VolumeX className="w-5 h-5" />
-                        ) : (
-                          <Volume2 className="w-5 h-5" />
-                        )}
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {isMuted ? (
+                            <path d="M16.25 16.8001L14.05 14.6001L16.65 12.0001L14.05 9.4001L16.25 7.2001L18.85 9.8001L21.45 7.2001L23.65 9.4001L21.05 12.0001L23.65 14.6001L21.45 16.8001L18.85 14.2001L16.25 16.8001ZM1.34998 15.8501V8.1501H5.84998L12.05 1.9751V22.0251L5.84998 15.8501H1.34998ZM8.89998 9.5751L7.14998 11.3001H4.49998V12.7001H7.14998L8.89998 14.4251V9.5751Z" fill="white"/>
+                          ) : (
+                            <path d="M18.5 12C18.5 10.23 17.48 8.71 16 7.97V16.02C17.48 15.29 18.5 13.77 18.5 12ZM5.84998 15.8501H1.34998V8.1501H5.84998L12.05 1.9751V22.0251L5.84998 15.8501Z" fill="white"/>
+                          )}
+                        </svg>
                       </button>
                     )}
                   </div>
@@ -160,7 +169,7 @@ export function TestimonialsSection() {
         </div>
 
         {/* Navigation buttons */}
-        <div className="flex justify-center gap-3 mt-8 lg:mt-12">
+        <div className="hidden xl:flex justify-center gap-3 mt-8 lg:mt-12">
           <button
             onClick={scrollPrev}
             className="w-12 h-12 flex items-center justify-center border-2 border-coral rounded-[16px] text-coral hover:bg-coral hover:text-black transition-all duration-300"

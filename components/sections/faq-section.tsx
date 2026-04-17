@@ -46,14 +46,16 @@ export function FAQSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12 lg:mb-20"
+          className="text-center mb-10 lg:mb-20"
         >
           <h2 className="font-heading sm:text-center text-left text-h2 font-bold text-white">
             Щось неясно? Розповідаємо як є
           </h2>
         </motion.div>
+      </div>
 
-        {/* Accordion */}
+      {/* Accordion */}
+      <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1rem,5vw,2rem)]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -65,12 +67,12 @@ export function FAQSection() {
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="bg-surface rounded-2xl lg:rounded-3xl border-none overflow-hidden"
+                className="bg-surface rounded-3xl border-none overflow-hidden"
               >
-                <AccordionTrigger className="font-heading text-white text-left text-base lg:text-2xl font-bold hover:no-underline px-6 py-5 lg:p-12">
+                <AccordionTrigger className="font-heading text-white text-left text-base lg:text-2xl font-bold hover:no-underline px-6 py-5 data-[state=open]:max-lg:pb-3 lg:p-12 data-[state=open]:lg:pb-4">
                   {item.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-neutral-400 text-base lg:text-lg lg:px-12 px-6 pb-5 lg:pb-12">
+                <AccordionContent className="text-white text-base lg:text-lg lg:px-12 px-6 pb-5 lg:pb-12">
                   {item.answer}
                 </AccordionContent>
               </AccordionItem>

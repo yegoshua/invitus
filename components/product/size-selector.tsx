@@ -16,7 +16,7 @@ export function SizeSelector({
   if (!sizes || sizes.length === 0) return null;
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide lg:flex-wrap lg:gap-4">
+    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide px-5 lg:px-0 lg:flex-wrap lg:gap-4">
       {sizes.map((size) => (
         <ChipButton
           key={size}

@@ -39,8 +39,8 @@ Next.js 16 App Router application for INVITUS — a Ukrainian powerlifting equip
 ### Styling
 - Tailwind CSS v4 with CSS variables for theming in `app/globals.css`
 - Custom typography utilities: `text-h1`, `text-h2`, `text-h3`, `text-body-1`, `text-body-2`
-- Custom layout utility: `container-main` (centered container, max 88rem, responsive padding)
-- Custom theme variable: `--radius-section: 48px` for section border radius
+- Custom layout utility: `container-main` (centered container, max 88rem, `clamp(1.5rem, 5vw, 2rem)` padding — min 24px on mobile). Override via `[--container-px:value]`.
+- Custom theme variable: `--radius-section` for section border radius — 32px on mobile, 48px on md+ (768px+)
 - Primary brand color: `#E74223` (coral)
 - Animation utilities from `tw-animate-css`
 - Class merging via `cn()` from `lib/utils.ts` (clsx + tailwind-merge)

@@ -19,7 +19,7 @@ export function ChipButton({
     <button
       onClick={onClick}
       className={cn(
-        "px-6 py-4 rounded-[16px] cursor-pointer font-heading text-base leading-6 font-bold tracking-[0.1em] text-center transition-colors whitespace-nowrap",
+        "px-6 py-4 rounded-4xl cursor-pointer font-heading text-base leading-6 font-bold tracking-[0.1em] text-center transition-colors whitespace-nowrap",
         isActive
           ? "bg-white text-black"
           : "bg-[#0000007A] text-white",

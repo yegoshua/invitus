@@ -69,20 +69,20 @@ const FEATURES: TFeature[] = [
 export function FeaturesGrid() {
   return (
     <section className="bg-black pt-20 lg:pt-45 overflow-hidden">
-      <div className="container-main">
+      <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1rem,5vw,2rem)]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="mb-10 md:mb-16"
         >
-          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl text-left md:text-center font-bold text-white mb-4">
             Ми знаємо, що тобі потрібно
           </h2>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid lg:grid-cols-2 gap-4 lg:gap-8">
           {FEATURES.map((feature, index) => (
             <motion.div
               key={feature.title ?? index}
@@ -105,15 +105,15 @@ function FeatureCard({ feature }: { feature: TFeature }) {
   if (feature.image) {
     return (
       <div
-        className={`relative bg-coral rounded-2xl p-8 lg:p-10 h-[468px] lg:h-full transition-transform duration-300 group-hover:-translate-y-2 flex items-center justify-center`}
+        className={`relative bg-coral rounded-4xl px-0 lg:p-10 h-[468px] lg:h-full transition-transform duration-300 group-hover:-translate-y-2 flex items-center justify-center`}
       >
-        <Image src={feature.image} alt="" className="max-w-[374px] w-full" />
+        <Image src={feature.image} alt="" className="max-w-[394px] w-full" />
       </div>
     );
   }
   return (
     <div
-      className={`relative ${feature.color} rounded-2xl p-8 lg:pt-32 h-[468px] lg:h-full transition-transform duration-300 group-hover:-translate-y-2 overflow-hidden`}
+      className={`relative ${feature.color} rounded-4xl p-8 lg:pt-32 h-[468px] lg:h-full transition-transform duration-300 group-hover:-translate-y-2 overflow-hidden`}
     >
       {/* Big background number */}
       <div className="absolute inset-x-0 bottom-0 flex justify-center min-[744px]:justify-start pointer-events-none overflow-hidden">
@@ -132,12 +132,12 @@ function FeatureCard({ feature }: { feature: TFeature }) {
 
       {/* Text content — above distortion */}
       <div className="relative z-20 flex flex-col h-full">
-        <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-4">
+        <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-3 md:mb-4">
           {feature.title}
         </h3>
         <p
           className={`${
-            feature.color === "bg-coral" ? "text-white/80" : "text-neutral-400"
+            feature.color === "bg-coral" ? "text-white/80" : "text-white"
           } leading-relaxed`}
         >
           {feature.description}

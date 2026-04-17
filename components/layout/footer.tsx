@@ -19,7 +19,7 @@ export function Footer() {
     <footer className="bg-black text-white pt-12 lg:pt-16 pb-0">
       <div className="container-main">
         {/* Links Row */}
-        <div className="flex flex-col lg:flex-row justify-between gap-8 lg:gap-0 mb-16 lg:mb-24">
+        <div className="flex flex-col lg:flex-row justify-between gap-8 lg:gap-0 mb-20 lg:mb-24">
           {/* Category Links */}
           <nav className="flex flex-wrap gap-6 lg:gap-10">
             {categoryLinks.map((link) => (

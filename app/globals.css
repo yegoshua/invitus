@@ -60,7 +60,7 @@
 
   /* Layout Constants */
   --container-max-width: 88rem; /* 1408px */
-  --radius-section: 48px;
+  --radius-section: 32px;
   
   /* Radius calculation */
   --radius-sm: calc(var(--radius) - 4px);
@@ -72,12 +72,22 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+@media (min-width: 768px) {
+  :root {
+    --radius-section: 48px;
+  }
+}
+
 /* --- 2. РЕЄСТРАЦІЯ УТИЛІТ (Твоя типографіка) --- */
 /* Використання @utility дозволяє apply працювати коректно */
 
 @utility text-h1 {
-  font-size: 40px;
-  line-height: 52px;
+  font-size: 32px;
+  line-height: 40px;
+  @media (min-width: 768px) {
+    font-size: 40px;
+    line-height: 52px;
+  }
   @media (min-width: 1024px) {
     font-size: 56px;
     line-height: 68px;
@@ -135,7 +145,7 @@
   width: 100%;
   max-width: var(--container-max-width);
   margin-inline: auto;
-  padding-inline: clamp(1rem, 5vw, 2rem);
+  padding-inline: var(--container-px, clamp(1.5rem, 5vw, 2rem));
 }
 
 @utility scrollbar-hide {

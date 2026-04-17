@@ -30,7 +30,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="flex-1 md:text-h3 lg:text-h1 text-white leading-[1.1] max-w-4xl"
+              className="flex-1 text-h1 text-white max-w-4xl"
             >
               Твій Gym Bro
               <br />
@@ -44,7 +44,7 @@ export function HeroSection() {
               transition={{ duration: 0.8, delay: 0.4 }}
             >
               <CTALink href="/shop/belts" variant="solid" size="large">
-                ЗАБРАТИ СВІЙ ПОЯС
+                ЗАБРАТИ<span className="hidden lg:inline"> СВІЙ</span> ПОЯС
               </CTALink>
             </motion.div>
           </div>
