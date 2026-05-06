@@ -15,6 +15,7 @@ import {
   getAllCategorySlugs,
   getProducts,
 } from "@/lib/api";
+import { ALL_FILTER_SLUG } from "@/lib/filter";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -78,15 +79,11 @@ async function CatalogContent({
     notFound();
   }
 
-  const activeFilter = filter || "all";
-
   return (
     <>
       <CatalogHero
         categoryName={category.name}
         productCount={products.length}
-        filters={category.filters}
-        activeFilter={activeFilter}
       />
       <CatalogGrid products={products} />
     </>
@@ -99,7 +96,7 @@ export default async function ShopCategoryPage({
 }: PageProps) {
   const { category: categorySlug } = await params;
   const { filter } = await searchParams;
-  const activeFilter = filter || "all";
+  const activeFilter = filter || ALL_FILTER_SLUG;
 
   return (
     <>

@@ -1,4 +1,6 @@
-// Strapi API response types
+// Raw Strapi response shapes. PRIVATE to the adapter — do not import from UI code.
+// All fields here mirror the Strapi schema and have no business meaning.
+// The translation to domain types happens in lib/api.ts.
 
 export interface StrapiResponse<T> {
   data: T;
@@ -10,6 +12,17 @@ export interface StrapiResponse<T> {
       total: number;
     };
   };
+}
+
+export interface StrapiMediaFormat {
+  name: string;
+  hash: string;
+  ext: string;
+  mime: string;
+  width: number;
+  height: number;
+  size: number;
+  url: string;
 }
 
 export interface StrapiMedia {
@@ -29,18 +42,6 @@ export interface StrapiMedia {
   url: string;
 }
 
-export interface StrapiMediaFormat {
-  name: string;
-  hash: string;
-  ext: string;
-  mime: string;
-  width: number;
-  height: number;
-  size: number;
-  url: string;
-}
-
-// Component types
 export interface StrapiVariant {
   id: number;
   sku: string | null;
@@ -61,7 +62,6 @@ export interface StrapiGalleryImage {
   image: StrapiMedia;
 }
 
-// Collection types
 export interface StrapiCategory {
   id: number;
   documentId: string;
@@ -114,37 +114,4 @@ export interface StrapiProduct {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
-}
-
-// Transformed types for frontend use (matching existing Product interface)
-export interface TransformedProduct {
-  id: string;
-  documentId: string;
-  name: string;
-  slug: string;
-  price: number;
-  images: { url: string; alt: string }[];
-  category?: string;
-  description?: string;
-  sizes?: string[];
-  filterTags?: string[];
-  // Extended fields
-  shortDescription?: string;
-  howToMeasure?: string;
-  careInstructions?: string;
-  heroImage?: string;
-  bgImage?: string;
-  model3dUrl?: string;
-  galleryImages?: { src: string; alt: string }[];
-  variants?: { name: string; stock: number; sku?: string; priceModifier?: number }[];
-  attributes?: { name: string; value: string }[];
-  featured?: boolean;
-}
-
-export interface TransformedCategory {
-  slug: string;
-  name: string;
-  description?: string;
-  image?: string;
-  filters: { slug: string; label: string }[];
 }

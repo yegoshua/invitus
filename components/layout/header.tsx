@@ -2,26 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useCartStore } from "@/stores/cart";
+import { useCartCount, useOpenCart } from "@/hooks/use-cart";
 import { useMenuStore } from "@/stores/menu";
 import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { href: "/shop/belts", label: "Атлетичні пояси" },
-  { href: "/shop/shirts", label: "Футболки" },
-  { href: "/shop/wrist-wraps", label: "Кистьові бинти" },
-  { href: "/shop/straps", label: "Лямки-вісімки" },
-  { href: "/shop/knee-sleeves", label: "Наколінники" },
-];
+import { navLinks } from "@/content/navigation";
+import MenuIcon from "@/public/assets/icons/menu-icon.svg";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
-  const itemCount = useCartStore((state) => state.getItemCount());
-  const openCart = useCartStore((state) => state.openCart);
+  const itemCount = useCartCount();
+  const openCart = useOpenCart();
   const openMenu = useMenuStore((state) => state.openMenu);
 
   useEffect(() => {
@@ -43,7 +36,7 @@ export function Header() {
         "fixed left-0 right-0 z-50 transition-all duration-300",
         isScrolled
           ? "top-0 bg-[#0A0A0A]/48 backdrop-blur-md shadow-lg"
-          : `${pathname === "/" ? "top-4 lg:top-6" : "top-0"} bg-transparent`
+          : "top-4 lg:top-6 bg-transparent"
       )}
     >
       <div className="container-main">
@@ -75,7 +68,7 @@ export function Header() {
           </nav>
 
           {/* Right side: Cart + Mobile menu */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={openCart}
               className="p-2 text-white text-base leading-6 font-medium cursor-pointer"
@@ -87,7 +80,7 @@ export function Header() {
               className="lg:hidden p-2 text-white cursor-pointer"
               onClick={openMenu}
             >
-              <Menu className="w-6 h-6" />
+              <MenuIcon className="w-6 h-6" />
             </button>
           </div>
         </div>

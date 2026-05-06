@@ -5,20 +5,7 @@ import { X } from "lucide-react";
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMenuStore } from "@/stores/menu";
-
-const navLinks = [
-  { href: "/shop/belts", label: "Атлетичні пояси" },
-  { href: "/shop/shirts", label: "Футболки" },
-  { href: "/shop/wrist-wraps", label: "Кистьові бинти" },
-  { href: "/shop/straps", label: "Лямки-вісімки" },
-  { href: "/shop/knee-sleeves", label: "Наколінники" },
-];
-
-const socialLinks = [
-  { href: "https://instagram.com/invitus_ua", label: "Instagram" },
-  { href: "https://t.me/invitus_ua", label: "Telegram" },
-  { href: "https://tiktok.com/@invitus_ua", label: "TikTok" },
-];
+import { navLinks, socialLinks } from "@/content/navigation";
 
 export function MobileMenuDrawer() {
   const isOpen = useMenuStore((state) => state.isOpen);

@@ -3,24 +3,7 @@
 import Link from "next/link";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-
-function ArrowRightUpIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M6.65078 18.825L4.42578 16.6L13.4508 7.57499H5.67578V4.42499H18.8258V17.575H15.6758V9.79999L6.65078 18.825Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
+import ArrowOutForwardIcon from "@/public/assets/icons/arrow-outforward-icon.svg";
 
 const ctaLinkVariants = cva(
   "group inline-flex w-full lg:w-auto items-center justify-center gap-[10px] lg:gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-[24px] transition-all duration-300",
@@ -82,7 +65,7 @@ export function CTALink({
       {...props}
     >
       {children}
-      <ArrowRightUpIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+      <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
     </Link>
   );
 }

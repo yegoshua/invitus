@@ -57,8 +57,6 @@ export default async function ProductPage({ params }: Props) {
     products.filter((p) => p.slug !== slug).slice(0, 4)
   );
 
-  console.log("product page = ", product)
-
   return (
     <>
       <Header />

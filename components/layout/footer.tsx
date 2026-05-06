@@ -51,10 +51,26 @@ export function Footer() {
 
         {/* Large Logo */}
       </div>
-       <div className="w-full overflow-hidden">
-          <span className="font-heading text-[20vw] lg:text-[18vw] font-bold text-white leading-none block -mb-[0.15em]">
-            INVITUS
-          </span>
+       <div className="w-full">
+          <svg
+            viewBox="0 0 100 18"
+            className="w-full block"
+            aria-label="INVITUS"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <text
+              x="0"
+              y="16"
+              fontFamily="var(--font-druk)"
+              fontWeight="900"
+              fontSize="20"
+              fill="white"
+              textLength="100"
+              lengthAdjust="spacingAndGlyphs"
+            >
+              INVITUS
+            </text>
+          </svg>
         </div>
     </footer>
   );

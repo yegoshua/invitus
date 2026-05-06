@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ProductCard } from "@/components/ui/product-card";
+import { FadeUp } from "@/components/ui/fade-up";
 import type { Product } from "@/types";
 
 interface CatalogGridProps {
@@ -13,13 +13,9 @@ export function CatalogGrid({ products }: CatalogGridProps) {
     return (
       <section className="bg-black py-12 lg:py-20">
         <div className="container-main">
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center text-neutral-400 text-xl"
-          >
+          <p className="text-center text-neutral-400 text-xl">
             Товарів не знайдено
-          </motion.p>
+          </p>
         </div>
       </section>
     );
@@ -42,20 +38,16 @@ export function CatalogGrid({ products }: CatalogGridProps) {
       <div className="container-main">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-12">
           {products.map((product, index) => {
-            const size = getItemSize(index);
-            const isLarge = size === "large";
-
+            const isLarge = getItemSize(index) === "large";
             return (
-              <motion.div
+              <FadeUp
                 key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: (index % 4) * 0.1 }}
+                duration={0.5}
+                delay={(index % 4) * 0.1}
                 className={isLarge ? "lg:col-span-2" : "lg:col-span-1"}
               >
-                <ProductCard product={product} variant="dark" />
-              </motion.div>
+                <ProductCard product={product} />
+              </FadeUp>
             );
           })}
         </div>

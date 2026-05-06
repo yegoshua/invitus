@@ -2,20 +2,13 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { FilterChip } from "@/components/ui/filter-chip";
+
 interface CatalogHeroProps {
   categoryName: string;
   productCount: number;
-  filters: { slug: string; label: string }[];
-  activeFilter: string;
 }
 
-export function CatalogHero({
-  categoryName,
-  productCount,
-  filters,
-  activeFilter,
-}: CatalogHeroProps) {
+export function CatalogHero({ categoryName, productCount }: CatalogHeroProps) {
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
       <section className="relative pt-28 pb-12 lg:pt-36 lg:pb-16 overflow-hidden rounded-section">
@@ -36,28 +29,10 @@ export function CatalogHero({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="font-heading text-[32px] lg:text-[48px] font-bold text-white mb-8 lg:mb-12"
+            className="font-heading text-[32px] lg:text-[48px] font-bold text-white"
           >
-            {categoryName}{" "}
-            ({productCount})
+            {categoryName} ({productCount})
           </motion.h1>
-
-          {/* Filter chips */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide lg:flex-wrap lg:overflow-visible"
-          >
-            {filters.map((filter) => (
-              <FilterChip
-                key={filter.slug}
-                slug={filter.slug}
-                label={filter.label}
-                isActive={activeFilter === filter.slug}
-              />
-            ))}
-          </motion.div>
         </div>
       </section>
     </div>

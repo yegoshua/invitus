@@ -1,29 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
-import { useCartStore } from "@/stores/cart";
-import type { TransformedProduct } from "@/types/strapi";
+import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
+import { formatPriceWithCurrency } from "@/lib/format";
+import type { Product } from "@/types";
 import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
 import { ModelLoader } from "@/components/models/model-loader";
+import { ProductMedia } from "@/components/ui/product-media";
+import ArrowOutForwardIcon from "@/public/assets/icons/arrow-outforward-icon.svg";
 
 interface ProductPageContentProps {
-  product: TransformedProduct;
+  product: Product;
 }
 
-export function ProductPageContent({ product }: ProductPageContentProps) {
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const addItem = useCartStore((state) => state.addItem);
-  const openCart = useCartStore((state) => state.openCart);
+const PRODUCT_BG_FALLBACK = "/assets/img/product_bg.png";
+const MODEL_FALLBACK = "/models/black_belt-transformed.glb";
 
-  const formattedPrice = new Intl.NumberFormat("uk-UA", {
-    style: "currency",
-    currency: "UAH",
-    minimumFractionDigits: 0,
-  }).format(product.price);
+export function ProductPageContent({ product }: ProductPageContentProps) {
+  const [selectedSize, setSelectedSize] = useState<string | null>(product.sizes?.[0] ?? null);
+  const addItem = useAddToCart();
+  const openCart = useOpenCart();
+
+  const formattedPrice = formatPriceWithCurrency(product.price);
 
   const handleAddToCart = () => {
     addItem(product, selectedSize ?? undefined);
@@ -33,13 +34,14 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   return (
     <>
       {/* ===== MOBILE LAYOUT ===== */}
-      <div className="lg:hidden bg-black pb-4 sm:pb-28">
+      <div className="lg:hidden bg-black pb-4 md:pb-28">
         {/* Hero Card */}
         <div className="relative mx-2 mt-16 rounded-[28px]">
           {/* Background image */}
           <div className="absolute inset-0 rounded-[28px] overflow-hidden">
-            <Image
-              src={product.bgImage || "/assets/img/product_bg.png"}
+            <ProductMedia
+              image={product.bgImage}
+              fallbackSrc={PRODUCT_BG_FALLBACK}
               alt=""
               fill
               className="object-cover"
@@ -51,7 +53,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           <div className="relative h-[340px] sm:h-[440px] md:h-[540px] rounded-t-[28px] overflow-hidden">
             <ModelLoader
               modelUrl={product.model3dUrl}
-              fallbackModelUrl="/models/black_belt-transformed.glb"
+              fallbackModelUrl={MODEL_FALLBACK}
             />
           </div>
 
@@ -65,7 +67,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                 {formattedPrice}
               </p>
             </div>
-            <div className="mt-4">
+            <div className="mt-6">
               <SizeSelector
                 sizes={product.sizes}
                 selectedSize={selectedSize}
@@ -76,7 +78,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         </div>
 
         {/* Accordion below card */}
-        <div className="mt-4 px-4">
+        <div className="mt-4 px-2 md:px-4">
           <ProductInfoAccordion
             description={product.description}
             howToMeasure={product.howToMeasure}
@@ -101,8 +103,9 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       <section className="hidden lg:block relative h-screen w-full overflow-hidden bg-black">
         {/* Background image */}
         <div className="absolute inset-0 z-0">
-          <Image
-            src={product.bgImage || "/assets/img/product_bg.png"}
+          <ProductMedia
+            image={product.bgImage}
+            fallbackSrc={PRODUCT_BG_FALLBACK}
             alt=""
             fill
             className="object-cover"
@@ -113,7 +116,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         {/* 3D Product model */}
         <ModelLoader
           modelUrl={product.model3dUrl}
-          fallbackModelUrl="/models/black_belt-transformed.glb"
+          fallbackModelUrl={MODEL_FALLBACK}
         />
 
         {/* Bottom content overlay */}
@@ -158,19 +161,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                     className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 px-12 py-5"
                   >
                     Додати в кошик
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
-                    >
-                      <path
-                        d="M6.65078 18.825L4.42578 16.6L13.4508 7.57499H5.67578V4.42499H18.8258V17.575H15.6758V9.79999L6.65078 18.825Z"
-                        fill="currentColor"
-                      />
-                    </svg>
+                    <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                   </button>
                 </motion.div>
               </div>

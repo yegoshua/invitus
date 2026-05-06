@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Product, CartItem, CartState } from "@/types";
+import type { Product, CartState } from "@/types";
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -13,29 +13,27 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product: Product, size?: string) => {
         const items = get().items;
-        const existingItem = items.find(
-          (item) => item.id === product.id && item.size === size
+        const existing = items.find(
+          (item) => item.product.id === product.id && item.size === size
         );
 
-        if (existingItem) {
+        if (existing) {
           set({
             items: items.map((item) =>
-              item.id === product.id && item.size === size
+              item.product.id === product.id && item.size === size
                 ? { ...item, quantity: item.quantity + 1 }
                 : item
             ),
           });
         } else {
-          set({
-            items: [...items, { ...product, quantity: 1, size }],
-          });
+          set({ items: [...items, { product, quantity: 1, size }] });
         }
       },
 
       removeItem: (productId: string, size?: string) => {
         set({
           items: get().items.filter(
-            (item) => !(item.id === productId && item.size === size)
+            (item) => !(item.product.id === productId && item.size === size)
           ),
         });
       },
@@ -48,30 +46,31 @@ export const useCartStore = create<CartState>()(
 
         set({
           items: get().items.map((item) =>
-            item.id === productId && item.size === size
+            item.product.id === productId && item.size === size
               ? { ...item, quantity }
               : item
           ),
         });
       },
 
-      clearCart: () => {
-        set({ items: [] });
-      },
+      clearCart: () => set({ items: [] }),
 
-      getTotal: () => {
-        return get().items.reduce(
-          (total, item) => total + item.price * item.quantity,
+      getTotal: () =>
+        get().items.reduce(
+          (total, item) => total + item.product.price * item.quantity,
           0
-        );
-      },
+        ),
 
-      getItemCount: () => {
-        return get().items.reduce((count, item) => count + item.quantity, 0);
-      },
+      getItemCount: () =>
+        get().items.reduce((count, item) => count + item.quantity, 0),
     }),
     {
       name: "invitus-cart",
+      // CartItem changed from `Product & { quantity, size }` to
+      // `{ product, quantity, size }`. Bump version so previously persisted
+      // carts get cleared instead of crashing on shape mismatch.
+      version: 2,
+      migrate: () => ({ items: [], isOpen: false } as Partial<CartState>),
     }
   )
 );

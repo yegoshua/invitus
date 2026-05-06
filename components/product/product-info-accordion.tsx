@@ -37,7 +37,7 @@ export function ProductInfoAccordion({
         <AccordionItem
           key={item.id}
           value={item.id}
-          className={cn("bg-[#0000007A] backdrop-blur-sm rounded-2xl border-none px-5", itemClassName)}
+          className={cn("bg-[#0000007A] backdrop-blur-sm rounded-3xl border-none px-5", itemClassName)}
         >
           <AccordionTrigger className="text-white font-heading text-base leading-6 font-bold tracking-[0.03em] py-6 cursor-pointer">
             {item.title}

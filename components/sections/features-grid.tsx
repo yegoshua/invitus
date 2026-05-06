@@ -1,70 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Dumbbell, Shield, Clock, LucideProps } from "lucide-react";
-import FeatureImage1 from "@/public/assets/Landing Image 1.svg";
-import FeatureImage2 from "@/public/assets/Landing Image 2.svg";
-import FeatureImage3 from "@/public/assets/Landing Image 3.svg";
+import Image from "next/image";
 import CardDistortion from "@/components/sections/benefit-card-image-bg.png";
-import Image, { StaticImageData } from "next/image";
-import { ForwardRefExoticComponent, ReactNode, RefAttributes } from "react";
-
-type TFeature = {
-  image?: StaticImageData;
-  color: string;
-  number?: string;
-  title?: string;
-  description?: string;
-  lgOrder: string;
-  icon?: ForwardRefExoticComponent<
-    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
-  >;
-};
-
-const FEATURES: TFeature[] = [
-  {
-    image: FeatureImage1,
-    color: "bg-coral",
-    lgOrder: "lg:order-1",
-  },
-  {
-    number: "20",
-    title: "+20 кг до рекорду",
-    description:
-      "Правильна фіксація корпусу допомагає підняти більше. Наші атлети регулярно б'ють особисті рекорди.",
-    icon: Dumbbell,
-    color: "bg-surface",
-    lgOrder: "lg:order-2",
-  },
-  {
-    image: FeatureImage2,
-    color: "bg-coral",
-    lgOrder: "lg:order-4",
-  },
-  {
-    number: "13",
-    title: "Залізний захист попереку",
-    description:
-      "13-міліметрова товщина забезпечує максимальний захист поперекового відділу під час важких підходів.",
-    icon: Shield,
-    color: "bg-surface",
-    lgOrder: "lg:order-3",
-  },
-  {
-    image: FeatureImage3,
-    color: "bg-coral",
-    lgOrder: "lg:order-5",
-  },
-  {
-    number: "10",
-    title: "10 років гарантії",
-    description:
-      "Ми настільки впевнені в якості наших виробів, що даємо розширену гарантію на всі пояси.",
-    icon: Clock,
-    color: "bg-surface",
-    lgOrder: "lg:order-6",
-  },
-];
+import { featureCards, type FeatureCard } from "@/content/features";
 
 export function FeaturesGrid() {
   return (
@@ -83,16 +22,16 @@ export function FeaturesGrid() {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-4 lg:gap-8">
-          {FEATURES.map((feature, index) => (
+          {featureCards.map((card, index) => (
             <motion.div
-              key={feature.title ?? index}
+              key={card.kind === "stat" ? card.title : `image-${index}`}
               initial={{ opacity: 0, y: 0, x: index % 2 !== 0 ? 100 : -100 }}
               whileInView={{ opacity: 1, y: 0, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`relative group ${feature.lgOrder}`}
+              className={`relative group ${card.lgOrder}`}
             >
-              <FeatureCard feature={feature} />
+              <FeatureCardView card={card} />
             </motion.div>
           ))}
         </div>
@@ -101,24 +40,21 @@ export function FeaturesGrid() {
   );
 }
 
-function FeatureCard({ feature }: { feature: TFeature }) {
-  if (feature.image) {
+function FeatureCardView({ card }: { card: FeatureCard }) {
+  if (card.kind === "image") {
     return (
-      <div
-        className={`relative bg-coral rounded-4xl px-0 lg:p-10 h-[468px] lg:h-full transition-transform duration-300 group-hover:-translate-y-2 flex items-center justify-center`}
-      >
-        <Image src={feature.image} alt="" className="max-w-[394px] w-full" />
+      <div className="relative bg-coral rounded-4xl h-[468px] md:h-[620px] lg:h-[770px] flex items-center justify-center overflow-hidden">
+        <Image src={card.image} alt="" className="w-full h-full object-contain" />
       </div>
     );
   }
+
   return (
-    <div
-      className={`relative ${feature.color} rounded-4xl p-8 lg:pt-32 h-[468px] lg:h-full transition-transform duration-300 group-hover:-translate-y-2 overflow-hidden`}
-    >
+    <div className="relative bg-surface rounded-4xl p-6 md:p-20 h-[468px] md:h-[620px] lg:h-[770px] overflow-hidden">
       {/* Big background number */}
       <div className="absolute inset-x-0 bottom-0 flex justify-center min-[744px]:justify-start pointer-events-none overflow-hidden">
         <span className="font-display text-[80vw] md:text-[55vw] lg:text-[30vw] font-bold text-white/5 leading-none select-none translate-y-[15%]">
-          {feature.number}
+          {card.number}
         </span>
       </div>
 
@@ -132,16 +68,19 @@ function FeatureCard({ feature }: { feature: TFeature }) {
 
       {/* Text content — above distortion */}
       <div className="relative z-20 flex flex-col h-full">
+        {card.eyebrow && (
+          <p className="text-xs lg:text-sm font-bold uppercase tracking-wider text-white/60 mb-3">
+            {card.eyebrow}
+          </p>
+        )}
         <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-3 md:mb-4">
-          {feature.title}
+          {card.title}
         </h3>
-        <p
-          className={`${
-            feature.color === "bg-coral" ? "text-white/80" : "text-white"
-          } leading-relaxed`}
-        >
-          {feature.description}
-        </p>
+        <div className="space-y-4 text-white leading-relaxed">
+          {card.description.map((paragraph, i) => (
+            <p key={i}>{paragraph}</p>
+          ))}
+        </div>
       </div>
     </div>
   );
