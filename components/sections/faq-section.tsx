@@ -11,7 +11,7 @@ import { faqItems } from "@/content/faq";
 
 export function FAQSection() {
   return (
-    <section className="bg-black lg:pt-45 lg:pb-4 pb-4 relative mt-20 lg:mt-0">
+    <section className="bg-black pt-20 lg:pt-45 lg:pb-4 pb-4 relative">
       <div className="container-main">
         {/* Heading */}
         <FadeUp className="text-center mb-10 lg:mb-20">
