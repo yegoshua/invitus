@@ -10,8 +10,8 @@ interface CatalogHeroProps {
 
 export function CatalogHero({ categoryName, productCount }: CatalogHeroProps) {
   return (
-    <div className="bg-black p-2 sm:p-3 lg:p-4">
-      <section className="relative pt-28 pb-12 lg:pt-36 lg:pb-16 overflow-hidden rounded-section">
+    <div className="bg-black pb-4 sm:p-3 lg:p-4 px-2">
+      <section className="relative py-6 lg:pt-36 lg:pb-16 overflow-hidden rounded-section mt-16 lg:mt-0">
         {/* Background image */}
         <Image
           src="/assets/img/catalog-bg.png"

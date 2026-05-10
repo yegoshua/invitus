@@ -6,8 +6,6 @@ import { Canvas, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
-  ContactShadows,
-  Float,
   useProgress,
 } from "@react-three/drei";
 import * as THREE from "three";
@@ -21,9 +19,9 @@ function CameraController() {
     if (size.width >= 1024) {
       cam.fov = 38; // desktop — slightly zoomed out
     } else if (size.width >= 768) {
-      cam.fov = 32; // tablet — zoomed in
+      cam.fov = 22; // tablet — zoomed in
     } else {
-      cam.fov = 42; // mobile
+      cam.fov = 26; // mobile — zoomed in
     }
     cam.updateProjectionMatrix();
   }, [camera, size.width]);
@@ -56,7 +54,7 @@ function LoadingOverlay() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center backdrop-blur-sm"
         >
           {/* Animated ring */}
           <div className="relative w-24 h-24 mb-6">
@@ -133,28 +131,16 @@ export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
           autoRotateSpeed={0.7}
           enableDamping
           dampingFactor={0.05}
+          minPolarAngle={Math.PI / 2.8}
+          maxPolarAngle={Math.PI / 1.7}
         />
-        <Float
-          speed={1.5}
-          rotationIntensity={0.2}
-          floatIntensity={0.4}
-          floatingRange={[-0.05, 0.05]}
-        >
-          <Suspense fallback={<FallbackModel position={[0, 0.1, 0]} />}>
-            {modelToLoad ? (
-              <DynamicModel url={modelToLoad} position={[0, 0.1, 0]} />
-            ) : (
-              <FallbackModel position={[0, 0.1, 0]} />
-            )}
-          </Suspense>
-        </Float>
-        <ContactShadows
-          position={[0, -1, 0]}
-          opacity={0.4}
-          scale={5}
-          blur={2.5}
-          far={4}
-        />
+        <Suspense fallback={<FallbackModel position={[0, 0.1, 0]} />}>
+          {modelToLoad ? (
+            <DynamicModel url={modelToLoad} position={[0, 0.1, 0]} />
+          ) : (
+            <FallbackModel position={[0, 0.1, 0]} />
+          )}
+        </Suspense>
       </Canvas>
       <LoadingOverlay />
     </div>

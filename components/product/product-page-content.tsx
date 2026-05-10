@@ -50,11 +50,13 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           </div>
 
           {/* 3D Model area */}
-          <div className="relative h-[340px] sm:h-[440px] md:h-[540px] rounded-t-[28px] overflow-hidden">
-            <ModelLoader
-              modelUrl={product.model3dUrl}
-              fallbackModelUrl={MODEL_FALLBACK}
-            />
+          <div className="py-[60px] sm:py-0 rounded-t-[28px] overflow-hidden">
+            <div className="relative h-[200px] sm:h-[340px] md:h-[420px]">
+              <ModelLoader
+                modelUrl={product.model3dUrl}
+                fallbackModelUrl={MODEL_FALLBACK}
+              />
+            </div>
           </div>
 
           {/* Name / price / sizes */}

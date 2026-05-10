@@ -30,13 +30,18 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isProductPage = pathname.startsWith("/product/");
+
   return (
     <header
       className={cn(
         "fixed left-0 right-0 z-50 transition-all duration-300",
         isScrolled
           ? "top-0 bg-[#0A0A0A]/48 backdrop-blur-md shadow-lg"
-          : "top-4 lg:top-6 bg-transparent"
+          : cn(
+              "bg-transparent",
+              isProductPage ? "top-0 lg:top-6" : "top-0 lg:top-6"
+            )
       )}
     >
       <div className="container-main">

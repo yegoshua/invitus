@@ -36,7 +36,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
   return (
     <section className="bg-black">
       <div className="container-main">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-12">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-6">
           {products.map((product, index) => {
             const isLarge = getItemSize(index) === "large";
             return (

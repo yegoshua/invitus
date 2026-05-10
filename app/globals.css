@@ -132,8 +132,14 @@
 }
 
 @utility text-btn {
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.05em;
+  @media (min-width: 768px) {
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: normal;
+  }
 }
 
 @utility text-product {

@@ -5,7 +5,7 @@ import { CTALink } from "@/components/ui/cta-link";
 
 export function HeroSection() {
   return (
-    <div className="bg-black p-2 sm:p-3 lg:p-4">
+    <div className="bg-black p-2 pt-0 sm:p-3 lg:p-4">
       <section className="relative h-[calc(100dvh-16px)] sm:h-[calc(100dvh-24px)] lg:h-[calc(100dvh-32px)] flex items-end bg-[#1a1a1a] overflow-hidden rounded-section">
         {/* Video Background */}
         <div className="absolute inset-0 z-0">
