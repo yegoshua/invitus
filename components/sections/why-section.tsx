@@ -7,6 +7,16 @@ import { beltFeatures as features } from "@/content/why-belt-features";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Seconds, relative to belt-benefits-section-video-scrub.webm (~14.17s).
+// Each tuple is [fullyVisibleStart, fullyVisibleEnd]; gaps between cards are
+// the transition windows where the previous card exits and the next enters.
+const CARD_TIMINGS: Array<[number, number]> = [
+  [0, 2],
+  [2.5, 4],
+  [5.5, 7],
+  [8, Infinity],
+];
+
 export function WhySection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -56,20 +66,24 @@ export function WhySection() {
         }
 
         // ── Card animations ──────────────────────────────────────────
+        const duration = video.duration || 1;
+        const toProgress = (s: number) => Math.min(s, duration) / duration;
+
         cardRefs.current.forEach((card, index) => {
           if (!card) return;
 
-          const segmentSize = 1 / total;
-          const start = index * segmentSize;
-          const enterEnd = start + segmentSize * 0.4;
-          const nextStart = (index + 1) * segmentSize;
-          const exitEnd = nextStart + segmentSize * 0.4;
+          const [visibleStart] = CARD_TIMINGS[index];
+          const prevVisibleEnd =
+            index > 0 ? CARD_TIMINGS[index - 1][1] : 0;
+
+          const enterStart = toProgress(prevVisibleEnd);
+          const enterEnd = toProgress(visibleStart);
 
           const inner = card.querySelector("[data-card-inner]") as HTMLElement;
           if (!inner) return;
 
           // Set initial state explicitly so reverse restores it
-          gsap.set(inner, { scale: 1, opacity: 1, filter: "blur(0px)" });
+          gsap.set(inner, { scaleX: 1, scaleY: 1, opacity: 1, filter: "blur(0px)" });
 
           // Enter: slide up from below (except first card)
           if (index > 0) {
@@ -79,27 +93,61 @@ export function WhySection() {
               ease: "power2.out",
               scrollTrigger: {
                 trigger: container,
-                start: `${start * 100}% top`,
+                start: `${enterStart * 100}% top`,
                 end: `${enterEnd * 100}% top`,
                 scrub: true,
               },
             });
           }
 
-          // Exit: scale down + blur + fade (except last card)
-          if (index < total - 1) {
+          // Exit cascade.
+          //  - Depth 1 (just-previous): stays visible at opacity 0.4 (peek)
+          //    and shrinks slightly so it sits behind the active card.
+          //  - Depth 2+ (skipped): snaps to opacity 0 the instant the NEXT
+          //    card starts entering, so it doesn't stack with depth 1.
+          for (let j = index + 1; j < total; j++) {
+            const transitionStart = toProgress(CARD_TIMINGS[j - 1][1]);
+            const transitionEnd = toProgress(CARD_TIMINGS[j][0]);
+            const depth = j - index;
+            const isImmediatePrev = depth === 1;
+
+            // Scale + blur scrub across the transition (visual cascade)
             gsap.to(inner, {
-              scale: 0.9,
-              opacity: 0.6,
-              filter: "blur(8px)",
+              scaleX: 1 - depth * 0.15,
+              scaleY: 1 - depth * 0.05,
+              filter: isImmediatePrev ? "blur(2px)" : "blur(0px)",
               ease: "power1.in",
               scrollTrigger: {
                 trigger: container,
-                start: `${nextStart * 100}% top`,
-                end: `${exitEnd * 100}% top`,
+                start: `${transitionStart * 100}% top`,
+                end: `${transitionEnd * 100}% top`,
                 scrub: true,
               },
             });
+
+            if (isImmediatePrev) {
+              // Smooth fade to peek opacity during the transition
+              gsap.to(inner, {
+                opacity: 0.4,
+                ease: "power1.in",
+                scrollTrigger: {
+                  trigger: container,
+                  start: `${transitionStart * 100}% top`,
+                  end: `${transitionEnd * 100}% top`,
+                  scrub: true,
+                },
+              });
+            } else {
+              // Hard snap to 0 the moment this becomes "skipped" (another new
+              // card entering after the just-previous), so it can't stack
+              // behind the depth-1 peek.
+              ScrollTrigger.create({
+                trigger: container,
+                start: `${transitionStart * 100}% top`,
+                onEnter: () => gsap.set(inner, { opacity: 0 }),
+                onLeaveBack: () => gsap.set(inner, { opacity: 0.4 }),
+              });
+            }
           }
         });
       }, container);
@@ -139,22 +187,22 @@ export function WhySection() {
             </h2>
 
             {/* Main content row */}
-            <div className="flex-1 flex items-center justify-between gap-8">
+            <div className="flex-1 min-h-0 flex items-center justify-between gap-8">
               {/* Left: scroll-controlled video (desktop only) */}
-              <div className="hidden lg:flex flex-1 items-center justify-center">
+              <div className="hidden lg:flex flex-1 items-center justify-center h-full">
                 <video
                   ref={videoRef}
                   src="/assets/belt-benefits-section-video-scrub.webm"
                   muted
                   playsInline
                   preload="auto"
-                  className="w-full max-w-[816px] object-contain"
+                  className="w-full max-w-[816px] max-h-full object-contain"
                   style={{ background: "transparent" }}
                 />
               </div>
 
               {/* Right: Feature Cards */}
-              <div className="relative w-full max-w-xl h-[264px] lg:h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
+              <div className="relative w-full max-w-xl h-[264px] lg:h-full lg:max-h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
                 {features.map((feature, index) => (
                   <div
                     key={feature.id}
