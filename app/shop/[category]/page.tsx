@@ -9,6 +9,7 @@ import { CatalogGrid } from "@/components/sections/catalog-grid";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { CartDrawer } from "@/components/layout/cart-drawer";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 import {
   getCategoryBySlug,
@@ -105,7 +106,7 @@ export default async function ShopCategoryPage({
         <Suspense
           fallback={
             <div className="bg-black min-h-screen pt-32 flex items-center justify-center">
-              <div className="text-white">Завантаження...</div>
+              <LoadingScreen />
             </div>
           }
         >

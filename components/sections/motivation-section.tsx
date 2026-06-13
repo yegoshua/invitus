@@ -57,7 +57,7 @@ export function MotivationSection() {
             {/* Mute/Unmute Button */}
             <button
               onClick={toggleMute}
-              className="absolute bottom-6 right-6 z-20"
+              className="absolute bottom-6 right-6 z-20 cursor-pointer"
               aria-label={isMuted ? "Unmute" : "Mute"}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

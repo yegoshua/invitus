@@ -21,7 +21,7 @@ export function FeaturesGrid() {
           </h2>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-4 lg:gap-8">
+        <div className="grid lg:grid-cols-2 gap-4">
           {featureCards.map((card, index) => (
             <motion.div
               key={card.kind === "stat" ? card.title : `image-${index}`}
@@ -43,14 +43,14 @@ export function FeaturesGrid() {
 function FeatureCardView({ card }: { card: FeatureCard }) {
   if (card.kind === "image") {
     return (
-      <div className="relative bg-coral rounded-4xl h-[468px] md:h-[620px] lg:h-[770px] flex items-center justify-center overflow-hidden">
+      <div className="relative bg-coral rounded-4xl lg:rounded-[40px] h-[468px] md:h-[620px] lg:h-[770px] flex items-center justify-center overflow-hidden">
         <Image src={card.image} alt="" className="w-full h-full object-contain" />
       </div>
     );
   }
 
   return (
-    <div className="relative bg-surface rounded-4xl p-6 md:p-20 h-[468px] md:h-[620px] lg:h-[770px] overflow-hidden">
+    <div className="relative bg-surface rounded-4xl lg:rounded-[40px] p-6 md:p-20 h-[468px] md:h-[620px] lg:h-[770px] overflow-hidden">
       {/* Big background number */}
       <div className="absolute inset-x-0 bottom-0 flex justify-center min-[744px]:justify-start pointer-events-none overflow-hidden">
         <span className="font-display text-[80vw] md:text-[55vw] lg:text-[30vw] font-bold text-white/5 leading-none select-none translate-y-[15%]">
@@ -78,7 +78,7 @@ function FeatureCardView({ card }: { card: FeatureCard }) {
         </h3>
         <div className="space-y-4 text-white leading-relaxed">
           {card.description.map((paragraph, i) => (
-            <p key={i}>{paragraph}</p>
+            <p key={i} className="text-base lg:text-lg">{paragraph}</p>
           ))}
         </div>
       </div>

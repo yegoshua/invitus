@@ -12,9 +12,9 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
       title="Твій фул-сет тут"
       ctaHref="/shop/belts"
       ctaLabel="ЧЕКНУТИ УСЕ"
-      className="py-20 lg:py-32"
+      className="pt-20 lg:pt-32"
       titleClassName="text-left lg:text-center mb-10 lg:mb-20"
-      gridWrapperClassName="mb-12"
+      gridWrapperClassName="mb-10"
     />
   );
 }

@@ -23,7 +23,7 @@ export function ProductInfoAccordion({
 }: ProductInfoAccordionProps) {
   const items = [
     { id: "description", title: "Опис товару", content: description },
-    { id: "measure", title: "Як правильно виміряти?", content: howToMeasure },
+    { id: "measure", title: "Як правильно міряти?", content: howToMeasure },
     {
       id: "care",
       title: "Інструкція з догляду",
@@ -42,7 +42,7 @@ export function ProductInfoAccordion({
           <AccordionTrigger className="text-white font-heading text-base leading-6 font-bold tracking-[0.03em] py-6 cursor-pointer">
             {item.title}
           </AccordionTrigger>
-          <AccordionContent className="text-sm leading-relaxed">
+          <AccordionContent className="text-white text-base lg:text-lg">
             {item.content}
           </AccordionContent>
         </AccordionItem>

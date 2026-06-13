@@ -23,7 +23,7 @@ export function HeroSection() {
         </div>
 
         {/* Content */}
-        <div className="container-main relative z-10 pb-12 lg:pb-16">
+        <div className="container-main relative z-10 pb-8 lg:pb-16">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 lg:gap-16">
             {/* H1 Title - Left Bottom */}
             <motion.h1
@@ -44,7 +44,8 @@ export function HeroSection() {
               transition={{ duration: 0.8, delay: 0.4 }}
             >
               <CTALink href="/shop/belts" variant="solid" size="large">
-                ЗАБРАТИ<span className="hidden lg:inline"> СВІЙ</span> ПОЯС
+                <span className="hidden lg:inline">ЗАБРАТИ СВІЙ ПОЯС</span>
+                <span className="lg:hidden">ЗАБРАТИ ПОЯС</span>
               </CTALink>
             </motion.div>
           </div>

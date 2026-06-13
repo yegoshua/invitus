@@ -275,3 +275,24 @@
   --sidebar-border: #262626;
   --sidebar-ring: #E74223;
 }
+
+/* --- Loader percentage CSS-only animation --- */
+@property --loader-progress {
+  syntax: '<integer>';
+  initial-value: 12;
+  inherits: false;
+}
+
+@keyframes loader-count {
+  to { --loader-progress: 98; }
+}
+
+.loader-progress-counter {
+  --loader-progress: 12;
+  counter-reset: loader-p var(--loader-progress);
+  animation: loader-count 1.5s ease-out forwards;
+}
+
+.loader-progress-counter::after {
+  content: counter(loader-p) '%';
+}

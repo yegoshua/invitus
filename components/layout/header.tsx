@@ -56,14 +56,13 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {navLinks.map((link) => {
-              const isActive = pathname.startsWith(link.href);
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "text-base leading-6 text-white transition-all",
-                    isActive ? "font-bold" : "font-medium hover:font-semibold"
+                    "text-base leading-6 font-medium transition-colors",
+                    "text-white hover:text-coral"
                   )}
                 >
                   {link.label}

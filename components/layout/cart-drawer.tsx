@@ -65,7 +65,7 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "105%" }}
             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed right-2 top-2 bottom-2 z-[70] w-[calc(100%-16px)] rounded-[32px] lg:right-4 lg:top-4 lg:bottom-4 lg:w-[calc(50%-32px)] lg:rounded-3xl bg-white flex flex-col"
+            className="fixed right-2 top-2 bottom-2 z-[70] w-[calc(100%-16px)] rounded-[40px] lg:right-4 lg:top-4 lg:bottom-4 lg:w-[calc(50%-32px)] lg:rounded-3xl bg-white flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 lg:p-8">
@@ -120,7 +120,7 @@ export function CartDrawer() {
                   onClick={closeCart}
                   className="group flex w-full items-center text-btn justify-center gap-4 font-heading font-bold tracking-[0.05em] uppercase rounded-3xl transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
                 >
-                  Знайти свій пояс
+                  Знайти пояс
                   <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                 </Link>
               )}
@@ -170,7 +170,7 @@ function CartItems({
         return (
           <div key={`${product.id}-${size}`} className="flex gap-4">
             {/* Thumbnail */}
-            <div className="relative w-24 h-30 bg-surface rounded-[12px] overflow-hidden shrink-0">
+            <div className="relative w-24 h-30 bg-[#EBEBEB] rounded-[12px] overflow-hidden shrink-0">
               <ProductMedia
                 image={product.mainImage}
                 fill

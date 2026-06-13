@@ -17,6 +17,11 @@ const CARD_TIMINGS: Array<[number, number]> = [
   [8, Infinity],
 ];
 
+// Trim the effective scroll-mapped duration so the section doesn't drag on
+// after the last card lands. Last card enter ends at 8s; +1s buffer for it
+// to breathe before the section releases.
+const EFFECTIVE_DURATION_S = 9;
+
 export function WhySection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -46,10 +51,12 @@ export function WhySection() {
           },
         });
 
+        const scrubEnd = Math.min(EFFECTIVE_DURATION_S, video.duration || EFFECTIVE_DURATION_S);
+
         tl.fromTo(
           video,
           { currentTime: 0 },
-          { currentTime: video.duration || 1 }
+          { currentTime: scrubEnd }
         );
 
         // Blob the video source to prevent browser from dropping segments
@@ -66,7 +73,7 @@ export function WhySection() {
         }
 
         // ── Card animations ──────────────────────────────────────────
-        const duration = video.duration || 1;
+        const duration = scrubEnd;
         const toProgress = (s: number) => Math.min(s, duration) / duration;
 
         cardRefs.current.forEach((card, index) => {
@@ -175,7 +182,7 @@ export function WhySection() {
       <div
         ref={containerRef}
         className="relative bg-coral rounded-section"
-        style={{ height: "1000vh" }}
+        style={{ height: "700vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">
           <div className="container-main relative z-10 h-full flex flex-col py-6 lg:py-30">
@@ -218,7 +225,7 @@ export function WhySection() {
                         <h3 className="font-heading text-xl lg:text-2xl font-bold text-white mb-3 lg:mb-4">
                           {feature.title}
                         </h3>
-                        <p className="text-white text-base lg:text-lg leading-relaxed max-w-sm">
+                        <p className="text-white text-base lg:text-lg leading-relaxed">
                           {feature.description}
                         </p>
                       </div>

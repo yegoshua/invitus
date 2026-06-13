@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArnoldLoader } from "@/components/ui/arnold-loader";
 import { Canvas, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -56,27 +57,13 @@ function LoadingOverlay() {
           transition={{ duration: 0.5 }}
           className="absolute inset-0 z-30 flex flex-col items-center justify-center backdrop-blur-sm"
         >
-          {/* Animated ring */}
-          <div className="relative w-24 h-24 mb-6">
-            {/* Outer spinning ring */}
-            <motion.div
-              className="absolute inset-0 rounded-full border-2 border-transparent border-t-coral"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-            {/* Inner spinning ring (opposite direction) */}
-            <motion.div
-              className="absolute inset-2 rounded-full border-2 border-transparent border-b-white/50"
-              animate={{ rotate: -360 }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            />
-            {/* Center pulsing dot */}
-            <motion.div
-              className="absolute inset-0 m-auto w-4 h-4 rounded-full bg-coral"
-              animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          </div>
+          <motion.div
+            animate={{ scale: [1, 1.05, 1], opacity: [0.9, 1, 0.9] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            className="mb-6"
+          >
+            <ArnoldLoader />
+          </motion.div>
 
           {/* Progress text */}
           <motion.div
@@ -86,9 +73,6 @@ function LoadingOverlay() {
           >
             <p className="font-heading text-lg text-white font-bold tracking-wider">
               {Math.round(progress)}%
-            </p>
-            <p className="text-sm text-white/60 mt-1">
-              Завантаження 3D моделі...
             </p>
           </motion.div>
         </motion.div>
@@ -108,7 +92,7 @@ export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
   if (!isClient) {
     return (
       <div className="absolute inset-0 z-10 flex items-center justify-center">
-        <div className="w-16 h-16 rounded-full border-2 border-coral border-t-transparent animate-spin" />
+        <ArnoldLoader />
       </div>
     );
   }

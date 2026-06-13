@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { ArrowDown } from "lucide-react"
+import ArrowDownIcon from "@/public/assets/icons/arrow-down-icon.svg"
 
 import { cn } from "@/lib/utils"
 
@@ -41,7 +41,7 @@ function AccordionTrigger({
         {...props}
       >
         {children}
-        <ArrowDown className="text-white pointer-events-none size-6 shrink-0 transition-transform duration-300" />
+        <ArrowDownIcon className="text-white pointer-events-none size-6 shrink-0 transition-transform duration-300" />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   )

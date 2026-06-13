@@ -102,7 +102,8 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       </div>
 
       {/* ===== DESKTOP LAYOUT ===== */}
-      <section className="hidden lg:block relative h-screen w-full overflow-hidden bg-black">
+      <div className="hidden lg:block bg-black lg:p-4">
+      <section className="relative h-[calc(100svh-32px)] w-full overflow-hidden bg-black rounded-[48px]">
         {/* Background image */}
         <div className="absolute inset-0 z-0">
           <ProductMedia
@@ -131,12 +132,12 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="flex flex-col gap-4 pointer-events-auto"
+                  className="flex flex-col pointer-events-auto"
                 >
                   <h1 className="font-heading text-h2 font-bold text-white tracking-normal">
                     {product.name}
                   </h1>
-                  <p className="font-heading text-h2 font-bold text-white tracking-normal">
+                  <p className="font-heading text-h2 font-bold text-white tracking-normal mt-4 lg:mt-6">
                     {formattedPrice}
                   </p>
                   <SizeSelector
@@ -160,7 +161,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   />
                   <button
                     onClick={handleAddToCart}
-                    className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-full transition-all duration-300 bg-coral text-black hover:brightness-110 px-12 py-5"
+                    className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-[32px] transition-all duration-300 bg-coral text-black hover:brightness-110 px-12 py-8"
                   >
                     Додати в кошик
                     <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
@@ -171,6 +172,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           </div>
         </div>
       </section>
+      </div>
     </>
   );
 }
