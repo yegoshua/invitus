@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   turbopack: {
     rules: {
-      "**/assets/icons/*.svg": {
+      "**/assets/icons/**/*.svg": {
         loaders: ["@svgr/webpack"],
         as: "*.js",
       },

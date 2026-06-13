@@ -50,4 +50,11 @@ Next.js 16 App Router application for INVITUS — a Ukrainian powerlifting equip
 - Prices formatted in UAH (₴) using Ukrainian locale
 - SEO metadata in Ukrainian
 
+### Checkout
+- Page route: `app/checkout/page.tsx`. Components in `components/checkout/`. Reusable form primitives in `components/ui/` (`labeled-field`, `icon-input`, `searchable-select`, `radio-card`).
+- Form validation via React Hook Form + Zod. Schema lives in `lib/checkout-schema.ts`.
+- Delivery uses Nova Poshta. Browser hits a server proxy at `app/api/nova-poshta/route.ts` → forwards to `api.novaposhta.ua` (NP blocks direct browser fetches). Client code in `lib/nova-poshta.ts` + hooks in `hooks/use-nova-poshta.ts`. Requires `NOVA_POSHTA_API_KEY` in `.env.local` (server-only, never reaches the client bundle).
+- Submit currently logs the order to console + shows success state + clears the cart (no backend yet).
+- **Online payments** — `paymentMethod === "online"` redirects through Monobank acquiring. Client → `app/api/monobank/create-invoice` → Monobank → `app/payment-result` (status check + cart clear on success). Server-side client in `lib/monobank.ts`. Requires `MONOBANK_TOKEN` in `.env.local` (server-only). Status endpoint at `app/api/monobank/status`. Test tokens available at https://api.monobank.ua/.
+
 Pexels api key - AQT9iudesPqlSQYM2L4gVI39ypXc07BTJUNOmNAEk5Nk73bLn5LyPiz6

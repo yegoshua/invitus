@@ -58,9 +58,15 @@
   --color-coral-dark: #C93A1D;
   --color-surface: #141414;
 
+  /* Checkout-specific surfaces & states */
+  --color-checkout-field: #1F1F1F;
+  --color-error: #FF453A;
+
   /* Layout Constants */
   --container-max-width: 88rem; /* 1408px */
   --radius-section: 32px;
+  --radius-checkout-card: 26px;
+  --radius-checkout-field: 16px;
   
   /* Radius calculation */
   --radius-sm: calc(var(--radius) - 4px);
@@ -295,4 +301,18 @@
 
 .loader-progress-counter::after {
   content: counter(loader-p) '%';
+}
+
+/* --- Override Chrome/Safari autofill so it doesn't paint dark inputs white --- */
+/* TODO: scope this if we ever build a light-theme form. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-checkout-field) inset !important;
+  caret-color: var(--color-coral) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

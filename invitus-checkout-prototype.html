@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>INVITUS — Оформлення замовлення</title>
+
+<!-- Golos Text (body) + Archivo variable (fallback for Druk Wide Cyr) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Material Symbols Rounded, weight 700, filled, optical size 20 -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,700,1,0&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg:        #000000;
+    --card:      #141414;
+    --field:     #1F1F1F;
+    --white:     #ffffff;
+    --accent:    #E74223;  /* brand accent / focus / selected */
+    --error:     #FF453A;  /* error state */
+
+    --t-strong:  rgba(255,255,255,0.92);
+    --t-label:   rgba(255,255,255,0.78);
+    --t-muted:   rgba(255,255,255,0.50);
+    --t-faint:   rgba(255,255,255,0.40);
+
+    --radius-card:  26px;
+    --radius-field: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Golos Text', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Druk Wide Cyr (with wide-heavy Archivo fallback) ---- */
+  .druk {
+    font-family: 'Druk Wide Cyr', 'Druk Wide', 'Archivo', system-ui, sans-serif;
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: 0.01em;
+  }
+
+  .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 20;
+    font-size: 20px;
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* ===================== Layout ===================== */
+  .page {
+    max-width: 1660px;
+    margin: 0 auto;
+    padding: 56px 56px 96px;
+  }
+
+  .brand {
+    font-size: 30px;
+    letter-spacing: 0.04em;
+    margin: 0 0 44px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 500px;
+    gap: 40px;
+    align-items: start;
+  }
+
+  .col-left { display: flex; flex-direction: column; gap: 32px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    padding: 44px 48px 48px;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 34px;
+  }
+  .card-title { font-size: 30px; margin: 0; }
+
+  /* ===================== Fields ===================== */
+  .field { display: flex; flex-direction: column; }
+  .field + .field { margin-top: 26px; }
+
+  .label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--t-label);
+    margin-bottom: 12px;
+  }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 64px;
+    padding: 0 20px;
+    background: var(--field);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-field);
+    transition: border-color .15s ease;
+  }
+  .input-wrap .icon { color: var(--t-faint); transition: color .15s ease; }
+  .input-wrap .chevron { color: var(--t-faint); margin-left: auto; transition: transform .18s ease, color .15s ease; }
+
+  .input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--white);          /* filled value = white */
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 500;
+  }
+  .input::placeholder { color: var(--t-faint); }          /* placeholder = faint */
+  .input::-webkit-search-cancel-button { display: none; }
+
+  /* Focus / active state -> accent border + accent icon */
+  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap:focus-within .icon,
+  .input-wrap:focus-within .chevron { color: var(--accent); }
+
+  /* Caret colour */
+  .input { caret-color: var(--accent); }
+
+  /* Error state */
+  .field.error .input-wrap { border-color: var(--error); }
+  .field.error .icon,
+  .field.error .chevron { color: var(--error); }
+  .field.error .input,
+  .field.error .input::placeholder { color: var(--error); }
+  .field.error .err-hint { color: var(--error); }
+
+  .err-hint {
+    font-size: 14px;
+    color: var(--t-muted);
+    margin-top: 10px;
+    min-height: 0;
+  }
+  .err-hint:empty { display: none; }
+
+  .section-note {
+    font-size: 15px;
+    color: var(--t-muted);
+    margin-top: 18px;
+  }
+
+  /* ===================== Searchable select ===================== */
+  .select { position: relative; }
+  .select.open .input-wrap { border-color: var(--accent); }
+  .select.open .icon,
+  .select.open .chevron { color: var(--accent); }
+  .select.open .chevron { transform: rotate(180deg); }
+  /* keep error visible even when open */
+  .field.error .select.open .input-wrap { border-color: var(--error); }
+  .field.error .select.open .icon,
+  .field.error .select.open .chevron { color: var(--error); }
+
+  .menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    background: var(--field);
+    border-radius: 18px;
+    padding: 10px;
+    max-height: 268px;
+    overflow-y: auto;
+    z-index: 30;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+    display: none;
+  }
+  .select.open .menu { display: block; }
+
+  .menu-item {
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--t-strong);
+    cursor: pointer;
+    transition: background .12s ease;
+  }
+  .menu-item:hover,
+  .menu-item.active { background: rgba(255,255,255,0.07); }
+  .menu-empty {
+    padding: 14px 16px;
+    font-size: 15px;
+    color: var(--t-muted);
+  }
+
+  /* scrollbar */
+  .menu::-webkit-scrollbar { width: 8px; }
+  .menu::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+  .menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 8px; }
+  .menu { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+
+  /* ===================== Payment ===================== */
+  .pay-list { display: flex; flex-direction: column; gap: 16px; }
+  .pay-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    height: 70px;
+    padding: 0 22px;
+    background: var(--field);
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-field);
+    color: var(--white);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .pay-row:hover { background: #242424; }
+  .pay-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .radio {
+    flex: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--t-faint);
+    position: relative;
+    transition: border-color .15s ease;
+  }
+  .pay-row.selected { border-color: var(--accent); }
+  .pay-row.selected .radio { border-color: var(--accent); }
+  .pay-row.selected .radio::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ===================== Summary ===================== */
+  .summary { position: sticky; top: 40px; }
+
+  .product {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+  }
+  .thumb {
+    flex: none;
+    width: 108px; height: 132px;
+    border-radius: 18px;
+    background: var(--field);
+  }
+  .product-name { font-size: 26px; margin: 4px 0 6px; }
+  .product-price { font-size: 26px; font-weight: 600; margin: 0; }
+  .product-size { font-size: 19px; color: var(--t-label); margin: 22px 0 0; }
+
+  .totals { margin-top: 56px; }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 19px;
+    color: var(--t-label);
+    margin-bottom: 18px;
+  }
+  .total-row .val { color: var(--white); font-weight: 500; }
+
+  .grand {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 8px;
+  }
+  .grand .lbl { font-size: 22px; }
+  .grand .val { font-size: 26px; }
+
+  .pay-btn {
+    margin-top: 26px;
+    width: 100%;
+    height: 84px;
+    border: none;
+    border-radius: 46px;
+    background: var(--accent);
+    color: #160604;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    transition: filter .15s ease, transform .05s ease;
+  }
+  .pay-btn .material-symbols-rounded {
+    font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 24;
+    font-size: 26px;
+  }
+  .pay-btn:hover { filter: brightness(1.06); }
+  .pay-btn:active { transform: translateY(1px); }
+  .pay-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  /* ===================== Responsive ===================== */
+  @media (max-width: 1080px) {
+    .page { padding: 36px 24px 80px; }
+    .grid { grid-template-columns: 1fr; }
+    .summary { position: static; }
+    .card { padding: 32px 26px 36px; }
+    .card-title { font-size: 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="brand druk">INVITUS</div>
+
+    <div class="grid">
+      <!-- ============ LEFT ============ -->
+      <div class="col-left">
+
+        <!-- Contact -->
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title druk">Контактна інформація</h2>
+          </div>
+
+          <div class="field">
+            <label class="label">Ім'я та прізвище</label>
+            <div class="input-wrap">
+              <span class="material-symbols-rounded icon">person</span>
+              <input class="input" type="text" value="Сергій Григорян" placeholder="Введіть ім'я та прізвище" data-required data-msg="Вкажіть ім'я та прізвище" />
+            </div>
+            <div class="err-hint"></div>
+          </div>
+
+          <div class="field">
+            <label class="label">Номер телефону</label>
+            <div class="input-wrap">
+              <span class="material-symbols-rounded icon">smartphone</span>
+              <input class="input" type="tel" placeholder="+380" data-required data-msg="Вкажіть номер телефону" />
+            </div>
+            <div class="err-hint"></div>
+          </div>
+
+          <div class="field">
+            <label class="label">Пошта (за твоїм бажанням)</label>
+            <div class="input-wrap">
+              <span class="material-symbols-rounded icon">mail</span>
+              <input class="input" type="email" placeholder="Введіть поштову адресу" />
+            </div>
+            <div class="err-hint"></div>
+          </div>
+        </section>
+
+        <!-- Delivery -->
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title druk">Доставка</h2>
+            <!-- Nova Poshta mark (approximation) -->
+            <svg width="34" height="34" viewBox="0 0 30 30" aria-label="Нова Пошта">
+              <polygon points="15,3 24,13 6,13" fill="#DA291C"></polygon>
+              <polygon points="15,27 6,17 24,17" fill="#DA291C"></polygon>
+            </svg>
+          </div>
+
+          <div class="field" id="field-city">
+            <label class="label">Місто</label>
+            <div class="select">
+              <div class="input-wrap">
+                <span class="material-symbols-rounded icon">apartment</span>
+                <input class="input" type="text" autocomplete="off" placeholder="Почніть вводити місто" data-required data-msg="Оберіть місто зі списку" />
+                <span class="material-symbols-rounded chevron">arrow_drop_down</span>
+              </div>
+              <div class="menu" role="listbox"></div>
+            </div>
+            <div class="err-hint"></div>
+          </div>
+
+          <div class="field" id="field-branch">
+            <label class="label">Номер відділеня або поштомату</label>
+            <div class="select">
+              <div class="input-wrap">
+                <span class="material-symbols-rounded icon">package_2</span>
+                <input class="input" type="text" autocomplete="off" placeholder="Введіть номер відділення або поштомату" data-required data-msg="Вкажіть відділення або поштомат" />
+                <span class="material-symbols-rounded chevron">arrow_drop_down</span>
+              </div>
+              <div class="menu" role="listbox"></div>
+            </div>
+          </div>
+
+          <p class="section-note">Доставка здійснюється Новою поштою, за тарифами оператора</p>
+        </section>
+
+        <!-- Payment -->
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title druk">Оплата</h2>
+          </div>
+
+          <div class="pay-list" id="payList">
+            <button class="pay-row selected" data-pay="card">
+              <span class="radio"></span>
+              <span>Оплата карткою (Visa/Mastercard)</span>
+            </button>
+            <button class="pay-row" data-pay="apple">
+              <span class="radio"></span>
+              <span>Apple Pay</span>
+            </button>
+            <button class="pay-row" data-pay="google">
+              <span class="radio"></span>
+              <span>Google Pay</span>
+            </button>
+            <button class="pay-row" data-pay="cod">
+              <span class="radio"></span>
+              <span>Оплата після отримання товару</span>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============ RIGHT ============ -->
+      <aside class="summary">
+        <div class="product">
+          <div class="thumb"></div>
+          <div>
+            <h3 class="product-name druk">Berserk Lifting Belt</h3>
+            <p class="product-price">4100 ₴</p>
+          </div>
+        </div>
+        <p class="product-size">Розмір: 65-80 см</p>
+
+        <div class="totals">
+          <div class="total-row"><span>Замовлення</span><span class="val">4 100 ₴</span></div>
+          <div class="total-row"><span>Доставка</span><span class="val">120 ₴</span></div>
+          <div class="grand">
+            <span class="lbl druk">ДО ОПЛАТИ:</span>
+            <span class="val druk">4 220 ₴</span>
+          </div>
+        </div>
+
+        <button class="pay-btn druk" id="submitBtn">
+          ДО ОПЛАТИ
+          <span class="material-symbols-rounded">arrow_outward</span>
+        </button>
+      </aside>
+    </div>
+  </div>
+
+<script>
+(function () {
+  /* ---------- data ---------- */
+  const CITIES = [
+    "Київ","Дніпро","Одеса","Харків","Запоріжжя","Львів","Вінниця","Полтава",
+    "Чернігів","Черкаси","Житомир","Суми","Рівне","Тернопіль","Івано-Франківськ",
+    "Луцьк","Ужгород","Хмельницький","Кропивницький","Миколаїв","Херсон","Чернівці"
+  ];
+  const BRANCHES = [
+    "Відділення №1: вул. Хрещатик, 22",
+    "Відділення №2: пр. Перемоги, 67",
+    "Відділення №3: вул. Велика Васильківська, 100",
+    "Відділення №5: вул. Сагайдачного, 12",
+    "Відділення №24: вул. Антоновича, 4",
+    "Відділення №36: вул. Лесі Українки, 8",
+    "Поштомат №1247: ТРЦ Ocean Plaza",
+    "Поштомат №3025: АЗК ОККО",
+    "Поштомат №4180: вул. Володимирська, 51"
+  ];
+
+  /* ---------- helpers ---------- */
+  function clearError(field) {
+    field.classList.remove('error');
+    const hint = field.querySelector('.err-hint');
+    if (hint) hint.textContent = '';
+  }
+  function setError(field) {
+    field.classList.add('error');
+    const input = field.querySelector('.input');
+    const hint = field.querySelector('.err-hint');
+    if (hint && input) hint.textContent = input.dataset.msg || 'Заповніть це поле';
+  }
+
+  /* clear error as soon as the user interacts */
+  document.querySelectorAll('.field').forEach(field => {
+    const input = field.querySelector('.input');
+    if (!input) return;
+    input.addEventListener('focus', () => clearError(field));
+    input.addEventListener('input', () => clearError(field));
+  });
+
+  /* ---------- searchable select ---------- */
+  function initSelect(fieldId, data) {
+    const field = document.getElementById(fieldId);
+    const select = field.querySelector('.select');
+    const input  = field.querySelector('.input');
+    const menu   = field.querySelector('.menu');
+
+    function render(filter) {
+      const q = (filter || '').trim().toLowerCase();
+      const matches = data.filter(d => d.toLowerCase().includes(q));
+      menu.innerHTML = '';
+      if (matches.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'menu-empty';
+        empty.textContent = 'Нічого не знайдено';
+        menu.appendChild(empty);
+        return;
+      }
+      matches.forEach(value => {
+        const item = document.createElement('div');
+        item.className = 'menu-item';
+        item.setAttribute('role', 'option');
+        item.textContent = value;
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault();           // keep focus, prevent blur jump
+          input.value = value;
+          close();
+          clearError(field);
+        });
+        menu.appendChild(item);
+      });
+    }
+
+    function open() {
+      render(input.value);
+      select.classList.add('open');
+    }
+    function close() { select.classList.remove('open'); }
+
+    input.addEventListener('focus', open);
+    input.addEventListener('input', () => {
+      if (!select.classList.contains('open')) select.classList.add('open');
+      render(input.value);
+    });
+
+    /* chevron toggles */
+    field.querySelector('.chevron').addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (select.classList.contains('open')) { close(); input.blur(); }
+      else { input.focus(); open(); }
+    });
+
+    /* keyboard */
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { close(); input.blur(); } });
+
+    /* outside click */
+    document.addEventListener('click', (e) => { if (!field.contains(e.target)) close(); });
+
+    return field;
+  }
+
+  initSelect('field-city', CITIES);
+  initSelect('field-branch', BRANCHES);
+
+  /* ---------- payment selection ---------- */
+  const payList = document.getElementById('payList');
+  payList.addEventListener('click', (e) => {
+    const row = e.target.closest('.pay-row');
+    if (!row) return;
+    payList.querySelectorAll('.pay-row').forEach(r => r.classList.remove('selected'));
+    row.classList.add('selected');
+  });
+
+  /* ---------- submit / validation (demonstrates error state) ---------- */
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    let firstInvalid = null;
+    document.querySelectorAll('.field').forEach(field => {
+      const input = field.querySelector('.input');
+      if (input && input.dataset.required !== undefined && !input.value.trim()) {
+        setError(field);
+        if (!firstInvalid) firstInvalid = field;
+      } else {
+        clearError(field);
+      }
+    });
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const inp = firstInvalid.querySelector('.input');
+      if (inp) inp.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>
