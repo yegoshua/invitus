@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, ShoppingBag } from "lucide-react";
+import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import {
   checkoutDefaults,
@@ -60,6 +61,13 @@ export function CheckoutPage() {
 
   const onSubmit = async (data: CheckoutFormData) => {
     setPaymentError(null);
+
+    // PII: upgrade Clarity identity from anon UUID to customer email so post-payment
+    // sessions are grouped with checkout sessions in the dashboard.
+    if (data.email && typeof window !== "undefined" && (window as { clarity?: unknown }).clarity) {
+      Clarity.identify(data.email, undefined, undefined, data.fullName);
+    }
+
     const reference = `invitus-${Date.now()}`;
     const totalCopecks = Math.round((subtotal + SHIPPING_COST) * 100);
     const order: SubmittedOrder = {
