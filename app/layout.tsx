@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Archivo, Golos_Text } from "next/font/google";
+import { Golos_Text } from "next/font/google";
 import { Providers } from "./providers";
+import { ClarityAnalytics } from "@/components/analytics/clarity";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({
     <html lang="uk" className="dark">
       <body className={`${golosText.variable} ${drukWide.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
+        <ClarityAnalytics />
       </body>
     </html>
   );
