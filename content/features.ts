@@ -4,7 +4,11 @@
 import FeatureImage1 from "@/public/assets/Landing Image 1.svg";
 import FeatureImage2 from "@/public/assets/Landing Image 2.svg";
 import FeatureImage3 from "@/public/assets/Landing Image 3.svg";
+import Stat5Percent from "@/public/assets/icons/stat-5-percent.svg";
+import Stat3x from "@/public/assets/icons/stat-3x.svg";
+import Stat10 from "@/public/assets/icons/stat-10.svg";
 import type { StaticImageData } from "next/image";
+import type { FC, SVGProps } from "react";
 
 export type FeatureCard =
   | {
@@ -15,7 +19,9 @@ export type FeatureCard =
   | {
       kind: "stat";
       eyebrow?: string;
-      number: string;
+      number: FC<SVGProps<SVGSVGElement>>;
+      /** Vertical scale factor for shorter glyphs so they read closer in height to "10" (e.g. 1.2 = +20%). */
+      scaleY?: number;
       title: string;
       description: string[];
       lgOrder: string;
@@ -25,7 +31,8 @@ export const featureCards: FeatureCard[] = [
   { kind: "image", image: FeatureImage1, lgOrder: "lg:order-1" },
   {
     kind: "stat",
-    number: "5%",
+    number: Stat5Percent,
+    scaleY: 1.2,
     title: "Плюс 5% до рекорду",
     description: [
       "Пояс — це не «чарівна» пігулка, яка зробить тебе новим Арнольдом.",
@@ -37,7 +44,8 @@ export const featureCards: FeatureCard[] = [
   {
     kind: "stat",
     eyebrow: "3Х МЕНШЕ НАВАНТАЖЕННЯ",
-    number: "3X",
+    number: Stat3x,
+    scaleY: 1.1,
     title: "Захист попереку",
     description: [
       "Якось нам написали коментар, що «ремонт» грижі коштує дешевше, ніж атлетичний пояс.",
@@ -49,7 +57,7 @@ export const featureCards: FeatureCard[] = [
   {
     kind: "stat",
     eyebrow: "10 РІЗНИХ ВАРІАНТІВ В ЛІНІЙЦІ",
-    number: "10",
+    number: Stat10,
     title: "Стиль у дзеркалі",
     description: [
       "У сучасному світі соцмереж є речі, які сприяють більшої кількості лайків на фото.",

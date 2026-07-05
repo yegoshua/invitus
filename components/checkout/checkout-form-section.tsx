@@ -16,13 +16,13 @@ export function CheckoutFormSection({
   return (
     <section
       className={cn(
-        "bg-surface rounded-[var(--radius-checkout-card)]",
-        "p-8 sm:p-10 lg:px-12 lg:py-11",
+        "bg-surface rounded-[24px] lg:rounded-[32px]",
+        "px-5 py-6 lg:px-12 lg:py-10",
         className
       )}
     >
       <div className="flex items-center justify-between mb-6 lg:mb-10">
-        <h2 className="font-heading text-2xl lg:text-[30px] text-white">
+        <h2 className="font-heading font-bold text-base/6 tracking-[0.03em] lg:text-2xl/8 lg:tracking-[0.02em] text-white">
           {title}
         </h2>
         {headerSlot}

@@ -65,7 +65,7 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "105%" }}
             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed right-2 top-2 bottom-2 z-[70] w-[calc(100%-16px)] rounded-[40px] lg:right-4 lg:top-4 lg:bottom-4 lg:w-[calc(50%-32px)] lg:rounded-3xl bg-white flex flex-col"
+            className="fixed right-2 top-2 bottom-2 z-[70] w-[calc(100%-16px)] rounded-section lg:right-4 lg:top-4 lg:bottom-4 lg:w-[calc(50%-32px)] bg-white flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 lg:p-8">

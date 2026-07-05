@@ -9,7 +9,7 @@ import { CatalogGrid } from "@/components/sections/catalog-grid";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { CartDrawer } from "@/components/layout/cart-drawer";
-import { LoadingScreen } from "@/components/ui/loading-screen";
+import { CatalogSkeleton } from "@/components/sections/catalog-skeleton";
 
 import {
   getCategoryBySlug,
@@ -103,13 +103,7 @@ export default async function ShopCategoryPage({
     <>
       <Header />
       <main>
-        <Suspense
-          fallback={
-            <div className="bg-black min-h-screen pt-32 flex items-center justify-center">
-              <LoadingScreen />
-            </div>
-          }
-        >
+        <Suspense fallback={<CatalogSkeleton />}>
           <CatalogContent categorySlug={categorySlug} filter={activeFilter} />
         </Suspense>
         <FAQSection />

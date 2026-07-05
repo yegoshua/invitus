@@ -22,7 +22,7 @@ export const RadioCard = forwardRef<HTMLInputElement, RadioCardProps>(
     return (
       <label
         className={cn(
-          "group relative flex items-center gap-4 w-full h-[70px] px-5.5",
+          "group relative flex items-center gap-4 w-full h-12 lg:h-14 px-5.5",
           "bg-[var(--color-checkout-field)]",
           "rounded-[var(--radius-checkout-field)]",
           "border-[1.5px] border-transparent",

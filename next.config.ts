@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.media.strapiapp.com",
       },
+      {
+        // KeyCRM file storage (product photos)
+        protocol: "https",
+        hostname: "*.api.keycrm.app",
+        pathname: "/file-storage/**",
+      },
     ],
   },
 };

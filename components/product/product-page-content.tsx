@@ -26,6 +26,11 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
 
   const formattedPrice = formatPriceWithCurrency(product.price);
 
+  // 3D is a belts-only experience: belts get their own model or the fallback
+  // belt; other categories show the product photo (a fallback belt model on
+  // a t-shirt page would be nonsense). An explicit model still wins anywhere.
+  const show3dModel = Boolean(product.model3dUrl) || product.category === "belts";
+
   const handleAddToCart = () => {
     addItem(product, selectedSize ?? undefined);
     openCart();
@@ -49,13 +54,23 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
             />
           </div>
 
-          {/* 3D Model area */}
+          {/* Hero media: 3D model (belts) or product photo */}
           <div className="py-[60px] sm:py-0 rounded-t-[28px] overflow-hidden">
             <div className="relative h-[200px] sm:h-[340px] md:h-[420px]">
-              <ModelLoader
-                modelUrl={product.model3dUrl}
-                fallbackModelUrl={MODEL_FALLBACK}
-              />
+              {show3dModel ? (
+                <ModelLoader
+                  modelUrl={product.model3dUrl}
+                  fallbackModelUrl={MODEL_FALLBACK}
+                />
+              ) : (
+                <ProductMedia
+                  image={product.mainImage}
+                  alt={product.name}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              )}
             </div>
           </div>
 
@@ -116,11 +131,25 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           />
         </div>
 
-        {/* 3D Product model */}
-        <ModelLoader
-          modelUrl={product.model3dUrl}
-          fallbackModelUrl={MODEL_FALLBACK}
-        />
+        {/* Hero media: 3D model (belts) or product photo */}
+        {show3dModel ? (
+          <ModelLoader
+            modelUrl={product.model3dUrl}
+            fallbackModelUrl={MODEL_FALLBACK}
+          />
+        ) : (
+          <div className="absolute inset-0 z-10 flex items-center justify-center pb-40">
+            <div className="relative w-full max-w-[520px] aspect-square">
+              <ProductMedia
+                image={product.mainImage}
+                alt={product.name}
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
+        )}
 
         {/* Bottom content overlay */}
         <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none">

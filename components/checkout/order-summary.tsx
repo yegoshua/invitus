@@ -128,8 +128,8 @@ export function OrderSummaryMobileTop() {
   const more = items.length - 1;
 
   return (
-    <div className="lg:hidden bg-surface mx-2 mt-20 sm:mt-24 rounded-[var(--radius-checkout-card)] p-4 flex gap-4 items-center">
-      <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-[var(--color-checkout-field)] shrink-0">
+    <div className="lg:hidden mt-20 sm:mt-24 pl-6 pr-4 flex gap-4 items-start">
+      <div className="relative w-20 h-25 rounded-2xl overflow-hidden bg-[var(--color-checkout-field)] shrink-0">
         <ProductMedia
           image={first.product.mainImage}
           fill
@@ -137,14 +137,14 @@ export function OrderSummaryMobileTop() {
         />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-heading text-base leading-tight text-white truncate">
+        <h3 className="font-sans font-medium text-base/5 text-white">
           {first.product.name}
         </h3>
-        <p className="mt-1 text-base font-medium text-white">
+        <p className="mt-2 font-sans font-medium text-base/6 text-white">
           {formatPrice(first.product.price * first.quantity)} ₴
         </p>
         {first.size && (
-          <p className="mt-1 text-sm text-white/50">
+          <p className="mt-4 font-sans font-medium text-base/6 text-white/50">
             {first.size}
             {more > 0 ? ` · та ще ${more} ${more === 1 ? "товар" : "товари"}` : ""}
           </p>

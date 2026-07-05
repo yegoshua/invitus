@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { X } from "lucide-react";
 import { useEffect } from "react";
+import CloseIcon from "@/public/assets/icons/Close.svg";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMenuStore } from "@/stores/menu";
 import { navLinks, socialLinks } from "@/content/navigation";
@@ -39,13 +39,13 @@ export function MobileMenuDrawer() {
             animate={{ x: 0 }}
             exit={{ x: "105%" }}
             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed right-4 top-4 bottom-4 z-70 w-[calc(100%-32px)] bg-white rounded-3xl flex flex-col overflow-hidden"
+            className="fixed right-2 top-2 bottom-2 z-70 w-[calc(100%-16px)] bg-white rounded-section flex flex-col overflow-hidden"
           >
             <button
               className="absolute top-6 right-6 p-2 text-black hover:text-neutral-600 transition-colors cursor-pointer"
               onClick={closeMenu}
             >
-              <X className="w-6 h-6" />
+              <CloseIcon className="w-6 h-6" />
             </button>
 
             <div className="flex flex-col md:flex-row gap-12 p-8 pt-12 overflow-y-auto flex-1">

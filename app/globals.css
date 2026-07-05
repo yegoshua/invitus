@@ -64,9 +64,8 @@
 
   /* Layout Constants */
   --container-max-width: 88rem; /* 1408px */
-  --radius-section: 32px;
   --radius-checkout-card: 26px;
-  --radius-checkout-field: 16px;
+  --radius-checkout-field: 12px;
   
   /* Radius calculation */
   --radius-sm: calc(var(--radius) - 4px);
@@ -78,9 +77,12 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-@media (min-width: 768px) {
-  :root {
-    --radius-section: 48px;
+/* Секційний радіус: адаптивний. Визначаємо через @utility, а не @theme inline,
+   бо inline "запікає" значення в клас і медіа-запит на змінну не спрацьовує. */
+@utility rounded-section {
+  border-radius: 32px;
+  @media (min-width: 768px) {
+    border-radius: 48px;
   }
 }
 

@@ -26,7 +26,7 @@ export const IconInput = forwardRef<HTMLInputElement, IconInputProps>(
       <div
         data-invalid={isInvalid || undefined}
         className={cn(
-          "group flex items-center gap-3 h-16 px-5",
+          "group flex items-center gap-3 h-12 lg:h-14 px-5",
           "bg-[var(--color-checkout-field)]",
           "rounded-[var(--radius-checkout-field)]",
           "border-[1.5px] border-transparent",

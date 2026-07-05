@@ -149,7 +149,7 @@ export function CheckoutPage() {
       <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
         <OrderSummaryMobileTop />
 
-        <main className="container-main pt-8 pb-8 lg:pt-32 lg:pb-32">
+        <main className="container-main [--container-px:0.5rem] lg:[--container-px:2rem] pt-8 pb-8 lg:pt-32 lg:pb-32">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_500px] gap-6 lg:gap-10 items-start">
             <div className="flex flex-col gap-6 lg:gap-8">
               <CheckoutFormSection title="Твої дані">

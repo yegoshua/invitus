@@ -93,6 +93,8 @@ export interface StrapiProduct {
   documentId: string;
   name: string;
   slug: string;
+  /** Optional explicit link to the KeyCRM product (number field, add in Content-Type Builder). */
+  keycrmId?: number | null;
   price: number;
   description: string | null;
   shortDescription: string | null;

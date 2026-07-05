@@ -49,13 +49,20 @@ function FeatureCardView({ card }: { card: FeatureCard }) {
     );
   }
 
+  const NumberSvg = card.number;
+
   return (
     <div className="relative bg-surface rounded-4xl lg:rounded-[40px] p-6 md:p-20 h-[468px] md:h-[620px] lg:h-[770px] overflow-hidden">
       {/* Big background number */}
-      <div className="absolute inset-x-0 bottom-0 flex justify-center min-[744px]:justify-start pointer-events-none overflow-hidden">
-        <span className="font-display text-[80vw] md:text-[55vw] lg:text-[30vw] font-bold text-white/5 leading-none select-none translate-y-[15%]">
-          {card.number}
-        </span>
+      <div className="absolute inset-x-0 bottom-0 flex justify-center min-[744px]:justify-start pointer-events-none">
+        <NumberSvg
+          className="w-full h-auto select-none"
+          style={
+            card.scaleY
+              ? { transform: `scaleY(${card.scaleY})`, transformOrigin: "bottom" }
+              : undefined
+          }
+        />
       </div>
 
       {/* Distortion overlay — above number, below text */}

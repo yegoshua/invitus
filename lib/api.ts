@@ -1,105 +1,180 @@
-// Strapi adapter.
+// KeyCRM adapter.
 //
-// Sole owner of: fetching, schema knowledge, media URL resolution, fallbacks.
+// Sole owner of: fetching, schema knowledge, slug generation, fallbacks.
 // UI code consumes the domain types from `@/types` and does not know
-// Strapi exists. If Strapi changes (renamed field, new media component,
-// additional locale handling), edits live here.
+// KeyCRM exists. If KeyCRM changes (renamed field, new property type),
+// edits live here.
+//
+// KeyCRM is the commerce source of truth: products, prices, stock, photos,
+// categories, variants (offers). Presentation content — 3D models, hero
+// backgrounds, measurement guides, featured flags — comes from Strapi via
+// lib/product-extras.ts (matched by keycrmId field or slug), with
+// content/product-extras.ts as the offline fallback when Strapi is down.
 
-import { fetchStrapi, getStrapiMedia } from "./strapi";
+import { fetchKeyCrm, fetchKeyCrmAll } from "./keycrm";
+import { slugify } from "./slugify";
+import {
+  getStrapiExtras,
+  resolveExtras,
+  type ExtrasIndex,
+} from "./product-extras";
 import type {
-  StrapiResponse,
-  StrapiProduct,
-  StrapiCategory,
-  StrapiFilterTag,
-  StrapiMedia,
-} from "./strapi-schema";
-import type { Product, Category, ProductImage } from "@/types";
+  KeyCrmProduct,
+  KeyCrmOffer,
+  KeyCrmCategory,
+} from "./keycrm-schema";
+import type { Product, Category, ProductVariant } from "@/types";
 
 // ──────────────────────────────────────────────────────────────────────────
-// Internal: media → ProductImage
+// Category mapping: KeyCRM category id → site slug
 // ──────────────────────────────────────────────────────────────────────────
 
-function toProductImage(
-  media: StrapiMedia | null | undefined,
-  fallbackAlt: string
-): ProductImage | undefined {
-  if (!media) return undefined;
-  return {
-    url: getStrapiMedia(media.url),
-    alt: media.alternativeText || fallbackAlt,
-  };
+const CATEGORY_SLUG_BY_ID: Record<number, string> = {
+  1: "belts", // Атлетичні пояси
+  2: "wrist-wraps", // Кистьові бинти
+  3: "knee-sleeves", // Наколінники
+  4: "straps", // Лямки Вісімки
+  6: "shirts", // Футболки
+};
+
+// ──────────────────────────────────────────────────────────────────────────
+// Internal: slugs
+// ──────────────────────────────────────────────────────────────────────────
+
+function categorySlug(category: KeyCrmCategory): string {
+  return CATEGORY_SLUG_BY_ID[category.id] ?? slugify(category.name);
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Internal: StrapiProduct → Product
+// Internal: size ordering (S/M/L/XL and numeric ranges like "65-80 см")
 // ──────────────────────────────────────────────────────────────────────────
 
-function toProduct(p: StrapiProduct): Product {
-  const mainImage = toProductImage(p.mainImage, p.name);
+const LETTER_SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
+
+function compareSizes(a: string, b: string): number {
+  const ia = LETTER_SIZE_ORDER.indexOf(a.toUpperCase());
+  const ib = LETTER_SIZE_ORDER.indexOf(b.toUpperCase());
+  if (ia !== -1 && ib !== -1) return ia - ib;
+  const na = parseFloat(a);
+  const nb = parseFloat(b);
+  if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+  return a.localeCompare(b);
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Internal: KeyCrmProduct → Product
+// ──────────────────────────────────────────────────────────────────────────
+
+const SIZE_PROPERTY = "Розмір";
+
+function toProduct(
+  p: KeyCrmProduct,
+  categoryById: Map<number, KeyCrmCategory>,
+  extrasIndex: ExtrasIndex,
+  offers?: KeyCrmOffer[]
+): Product {
+  const category =
+    p.category_id != null ? categoryById.get(p.category_id) : undefined;
+
+  const mainImage = p.thumbnail_url
+    ? { url: p.thumbnail_url, alt: p.name }
+    : undefined;
+
+  const galleryImages = (p.attachments_data ?? [])
+    .filter((url) => url !== p.thumbnail_url)
+    .map((url) => ({ url, alt: p.name }));
+
+  const activeOffers = offers?.filter((o) => !o.is_archived) ?? [];
+
+  const sizes = [
+    ...new Set(
+      activeOffers
+        .map(
+          (o) => o.properties.find((prop) => prop.name === SIZE_PROPERTY)?.value
+        )
+        .filter((v): v is string => Boolean(v))
+    ),
+  ].sort(compareSizes);
+
+  const variants: ProductVariant[] | undefined = activeOffers.length
+    ? activeOffers.map((o) => ({
+        name:
+          o.properties.find((prop) => prop.name === SIZE_PROPERTY)?.value ??
+          o.properties.map((prop) => prop.value).join(" / "),
+        stock: Math.max(0, o.quantity),
+        sku: o.sku ?? undefined,
+        priceModifier: o.price - p.min_price || undefined,
+      }))
+    : undefined;
+
+  const slug = slugify(p.name);
+  const extras = resolveExtras(extrasIndex, p.id, slug);
 
   return {
     id: p.id.toString(),
-    documentId: p.documentId,
+    documentId: p.id.toString(),
     name: p.name,
-    slug: p.slug,
-    price: p.price,
-    category: p.category?.slug,
+    slug,
+    price: p.min_price,
+    category: category ? categorySlug(category) : undefined,
 
     description: p.description ?? undefined,
-    shortDescription: p.shortDescription ?? undefined,
-    howToMeasure: p.howToMeasure ?? undefined,
-    careInstructions: p.careInstructions ?? undefined,
+    howToMeasure: extras?.howToMeasure,
+    careInstructions: extras?.careInstructions,
 
     mainImage,
-    heroImage: toProductImage(p.heroImage, p.name) ?? mainImage,
-    bgImage: toProductImage(p.backgroundImage, p.name),
-    galleryImages:
-      p.galleryImages
-        ?.map((img) => toProductImage(img.image, img.alt))
-        .filter((img): img is ProductImage => Boolean(img)) ?? [],
+    heroImage: mainImage,
+    bgImage: extras?.bgImage,
+    galleryImages: extras?.galleryImages ?? galleryImages,
 
-    model3dUrl: p.model3d ? getStrapiMedia(p.model3d.url) : undefined,
+    model3dUrl: extras?.model3dUrl,
 
-    sizes: p.variants?.map((v) => v.name) ?? [],
-    filterTags: p.filterTags?.map((t) => t.slug) ?? [],
+    sizes,
+    filterTags: [],
 
-    variants: p.variants?.map((v) => ({
-      name: v.name,
-      stock: v.stock,
-      sku: v.sku ?? undefined,
-      priceModifier: v.priceModifier,
-    })),
-    attributes: p.attributes?.map((a) => ({
-      name: a.name,
-      value: a.value,
-    })),
-
-    featured: p.featured,
+    variants,
+    featured: extras?.featured,
   };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Internal: StrapiCategory → Category
+// Internal: cached raw listings
 // ──────────────────────────────────────────────────────────────────────────
 
-const ALL_FILTER = { slug: "all", label: "УСІ" };
+async function fetchAllCategories(): Promise<KeyCrmCategory[]> {
+  return fetchKeyCrmAll<KeyCrmCategory>("/products/categories", {
+    tags: ["categories"],
+  });
+}
 
-function toCategory(
-  cat: StrapiCategory,
-  filterTags: StrapiFilterTag[] = []
-): Category {
-  const categoryFilters = filterTags
-    .filter((tag) => tag.category?.slug === cat.slug)
-    .sort((a, b) => a.order - b.order)
-    .map((tag) => ({ slug: tag.slug, label: tag.label }));
+async function fetchCategoryMap(): Promise<Map<number, KeyCrmCategory>> {
+  const categories = await fetchAllCategories();
+  return new Map(categories.map((c) => [c.id, c]));
+}
 
-  return {
-    slug: cat.slug,
-    name: cat.name,
-    description: cat.description ?? undefined,
-    image: cat.image ? getStrapiMedia(cat.image.url) : undefined,
-    filters: [ALL_FILTER, ...categoryFilters],
-  };
+async function fetchAllProducts(params?: {
+  categoryId?: number;
+}): Promise<KeyCrmProduct[]> {
+  const products = await fetchKeyCrmAll<KeyCrmProduct>("/products", {
+    params:
+      params?.categoryId != null
+        ? { "filter[category_id]": String(params.categoryId) }
+        : undefined,
+    tags: ["products"],
+  });
+
+  // KeyCRM returns newest-first; the catalog reads better in creation order.
+  return products
+    .filter((p) => !p.is_archived)
+    .sort((a, b) => a.id - b.id);
+}
+
+async function fetchOffers(productId: number): Promise<KeyCrmOffer[]> {
+  const response = await fetchKeyCrm<{ data: KeyCrmOffer[] }>("/offers", {
+    params: { "filter[product_id]": String(productId), limit: "50" },
+    tags: ["products", `product-offers-${productId}`],
+  });
+  return response.data;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -112,64 +187,54 @@ export async function getProducts(options?: {
   featured?: boolean;
   limit?: number;
 }): Promise<Product[]> {
-  const params = new URLSearchParams();
-  params.append("populate", "*");
+  const [categoryById, extrasIndex] = await Promise.all([
+    fetchCategoryMap(),
+    getStrapiExtras(),
+  ]);
 
+  let categoryId: number | undefined;
   if (options?.category) {
-    params.append("filters[category][slug][$eq]", options.category);
+    categoryId = [...categoryById.values()].find(
+      (c) => categorySlug(c) === options.category
+    )?.id;
+    if (categoryId == null) return [];
   }
 
-  if (options?.filter && options.filter !== "all") {
-    params.append("filters[filterTags][slug][$in]", options.filter);
-  }
+  // `filter` (filter tags) has no KeyCRM equivalent yet — tags are ignored.
+  const products = await fetchAllProducts({ categoryId });
+  let mapped = products.map((p) => toProduct(p, categoryById, extrasIndex));
 
+  // `featured` comes from content/product-extras.ts; if nothing is marked,
+  // fall back to plain catalog order so the homepage never goes empty.
   if (options?.featured) {
-    params.append("filters[featured][$eq]", "true");
+    const featured = mapped.filter((p) => p.featured);
+    if (featured.length) mapped = featured;
   }
-
-  params.append("sort", "order:asc");
 
   if (options?.limit) {
-    params.append("pagination[limit]", options.limit.toString());
+    mapped = mapped.slice(0, options.limit);
   }
 
-  const response = await fetchStrapi<StrapiResponse<StrapiProduct[]>>(
-    `/products?${params.toString()}`,
-    { next: { revalidate: 60, tags: ["products"] } }
-  );
-
-  return response.data.map(toProduct);
+  return mapped;
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const query = new URLSearchParams({
-    "filters[slug][$eq]": slug,
-    "populate[mainImage]": "true",
-    "populate[heroImage]": "true",
-    "populate[backgroundImage]": "true",
-    "populate[model3d]": "true",
-    "populate[category]": "true",
-    "populate[filterTags]": "true",
-    "populate[variants]": "true",
-    "populate[attributes]": "true",
-    "populate[galleryImages][populate]": "*",
-  });
+  const [products, categoryById, extrasIndex] = await Promise.all([
+    fetchAllProducts(),
+    fetchCategoryMap(),
+    getStrapiExtras(),
+  ]);
 
-  const response = await fetchStrapi<StrapiResponse<StrapiProduct[]>>(
-    `/products?${query.toString()}`,
-    { next: { revalidate: 60, tags: ["products", `product-${slug}`] } }
-  );
+  const match = products.find((p) => slugify(p.name) === slug);
+  if (!match) return null;
 
-  if (response.data.length === 0) return null;
-  return toProduct(response.data[0]);
+  const offers = match.has_offers ? await fetchOffers(match.id) : undefined;
+  return toProduct(match, categoryById, extrasIndex, offers);
 }
 
 export async function getAllProductSlugs(): Promise<string[]> {
-  const response = await fetchStrapi<StrapiResponse<StrapiProduct[]>>(
-    `/products?fields[0]=slug`,
-    { next: { revalidate: 60, tags: ["products"] } }
-  );
-  return response.data.map((p) => p.slug);
+  const products = await fetchAllProducts();
+  return products.map((p) => slugify(p.name));
 }
 
 export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
@@ -180,43 +245,31 @@ export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
 // Public: categories
 // ──────────────────────────────────────────────────────────────────────────
 
-export async function getCategories(): Promise<Category[]> {
-  const [categoriesRes, filterTagsRes] = await Promise.all([
-    fetchStrapi<StrapiResponse<StrapiCategory[]>>(
-      `/categories?sort=order:asc&populate=image`,
-      { next: { revalidate: 60, tags: ["categories"] } }
-    ),
-    fetchStrapi<StrapiResponse<StrapiFilterTag[]>>(
-      `/filter-tags?sort=order:asc&populate=category`,
-      { next: { revalidate: 60, tags: ["filter-tags"] } }
-    ),
-  ]);
+const ALL_FILTER = { slug: "all", label: "УСІ" };
 
-  return categoriesRes.data.map((cat) => toCategory(cat, filterTagsRes.data));
+function toCategory(cat: KeyCrmCategory): Category {
+  return {
+    slug: categorySlug(cat),
+    name: cat.name,
+    // KeyCRM has no filter-tag taxonomy — only the implicit "all" filter.
+    filters: [ALL_FILTER],
+  };
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const categories = await fetchAllCategories();
+  return categories.map(toCategory);
 }
 
 export async function getCategoryBySlug(
   slug: string
 ): Promise<Category | null> {
-  const [categoriesRes, filterTagsRes] = await Promise.all([
-    fetchStrapi<StrapiResponse<StrapiCategory[]>>(
-      `/categories?filters[slug][$eq]=${slug}&populate=image`,
-      { next: { revalidate: 60, tags: ["categories", `category-${slug}`] } }
-    ),
-    fetchStrapi<StrapiResponse<StrapiFilterTag[]>>(
-      `/filter-tags?filters[category][slug][$eq]=${slug}&sort=order:asc&populate=category`,
-      { next: { revalidate: 60, tags: ["filter-tags"] } }
-    ),
-  ]);
-
-  if (categoriesRes.data.length === 0) return null;
-  return toCategory(categoriesRes.data[0], filterTagsRes.data);
+  const categories = await fetchAllCategories();
+  const match = categories.find((c) => categorySlug(c) === slug);
+  return match ? toCategory(match) : null;
 }
 
 export async function getAllCategorySlugs(): Promise<string[]> {
-  const response = await fetchStrapi<StrapiResponse<StrapiCategory[]>>(
-    `/categories?fields[0]=slug`,
-    { next: { revalidate: 60, tags: ["categories"] } }
-  );
-  return response.data.map((c) => c.slug);
+  const categories = await fetchAllCategories();
+  return categories.map((c) => categorySlug(c));
 }
