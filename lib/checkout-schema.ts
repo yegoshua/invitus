@@ -1,13 +1,15 @@
 import { z } from "zod";
+import { isValidPhone } from "@/lib/phone";
 
 export const checkoutSchema = z.object({
   fullName: z.string().trim().min(2, "Вкажи ім'я та прізвище"),
-  // The input formats as-you-type to "+380 67 123 45 67" (lib/phone.ts),
-  // so a complete number always matches this exact shape.
+  // Real validation via libphonenumber (lib/phone.ts): UA national numbers
+  // and any international "+xx…" number a foreign customer may enter.
+  // Runs on blur first (form mode "onTouched"), then on change.
   phone: z
     .string()
     .trim()
-    .regex(/^\+380 \d{2} \d{3} \d{2} \d{2}$/, "Невірний номер телефону"),
+    .refine((v) => isValidPhone(v), "Невірний номер телефону"),
   email: z
     .string()
     .trim()

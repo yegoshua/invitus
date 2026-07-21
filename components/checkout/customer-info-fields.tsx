@@ -9,9 +9,9 @@ import EmailIcon from "@/public/assets/icons/checkout/email.svg";
 import type { CheckoutFormData } from "@/lib/checkout-schema";
 import {
   UA_PHONE_PREFIX,
-  formatUaPhone,
-  uaNationalDigits,
-  uaCaretAfterDigits,
+  formatPhone,
+  digitsBefore,
+  caretAfterDigits,
 } from "@/lib/phone";
 
 export function CustomerInfoFields() {
@@ -49,19 +49,17 @@ export function CustomerInfoFields() {
               {...phoneReg}
               onChange={(e) => {
                 // Format as-you-type, restoring the caret by counting how many
-                // national digits sat before it (so mid-string edits don't
-                // fling the caret to the end).
+                // digits sat before it (so mid-string edits don't fling the
+                // caret to the end).
                 const el = e.target;
                 const caret = el.selectionStart ?? el.value.length;
                 const atEnd = caret === el.value.length;
-                const digitsBefore = uaNationalDigits(
-                  el.value.slice(0, caret)
-                ).length;
-                const formatted = formatUaPhone(el.value) || UA_PHONE_PREFIX;
+                const nBefore = digitsBefore(el.value, caret);
+                const formatted = formatPhone(el.value) || UA_PHONE_PREFIX;
                 el.value = formatted;
                 const pos = atEnd
                   ? formatted.length
-                  : uaCaretAfterDigits(formatted, digitsBefore);
+                  : caretAfterDigits(formatted, nBefore);
                 el.setSelectionRange(pos, pos);
                 phoneReg.onChange(e);
               }}
@@ -89,6 +87,12 @@ export function CustomerInfoFields() {
             id={id}
             icon={<EmailIcon />}
             type="email"
+            // Email keyboard on mobile (@ and . keys), no auto-capitalize /
+            // autocorrect mangling the address.
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             autoComplete="email"
             placeholder="your@email.com"
             aria-describedby={hintId}

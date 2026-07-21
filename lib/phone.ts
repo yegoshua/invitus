@@ -1,39 +1,76 @@
-// Ukrainian phone formatting for the checkout input: "+380 67 123 45 67".
-// One fixed mask — a formatting library would be 100× the size of this file.
+// Phone input helpers for checkout. Hybrid approach:
+//  - UA numbers (the default audience) format with the local convention
+//    "+380 XX XXX XX XX" — matching the input placeholder;
+//  - any foreign "+xx…" number formats via libphonenumber's AsYouType, so
+//    international customers can just type their own number;
+//  - validation is real libphonenumber validation for both (length, country
+//    and operator ranges — not a regex).
+// libphonenumber-js/min lands only in the checkout route chunk.
+
+import { AsYouType, isValidPhoneNumber } from "libphonenumber-js/min";
 
 export const UA_PHONE_PREFIX = "+380 ";
+export const DEFAULT_COUNTRY = "UA" as const;
 
 /**
- * National significant digits (max 9) from any user input.
- * Accepts "+380…", "380…", "0…" (national form) and bare operator digits.
- * The "380" strip loops: pasting a full international number into a focused
- * field concatenates with the "+380 " prefix ("380" + "380 67…"). Safe —
- * no UA national number starts with 380 (city code 0380 doesn't exist).
- * The "0" strip is independent: "+380 067…" needs the "380" AND the "0" cut.
+ * Normalizes raw input-field text before formatting:
+ * - a full international number pasted into a focused field lands after the
+ *   prefilled "+380 " — take everything from the last "+";
+ * - "+380380…" (bare international pasted after the prefix) collapses the
+ *   duplicated country code; "+3800…" drops the national trunk zero;
+ * - "380XXXXXXXXX" without "+" is clearly UA international — add "+".
  */
-export function uaNationalDigits(input: string): string {
-  let d = input.replace(/\D/g, "");
-  while (d.startsWith("380")) d = d.slice(3);
-  if (d.startsWith("0")) d = d.slice(1);
-  return d.slice(0, 9);
+export function normalizePhoneInput(raw: string): string {
+  let v = raw;
+  const lastPlus = v.lastIndexOf("+");
+  if (lastPlus > 0) v = v.slice(lastPlus);
+
+  let digits = v.replace(/\D/g, "");
+  if (v.startsWith("+")) {
+    if (digits.startsWith("380380")) digits = digits.slice(3);
+    if (/^3800/.test(digits)) digits = `380${digits.slice(4)}`;
+    return `+${digits}`;
+  }
+  if (/^380\d{9}$/.test(digits)) return `+${digits}`;
+  return v;
 }
 
-/** As-you-type format: "" for no digits, else "+380 67 123 45 67" (partial while typing). */
-export function formatUaPhone(input: string): string {
-  const d = uaNationalDigits(input);
+/** As-you-type formatting: "+380 67 123 45 67", "+49 30 90182000", … */
+export function formatPhone(raw: string): string {
+  const v = normalizePhoneInput(raw);
+
+  if (v.startsWith("+")) {
+    // Still ambiguous ("+", "+3", "+38") — leave as typed.
+    if (v.length < 4 && "+380".startsWith(v)) return v;
+    // Foreign number → libphonenumber's own national grouping.
+    if (!v.startsWith("+380")) return new AsYouType(DEFAULT_COUNTRY).input(v);
+  }
+
+  // UA number (with or without prefix) → local "+380 XX XXX XX XX" grouping.
+  let d = v.replace(/\D/g, "");
+  if (d.startsWith("380")) d = d.slice(3);
+  if (d.startsWith("0")) d = d.slice(1);
+  d = d.slice(0, 9);
   if (!d) return "";
   const groups = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)];
   return UA_PHONE_PREFIX + groups.filter(Boolean).join(" ");
 }
 
-/**
- * Caret position in a formatted value that sits right after the Nth national
- * digit (used to keep the caret in place when editing mid-string).
- */
-export function uaCaretAfterDigits(formatted: string, n: number): number {
-  if (n <= 0) return Math.min(UA_PHONE_PREFIX.length, formatted.length);
+/** Real number validation (length, country, operator ranges) — not a regex. */
+export function isValidPhone(value: string): boolean {
+  return isValidPhoneNumber(value, DEFAULT_COUNTRY);
+}
+
+/** Digits before the caret — used to restore caret position after reformat. */
+export function digitsBefore(value: string, caret: number): number {
+  return value.slice(0, caret).replace(/\D/g, "").length;
+}
+
+/** Caret position in `formatted` right after the Nth digit. */
+export function caretAfterDigits(formatted: string, n: number): number {
+  if (n <= 0) return 0;
   let seen = 0;
-  for (let i = UA_PHONE_PREFIX.length; i < formatted.length; i++) {
+  for (let i = 0; i < formatted.length; i++) {
     if (/\d/.test(formatted[i])) {
       seen++;
       if (seen === n) return i + 1;
