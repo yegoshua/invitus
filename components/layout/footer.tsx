@@ -15,8 +15,10 @@ const socialLinks = [
 ];
 
 const legalLinks = [
-  // TODO: replace "#" once a "Публічна оферта" page exists.
-  { href: "#", label: "Публічна оферта" },
+  {
+    href: "https://docs.google.com/document/d/1KNl7zuE12oEiTT0ixwsnEaAKWl8ompZjwb7LAuuDPCA/edit?usp=sharing",
+    label: "Публічна оферта",
+  },
   { href: "/refund", label: "Повернення товару" },
 ];
 
@@ -60,15 +62,27 @@ export function Footer() {
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-6 lg:gap-10 text-white">
             <span>ФОП Григорян Сергій Валерійович</span>
             <div className="flex flex-wrap gap-x-6 gap-y-2 lg:gap-10">
-              {legalLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="hover:text-coral transition-colors"
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {legalLinks.map((link) =>
+                link.href.startsWith("http") ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-coral transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className="hover:text-coral transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
             </div>
           </div>
 
