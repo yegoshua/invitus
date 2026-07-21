@@ -7,7 +7,6 @@ export interface NavLink {
 
 export const navLinks: NavLink[] = [
   { href: "/shop/belts", label: "Атлетичні пояси" },
-  { href: "/shop/shirts", label: "Футболки" },
   { href: "/shop/wrist-wraps", label: "Кистьові бинти" },
   { href: "/shop/straps", label: "Лямки-вісімки" },
   { href: "/shop/knee-sleeves", label: "Наколінники" },

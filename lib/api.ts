@@ -37,6 +37,13 @@ const CATEGORY_SLUG_BY_ID: Record<number, string> = {
   6: "shirts", // Футболки
 };
 
+// Categories temporarily hidden from the entire site: navigation, catalog,
+// sitemap, featured lists and product pages. Filtered at the fetch layer so
+// every consumer is covered. To bring a category back, just remove its id.
+const HIDDEN_CATEGORY_IDS = new Set<number>([
+  6, // Футболки — поки немає в продажу
+]);
+
 // ──────────────────────────────────────────────────────────────────────────
 // Internal: slugs
 // ──────────────────────────────────────────────────────────────────────────
@@ -142,9 +149,11 @@ function toProduct(
 // ──────────────────────────────────────────────────────────────────────────
 
 async function fetchAllCategories(): Promise<KeyCrmCategory[]> {
-  return fetchKeyCrmAll<KeyCrmCategory>("/products/categories", {
-    tags: ["categories"],
-  });
+  const categories = await fetchKeyCrmAll<KeyCrmCategory>(
+    "/products/categories",
+    { tags: ["categories"] }
+  );
+  return categories.filter((c) => !HIDDEN_CATEGORY_IDS.has(c.id));
 }
 
 async function fetchCategoryMap(): Promise<Map<number, KeyCrmCategory>> {
@@ -166,6 +175,9 @@ async function fetchAllProducts(params?: {
   // KeyCRM returns newest-first; the catalog reads better in creation order.
   return products
     .filter((p) => !p.is_archived)
+    .filter(
+      (p) => p.category_id == null || !HIDDEN_CATEGORY_IDS.has(p.category_id)
+    )
     .sort((a, b) => a.id - b.id);
 }
 
