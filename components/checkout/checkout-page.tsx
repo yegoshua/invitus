@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import { ArrowUpRight, ShoppingBag } from "lucide-react";
 import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { gaItems, trackEvent } from "@/lib/gtag";
+import { TrackOnce } from "@/components/analytics/track-once";
 import {
   checkoutDefaults,
   checkoutSchema,
@@ -51,14 +52,6 @@ export function CheckoutPage() {
     shouldFocusError: true,
     mode: "onTouched",
   });
-
-  // GA4: begin_checkout once, as soon as the cart has hydrated with items.
-  const beginCheckoutFired = useRef(false);
-  useEffect(() => {
-    if (beginCheckoutFired.current || items.length === 0) return;
-    beginCheckoutFired.current = true;
-    trackEvent("begin_checkout", { value: subtotal, items: gaItems(items) });
-  }, [items, subtotal]);
 
   if (submittedOrder) {
     return <CheckoutSuccess order={submittedOrder} />;
@@ -162,6 +155,12 @@ export function CheckoutPage() {
 
   return (
     <FormProvider {...methods}>
+      {/* This branch only renders with a non-empty cart, so mounting it IS
+          the begin_checkout moment. */}
+      <TrackOnce
+        event="begin_checkout"
+        params={{ value: subtotal, items: gaItems(items) }}
+      />
       <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
         <OrderSummaryMobileTop />
 
