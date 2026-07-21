@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, ShoppingBag } from "lucide-react";
 import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
+import { gaItems, trackEvent } from "@/lib/gtag";
 import {
   checkoutDefaults,
   checkoutSchema,
@@ -50,6 +51,14 @@ export function CheckoutPage() {
     shouldFocusError: true,
     mode: "onTouched",
   });
+
+  // GA4: begin_checkout once, as soon as the cart has hydrated with items.
+  const beginCheckoutFired = useRef(false);
+  useEffect(() => {
+    if (beginCheckoutFired.current || items.length === 0) return;
+    beginCheckoutFired.current = true;
+    trackEvent("begin_checkout", { value: subtotal, items: gaItems(items) });
+  }, [items, subtotal]);
 
   if (submittedOrder) {
     return <CheckoutSuccess order={submittedOrder} />;
@@ -139,8 +148,15 @@ export function CheckoutPage() {
       return;
     }
 
-    // COD path — no external payment, show success directly.
+    // COD path — no external payment, the order is placed here. This is the
+    // conversion, so fire purchase now (online purchases fire on payment-result).
     console.log("[INVITUS checkout] Order submitted (COD):", order);
+    trackEvent("purchase", {
+      transaction_id: reference,
+      value: order.totals.total,
+      shipping: order.totals.shipping,
+      items: gaItems(items),
+    });
     setSubmittedOrder(order);
   };
 
