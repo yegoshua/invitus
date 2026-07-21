@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowUpRight, Loader2, XCircle } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
+import { CTAButton } from "@/components/ui/cta-button";
 import { CheckoutHeader } from "@/components/checkout/checkout-header";
 import { ClearCartOnMount } from "@/components/checkout/clear-cart-on-mount";
 import { ConfettiOverlay } from "@/components/checkout/confetti-overlay";
@@ -166,13 +166,9 @@ function SuccessCard() {
         Дякуємо! Твоє екіпірування вже їде. Лишилось познайомити його із залом.
       </p>
 
-      <Link
-        href="/"
-        className="group inline-flex items-center justify-center gap-3 lg:gap-4 w-full lg:max-w-[544px] mx-auto h-16 lg:h-[88px] pt-[22px] pr-7 pb-[22px] pl-8 lg:pt-8 lg:pr-10 lg:pb-8 lg:pl-12 rounded-3xl lg:rounded-[32px] bg-coral text-black font-heading font-bold tracking-[0.05em] uppercase text-base lg:text-lg transition-[filter] duration-150 hover:brightness-110"
-      >
+      <CTAButton href="/" width="fill" className="lg:max-w-[544px] mx-auto">
         На головну
-        <ArrowUpRight className="w-5 h-5 lg:w-6 lg:h-6" strokeWidth={2.4} />
-      </Link>
+      </CTAButton>
 
       <p className="mt-6 lg:mt-8 font-sans font-medium text-[14px] leading-5 tracking-[0.01em] text-[#FFFFFFA3]">
         Щось пішло не так із замовленням? Напиши нам у{" "}
@@ -203,13 +199,9 @@ function PendingCard() {
         Банк ще не підтвердив транзакцію. Онови сторінку за хвилину або очікуй
         email-підтвердження.
       </p>
-      <Link
-        href="/"
-        className="group inline-flex items-center justify-center gap-3 w-full h-14 lg:h-16 rounded-[40px] bg-coral text-black font-heading font-bold tracking-[0.05em] uppercase text-base lg:text-lg transition-[filter] duration-150 hover:brightness-110"
-      >
+      <CTAButton href="/" width="fill">
         На головну
-        <ArrowUpRight className="w-5 h-5 lg:w-6 lg:h-6" strokeWidth={2.4} />
-      </Link>
+      </CTAButton>
     </div>
   );
 }
@@ -236,13 +228,9 @@ function ErrorCard({
       <p className="text-white/78 text-base lg:text-lg mb-8 lg:mb-10 max-w-[460px] mx-auto break-words">
         {description}
       </p>
-      <Link
-        href={ctaHref}
-        className="group inline-flex items-center justify-center gap-3 w-full h-14 lg:h-16 rounded-[40px] bg-coral text-black font-heading font-bold tracking-[0.05em] uppercase text-base lg:text-lg transition-[filter] duration-150 hover:brightness-110"
-      >
+      <CTAButton href={ctaHref} width="fill">
         {ctaLabel}
-        <ArrowUpRight className="w-5 h-5 lg:w-6 lg:h-6" strokeWidth={2.4} />
-      </Link>
+      </CTAButton>
     </div>
   );
 }

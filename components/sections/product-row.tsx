@@ -1,6 +1,6 @@
 "use client";
 
-import { CTALink } from "@/components/ui/cta-link";
+import { CTAButton } from "@/components/ui/cta-button";
 import { ProductScrollGrid } from "@/components/ui/product-scroll-grid";
 import { FadeUp } from "@/components/ui/fade-up";
 import { cn } from "@/lib/utils";
@@ -44,15 +44,9 @@ export function ProductRow({
       </div>
 
       <FadeUp delay={0.4} className="container-main text-center">
-        <CTALink
-          href={ctaHref}
-          variant="outline"
-          size="large"
-          color="coral"
-          className={ctaClassName}
-        >
+        <CTAButton href={ctaHref} variant="outline" className={ctaClassName}>
           {ctaLabel}
-        </CTALink>
+        </CTAButton>
       </FadeUp>
     </>
   );
