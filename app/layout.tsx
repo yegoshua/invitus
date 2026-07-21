@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Golos_Text } from "next/font/google";
 import { Providers } from "./providers";
 import { ClarityAnalytics } from "@/components/analytics/clarity";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { SITE_URL } from "@/lib/site";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -26,6 +28,7 @@ const drukWide = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "INVITUS | Екіпірування для пауерліфтингу",
   description:
     "Український бренд екіпірування для пауерліфтингу. Атлетичні пояси, футболки, кистьові бинти та аксесуари для важкої атлетики.",
@@ -40,6 +43,11 @@ export const metadata: Metadata = {
   icons: {
     icon: "/assets/icons/favico.jpeg",
   },
+  // Google Search Console: renders <meta name="google-site-verification" ...>
+  // when GOOGLE_SITE_VERIFICATION is set (URL-prefix / HTML-tag method).
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  },
 };
 
 export default function RootLayout({
@@ -52,6 +60,7 @@ export default function RootLayout({
       <body className={`${golosText.variable} ${drukWide.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
         <ClarityAnalytics />
+        <GoogleAnalytics />
       </body>
     </html>
   );
