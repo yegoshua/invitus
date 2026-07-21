@@ -43,7 +43,7 @@ export function CustomerInfoFields() {
               icon={<PhoneIcon />}
               type="tel"
               autoComplete="tel"
-              placeholder="+380 67 123 45 67"
+              placeholder="+380 (67) 123 45 67"
               aria-describedby={hintId}
               invalid={!!error}
               {...phoneReg}

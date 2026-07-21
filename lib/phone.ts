@@ -1,6 +1,6 @@
 // Phone input helpers for checkout. Hybrid approach:
 //  - UA numbers (the default audience) format with the local convention
-//    "+380 XX XXX XX XX" — matching the input placeholder;
+//    "+380 (XX) XXX XX XX" — matching the input placeholder;
 //  - any foreign "+xx…" number formats via libphonenumber's AsYouType, so
 //    international customers can just type their own number;
 //  - validation is real libphonenumber validation for both (length, country
@@ -35,7 +35,7 @@ export function normalizePhoneInput(raw: string): string {
   return v;
 }
 
-/** As-you-type formatting: "+380 67 123 45 67", "+49 30 90182000", … */
+/** As-you-type formatting: "+380 (98) 770 58 42", "+49 30 90182000", … */
 export function formatPhone(raw: string): string {
   const v = normalizePhoneInput(raw);
 
@@ -46,14 +46,18 @@ export function formatPhone(raw: string): string {
     if (!v.startsWith("+380")) return new AsYouType(DEFAULT_COUNTRY).input(v);
   }
 
-  // UA number (with or without prefix) → local "+380 XX XXX XX XX" grouping.
+  // UA number (with or without prefix) → local "+380 (XX) XXX XX XX" grouping.
   let d = v.replace(/\D/g, "");
   if (d.startsWith("380")) d = d.slice(3);
   if (d.startsWith("0")) d = d.slice(1);
   d = d.slice(0, 9);
   if (!d) return "";
-  const groups = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)];
-  return UA_PHONE_PREFIX + groups.filter(Boolean).join(" ");
+  const operator = d.slice(0, 2);
+  const rest = [d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean);
+  // The ")" appears only once digits follow the operator code, so deleting
+  // backwards never fights the formatter re-inserting it.
+  if (!rest.length) return `${UA_PHONE_PREFIX}(${operator}`;
+  return `${UA_PHONE_PREFIX}(${operator}) ${rest.join(" ")}`;
 }
 
 /** Real number validation (length, country, operator ranges) — not a regex. */
