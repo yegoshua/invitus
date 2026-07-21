@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
+import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
 import { formatPriceWithCurrency } from "@/lib/format";
 import type { Product } from "@/types";
@@ -25,6 +26,14 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const openCart = useOpenCart();
 
   const formattedPrice = formatPriceWithCurrency(product.price);
+
+  // GA4: one view_item per product opened.
+  useEffect(() => {
+    trackEvent("view_item", {
+      value: product.price,
+      items: [gaItem(product)],
+    });
+  }, [product.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 3D is a belts-only experience: belts get their own model or the fallback
   // belt; other categories show the product photo (a fallback belt model on

@@ -5,6 +5,7 @@ import { ArrowUpRight, Loader2, XCircle } from "lucide-react";
 import { CheckoutHeader } from "@/components/checkout/checkout-header";
 import { ClearCartOnMount } from "@/components/checkout/clear-cart-on-mount";
 import { ConfettiOverlay } from "@/components/checkout/confetti-overlay";
+import { TrackOnce } from "@/components/analytics/track-once";
 import { getInvoiceStatus } from "@/lib/monobank";
 import SuccessCheckoutIcon from "@/public/assets/icons/checkout/sucess-checkout.svg";
 
@@ -75,9 +76,22 @@ async function PaymentResult({ invoiceId }: { invoiceId: string }) {
   if (!result) return null;
 
   if (result.status === "success") {
+    const value = (result.finalAmount ?? result.amount) / 100; // copecks → UAH
     return (
       <ResultLayout>
         <ClearCartOnMount />
+        {/* Items aren't available here (server page, cart already cleared) —
+            GA4 accepts purchase without items; revenue still attributes via
+            value + transaction_id. dedupeKey guards against refresh. */}
+        <TrackOnce
+          event="purchase"
+          params={{
+            transaction_id: result.reference || invoiceId,
+            value,
+            items: [],
+          }}
+          dedupeKey={`purchase_${result.reference || invoiceId}`}
+        />
         <ConfettiOverlay />
         <SuccessCard />
       </ResultLayout>

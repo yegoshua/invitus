@@ -7,6 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, ShoppingBag } from "lucide-react";
 import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
+import { gaItems, trackEvent } from "@/lib/gtag";
+import { TrackOnce } from "@/components/analytics/track-once";
 import {
   checkoutDefaults,
   checkoutSchema,
@@ -139,13 +141,26 @@ export function CheckoutPage() {
       return;
     }
 
-    // COD path — no external payment, show success directly.
+    // COD path — no external payment, the order is placed here. This is the
+    // conversion, so fire purchase now (online purchases fire on payment-result).
     console.log("[INVITUS checkout] Order submitted (COD):", order);
+    trackEvent("purchase", {
+      transaction_id: reference,
+      value: order.totals.total,
+      shipping: order.totals.shipping,
+      items: gaItems(items),
+    });
     setSubmittedOrder(order);
   };
 
   return (
     <FormProvider {...methods}>
+      {/* This branch only renders with a non-empty cart, so mounting it IS
+          the begin_checkout moment. */}
+      <TrackOnce
+        event="begin_checkout"
+        params={{ value: subtotal, items: gaItems(items) }}
+      />
       <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
         <OrderSummaryMobileTop />
 

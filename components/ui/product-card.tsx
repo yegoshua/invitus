@@ -4,14 +4,17 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ProductMedia } from "@/components/ui/product-media";
 import { formatPrice } from "@/lib/format";
+import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
   product: Product;
   index?: number;
+  /** Name of the list this card belongs to (correlates view_item_list ↔ select_item). */
+  listName?: string;
 }
 
-export function ProductCard({ product, index = 0 }: ProductCardProps) {
+export function ProductCard({ product, index = 0, listName }: ProductCardProps) {
   const formattedPrice = formatPrice(product.price);
 
   return (
@@ -22,7 +25,16 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       transition={{ duration: 0.5, delay: index * 0.1 }}
       className="group md:flex-shrink-0 md:w-[318px] lg:w-auto"
     >
-      <Link href={`/product/${product.slug}`} className="block">
+      <Link
+        href={`/product/${product.slug}`}
+        className="block"
+        onClick={() =>
+          trackEvent("select_item", {
+            item_list_name: listName,
+            items: [gaItem(product, { index })],
+          })
+        }
+      >
         <div className="bg-surface rounded-[24px] lg:rounded-[32px] overflow-hidden">
           <div className="relative aspect-square overflow-hidden">
             <ProductMedia
