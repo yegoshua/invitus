@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { CTAButton } from "@/components/ui/cta-button";
 import { useClearCart } from "@/hooks/use-cart";
 import { formatPrice } from "@/lib/format";
 
@@ -58,13 +58,9 @@ export function CheckoutSuccess({ order }: CheckoutSuccessProps) {
           />
         </div>
 
-        <Link
-          href="/"
-          className="group inline-flex items-center justify-center gap-3 w-full h-14 rounded-[40px] bg-coral text-black font-heading font-bold tracking-[0.05em] uppercase text-base transition-[filter] duration-150 hover:brightness-110"
-        >
+        <CTAButton href="/" width="fill">
           На головну
-          <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-        </Link>
+        </CTAButton>
       </div>
     </main>
   );

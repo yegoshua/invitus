@@ -128,7 +128,9 @@ export function DeliveryFields() {
         )}
       />
 
-      <p className="text-[15px] text-white/50 -mt-1">
+      {/* Mobile: 12/16 medium, 2% tracking, 8px from the input (gap-6 − mt-4).
+          Desktop keeps the original 15px / 20px-gap look. */}
+      <p className="text-xs leading-4 font-medium tracking-[0.02em] -mt-4 lg:text-[15px] lg:leading-normal lg:font-normal lg:tracking-normal lg:-mt-1 text-white/50">
         Доставляємо Новою поштою — тарифи оператора
       </p>
     </div>
