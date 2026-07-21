@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
 import { ProductMedia } from "@/components/ui/product-media";
+import { CTAButton } from "@/components/ui/cta-button";
 import { formatPrice } from "@/lib/format";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { cn } from "@/lib/utils";
@@ -30,9 +30,7 @@ export function OrderSummary({
 
   return (
     <aside
-      className={cn(
-        isDesktop && "flex flex-col gap-6",
-        !isDesktop && "flex flex-col gap-5"
+      className={cn( "flex flex-col gap-6",
       )}
     >
       {isDesktop && (
@@ -74,44 +72,36 @@ export function OrderSummary({
         </ul>
       )}
 
-      <div className={cn("flex flex-col gap-3", isDesktop && "mt-6")}>
-        <div className="flex justify-between items-baseline text-[17px] text-white/78">
+      <div className={cn("flex flex-col", isDesktop && "mt-6")}>
+        <div className="flex justify-between items-baseline text-base leading-6 font-medium tracking-[0.01em] text-white">
           <span>Замовлення</span>
-          <span className="text-white font-medium">
+          <span className="font-medium">
             {formatPrice(subtotal)} ₴
           </span>
         </div>
-        <div className="flex justify-between items-baseline text-[17px] text-white/78">
+        <div className="flex justify-between items-baseline mt-2 text-base leading-6 font-medium tracking-[0.01em] text-white">
           <span>Доставка</span>
-          <span className="text-white font-medium">
+          <span className="font-medium">
             від {SHIPPING_COST} ₴
           </span>
         </div>
-        <div className="flex justify-between items-baseline mt-3">
-          <span className="font-heading text-xl text-white">ДО ОПЛАТИ:</span>
-          <span className="font-heading text-2xl text-white">
+        <div className="flex justify-between items-baseline mt-4">
+          <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
+            ДО ОПЛАТИ:
+          </span>
+          <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
             {formatPrice(total)} ₴
           </span>
         </div>
       </div>
 
-      <button
+      <CTAButton
         type="submit"
+        width="fill"
         disabled={submitting || items.length === 0}
-        className={cn(
-          "group mt-4 inline-flex w-full items-center justify-center gap-4",
-          "font-heading font-bold tracking-[0.05em] uppercase",
-          "bg-coral text-black rounded-[40px]",
-          "h-[68px] lg:h-[84px] text-[18px] lg:text-[22px]",
-          "transition-[filter,transform] duration-150",
-          "hover:brightness-110 active:translate-y-px",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-          "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:brightness-100"
-        )}
       >
         До оплати
-        <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-      </button>
+      </CTAButton>
     </aside>
   );
 }

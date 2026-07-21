@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { gaItems, trackEvent } from "@/lib/gtag";
@@ -19,6 +18,7 @@ import { CustomerInfoFields } from "./customer-info-fields";
 import { DeliveryFields } from "./delivery-fields";
 import { PaymentMethodRadio } from "./payment-method-radio";
 import { NovaPoshtaIcon } from "./nova-poshta-icon";
+import { CTAButton } from "@/components/ui/cta-button";
 import {
   OrderSummary,
   OrderSummaryMobileTop,
@@ -225,13 +225,9 @@ function EmptyCart() {
         <p className="text-white/78 text-base mb-8">
           Додай товари в кошик, щоб оформити замовлення.
         </p>
-        <Link
-          href="/shop/belts"
-          className="group inline-flex items-center justify-center gap-3 w-full h-14 rounded-[40px] bg-coral text-black font-heading font-bold tracking-[0.05em] uppercase text-base transition-[filter] duration-150 hover:brightness-110"
-        >
+        <CTAButton href="/shop/belts" width="fill">
           У каталог
-          <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-        </Link>
+        </CTAButton>
       </div>
     </main>
   );

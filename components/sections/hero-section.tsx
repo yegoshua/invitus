@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CTALink } from "@/components/ui/cta-link";
+import { CTAButton } from "@/components/ui/cta-button";
 
 export function HeroSection() {
   return (
@@ -43,10 +43,10 @@ export function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-              <CTALink href="/shop/belts" variant="solid" size="large">
+              <CTAButton href="/shop/belts">
                 <span className="hidden lg:inline">ЗАБРАТИ СВІЙ ПОЯС</span>
                 <span className="lg:hidden">ЗАБРАТИ ПОЯС</span>
-              </CTALink>
+              </CTAButton>
             </motion.div>
           </div>
         </div>

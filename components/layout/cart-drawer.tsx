@@ -2,12 +2,11 @@
 
 import { useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { CTAButton } from "@/components/ui/cta-button";
 import { Minus } from "lucide-react";
 import BinIcon from "@/public/assets/icons/bin-icon.svg";
 import CloseIcon from "@/public/assets/icons/Close.svg";
 import PlusIcon from "@/public/assets/icons/plus-icon.svg";
-import ArrowOutForwardIcon from "@/public/assets/icons/arrow-outforward-icon.svg";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useCartCount,
@@ -105,24 +104,14 @@ export function CartDrawer() {
                       {formattedTotal} ₴
                     </span>
                   </div>
-                  <Link
-                    href="/checkout"
-                    onClick={closeCart}
-                    className="group flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-3xl transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
-                  >
+                  <CTAButton href="/checkout" width="fill" onClick={closeCart}>
                     До оплати
-                    <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                  </Link>
+                  </CTAButton>
                 </>
               ) : (
-                <Link
-                  href="/shop/belts"
-                  onClick={closeCart}
-                  className="group flex w-full items-center text-btn justify-center gap-4 font-heading font-bold tracking-[0.05em] uppercase rounded-3xl transition-all duration-300 bg-coral text-black hover:brightness-110 py-6"
-                >
+                <CTAButton href="/shop/belts" width="fill" onClick={closeCart}>
                   Знайти пояс
-                  <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                </Link>
+                </CTAButton>
               )}
             </div>
           </motion.div>

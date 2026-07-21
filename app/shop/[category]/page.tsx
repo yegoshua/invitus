@@ -31,7 +31,6 @@ export async function generateStaticParams() {
     // Fallback to hardcoded slugs if Strapi is not available
     return [
       { category: "belts" },
-      { category: "shirts" },
       { category: "wrist-wraps" },
       { category: "straps" },
       { category: "knee-sleeves" },

@@ -11,7 +11,7 @@ import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
 import { ModelLoader } from "@/components/models/model-loader";
 import { ProductMedia } from "@/components/ui/product-media";
-import ArrowOutForwardIcon from "@/public/assets/icons/arrow-outforward-icon.svg";
+import { CTAButton } from "@/components/ui/cta-button";
 
 interface ProductPageContentProps {
   product: Product;
@@ -116,13 +116,13 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
 
       {/* Fixed CTA — mobile only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm">
-        <button
+        <CTAButton
+          width="fill"
           onClick={handleAddToCart}
-          className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-3xl bg-coral text-black py-5"
+          icon={<Plus className="w-5 h-5" />}
         >
           Додати в кошик
-          <Plus className="w-5 h-5" />
-        </button>
+        </CTAButton>
       </div>
 
       {/* ===== DESKTOP LAYOUT ===== */}
@@ -197,13 +197,9 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                     howToMeasure={product.howToMeasure}
                     careInstructions={product.careInstructions}
                   />
-                  <button
-                    onClick={handleAddToCart}
-                    className="group inline-flex w-full items-center justify-center gap-4 text-btn font-heading font-bold tracking-[0.05em] uppercase rounded-[32px] transition-all duration-300 bg-coral text-black hover:brightness-110 px-12 py-8"
-                  >
+                  <CTAButton width="fill" onClick={handleAddToCart}>
                     Додати в кошик
-                    <ArrowOutForwardIcon className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                  </button>
+                  </CTAButton>
                 </motion.div>
               </div>
             </div>
