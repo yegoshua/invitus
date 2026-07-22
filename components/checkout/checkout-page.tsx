@@ -197,7 +197,9 @@ export function CheckoutPage() {
             </div>
           </div>
 
-          <div className="lg:hidden mt-6">
+          {/* Cancel the parent's 8px (--container-px) and use this
+              section's own 16px horizontal padding instead. */}
+          <div className="lg:hidden mt-6 -mx-2 px-4">
             <OrderSummary
               variant="mobile-bottom"
               submitting={methods.formState.isSubmitting}
