@@ -154,7 +154,7 @@ function CartItems({
     <div className="flex flex-col gap-6">
       {items.map((item) => {
         const { product, quantity, size } = item;
-        const formattedPrice = formatPrice(product.price * quantity);
+        const formattedPrice = formatPrice(product.price);
 
         return (
           <div key={`${product.id}-${size}`} className="flex gap-4">

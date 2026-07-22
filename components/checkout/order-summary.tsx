@@ -51,8 +51,10 @@ export function OrderSummary({
                 <h3 className="font-heading text-[22px] leading-tight text-white">
                   {item.product.name}
                 </h3>
+                {/* Base unit price — not price × quantity; the total near
+                    "До оплати" already accounts for quantity. */}
                 <p className="mt-2 text-[22px] font-semibold text-white">
-                  {formatPrice(item.product.price * item.quantity)} ₴
+                  {formatPrice(item.product.price)} ₴
                 </p>
                 <div className="mt-4 space-y-1">
                   {item.size && (
@@ -130,8 +132,9 @@ export function OrderSummaryMobileTop() {
         <h3 className="font-sans font-medium text-base/5 text-white">
           {first.product.name}
         </h3>
+        {/* Base unit price — not price × quantity; see note above. */}
         <p className="mt-2 font-sans font-medium text-base/6 text-white">
-          {formatPrice(first.product.price * first.quantity)} ₴
+          {formatPrice(first.product.price)} ₴
         </p>
         {first.size && (
           <p className="mt-4 font-sans font-medium text-base/6 text-white/50">
