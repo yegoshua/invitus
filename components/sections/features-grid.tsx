@@ -1,11 +1,60 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import CardDistortion from "@/components/sections/benefit-card-image-bg.png";
 import { featureCards, type FeatureCard } from "@/content/features";
+import { cn } from "@/lib/utils";
+
+// Cards always fly in from the outside towards the centre.
+//
+// The direction can't come from the DOM index alone: on lg the grid re-orders
+// cards via `lg:order-N`, so index 2 can sit in the right column while index 3
+// sits in the left. Driving the offset off the index made that pair animate
+// outwards from the centre instead of into it.
+//
+// So the offset is a CSS variable set per breakpoint — mobile keeps the
+// original alternating slide-in (single column), lg derives the column from the
+// order number: odd order → left column, even order → right column. Pure CSS,
+// so it stays correct on resize with no hydration mismatch.
+function enterOffsetClasses(index: number, lgOrder: string): string {
+  const mobile = index % 2 === 0 ? "[--enter-x:-100px]" : "[--enter-x:100px]";
+  const order = orderOf(index, lgOrder);
+  const desktop =
+    order % 2 === 1 ? "lg:[--enter-x:-100px]" : "lg:[--enter-x:100px]";
+  return `${mobile} ${desktop}`;
+}
+
+function orderOf(index: number, lgOrder: string): number {
+  return Number(lgOrder.match(/(\d+)$/)?.[1] ?? index + 1);
+}
+
+// Stagger, same story: the DOM index is not the visual position on lg, so it
+// made the pair land out of sync. On lg both cards of a row share one delay so
+// they meet in the centre together, and rows follow each other. Mobile is a
+// single column, so cards keep flying in one after another.
+//
+// Unlike `initial`, `transition` is read when the animation fires (on scroll),
+// so a JS breakpoint check is safe here — it has long settled by then.
+function enterDelay(index: number, lgOrder: string, isDesktop: boolean): number {
+  if (!isDesktop) return index * 0.1;
+  const row = Math.floor((orderOf(index, lgOrder) - 1) / 2);
+  return row * 0.15;
+}
 
 export function FeaturesGrid() {
+  // Matches the `lg:` breakpoint the grid switches to two columns at.
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   return (
     <section className="bg-black pt-20 lg:pt-45 overflow-hidden">
       <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1rem,5vw,2rem)]">
@@ -25,11 +74,18 @@ export function FeaturesGrid() {
           {featureCards.map((card, index) => (
             <motion.div
               key={card.kind === "stat" ? card.title : `image-${index}`}
-              initial={{ opacity: 0, y: 0, x: index % 2 !== 0 ? 100 : -100 }}
+              initial={{ opacity: 0, y: 0, x: "var(--enter-x)" }}
               whileInView={{ opacity: 1, y: 0, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`relative group ${card.lgOrder}`}
+              transition={{
+                duration: 0.6,
+                delay: enterDelay(index, card.lgOrder, isDesktop),
+              }}
+              className={cn(
+                "relative group",
+                card.lgOrder,
+                enterOffsetClasses(index, card.lgOrder)
+              )}
             >
               <FeatureCardView card={card} />
             </motion.div>

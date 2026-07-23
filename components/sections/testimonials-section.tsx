@@ -6,16 +6,20 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { testimonials } from "@/content/testimonials";
 
+// Start centered on the middle card, whatever the number of testimonials
+// (was hardcoded to 5 for a 10-item list; breaks with fewer items).
+const START_INDEX = Math.floor(testimonials.length / 2);
+
 export function TestimonialsSection() {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: "center",
     slidesToScroll: 1,
     containScroll: false,
-    startIndex: 5, // Start in the middle
+    startIndex: START_INDEX,
   });
 
-  const [selectedIndex, setSelectedIndex] = useState(5);
+  const [selectedIndex, setSelectedIndex] = useState(START_INDEX);
   const [isMuted, setIsMuted] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
