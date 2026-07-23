@@ -73,7 +73,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                 />
               ) : (
                 <ProductMedia
-                  image={product.mainImage}
+                  image={product.heroImage}
                   alt={product.name}
                   fill
                   className="object-contain"
@@ -150,7 +150,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           <div className="absolute inset-0 z-10 flex items-center justify-center pb-40">
             <div className="relative w-full max-w-[520px] aspect-square">
               <ProductMedia
-                image={product.mainImage}
+                image={product.heroImage}
                 alt={product.name}
                 fill
                 className="object-contain"

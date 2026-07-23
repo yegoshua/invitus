@@ -113,11 +113,16 @@ function toProduct(
   const slug = slugify(p.name);
   const extras = resolveExtras(extrasIndex, p.id, slug);
 
-  // Strapi's heroImage wins when set (e.g. a transparent shot), otherwise the
-  // KeyCRM thumbnail. Products without a Strapi override keep KeyCRM's photo.
-  const mainImage =
-    extras?.heroImage ??
-    (p.thumbnail_url ? { url: p.thumbnail_url, alt: p.name } : undefined);
+  // Two distinct photo slots:
+  //   mainImage — the KeyCRM thumbnail (clean white-bg studio shot). Used in
+  //     list contexts: catalog cards, cart drawer, checkout summary.
+  //   heroImage — the big product-page hero. Prefers Strapi's heroImage (e.g. a
+  //     transparent shot that sits on the scene background), else the thumbnail.
+  const keycrmThumb = p.thumbnail_url
+    ? { url: p.thumbnail_url, alt: p.name }
+    : undefined;
+  const mainImage = keycrmThumb;
+  const heroImage = extras?.heroImage ?? keycrmThumb;
 
   return {
     id: p.id.toString(),
@@ -132,7 +137,7 @@ function toProduct(
     careInstructions: extras?.careInstructions,
 
     mainImage,
-    heroImage: mainImage,
+    heroImage,
     bgImage: extras?.bgImage,
     galleryImages: extras?.galleryImages ?? galleryImages,
 
