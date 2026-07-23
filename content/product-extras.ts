@@ -12,6 +12,12 @@ import type { ProductImage } from "@/types";
 export interface ProductExtras {
   /** Path to a .glb under public/models/ (or a full URL). */
   model3dUrl?: string;
+  /**
+   * Main product photo — overrides the KeyCRM thumbnail when present.
+   * Use it when KeyCRM's photo has a baked-in background and Strapi holds a
+   * cleaner (e.g. transparent) shot for the hero slot.
+   */
+  heroImage?: ProductImage;
   /** Hero background image for the product page (falls back to product_bg.png). */
   bgImage?: ProductImage;
   /** Gallery rendered below the product; overrides KeyCRM attachments when present. */

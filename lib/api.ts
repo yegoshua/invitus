@@ -83,10 +83,6 @@ function toProduct(
   const category =
     p.category_id != null ? categoryById.get(p.category_id) : undefined;
 
-  const mainImage = p.thumbnail_url
-    ? { url: p.thumbnail_url, alt: p.name }
-    : undefined;
-
   const galleryImages = (p.attachments_data ?? [])
     .filter((url) => url !== p.thumbnail_url)
     .map((url) => ({ url, alt: p.name }));
@@ -116,6 +112,12 @@ function toProduct(
 
   const slug = slugify(p.name);
   const extras = resolveExtras(extrasIndex, p.id, slug);
+
+  // Strapi's heroImage wins when set (e.g. a transparent shot), otherwise the
+  // KeyCRM thumbnail. Products without a Strapi override keep KeyCRM's photo.
+  const mainImage =
+    extras?.heroImage ??
+    (p.thumbnail_url ? { url: p.thumbnail_url, alt: p.name } : undefined);
 
   return {
     id: p.id.toString(),
