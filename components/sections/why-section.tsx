@@ -185,7 +185,9 @@ export function WhySection() {
         style={{ height: "700vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">
-          <div className="container-main relative z-10 h-full flex flex-col py-6 lg:py-30">
+          {/* pt clears the fixed header (64px on mobile) — the section is
+              pinned, so the heading would otherwise sit under it. */}
+          <div className="container-main relative z-10 h-full flex flex-col pt-20 pb-6 lg:py-30">
             {/* Heading */}
             <h2 className="text-h2 font-bold text-black leading-[1.1] max-w-xl">
               Чому наші пояси —&nbsp;
@@ -193,10 +195,12 @@ export function WhySection() {
               це база
             </h2>
 
-            {/* Main content row */}
-            <div className="flex-1 min-h-0 flex items-center justify-between gap-8">
-              {/* Left: scroll-controlled video (desktop only) */}
-              <div className="hidden lg:flex flex-1 items-center justify-center h-full">
+            {/* Main content row — belt above cards on mobile/tablet,
+                side by side from lg up. */}
+            <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
+              {/* Scroll-controlled belt. Takes whatever height the cards
+                  leave; object-contain keeps it whole at any size. */}
+              <div className="flex flex-1 min-h-0 w-full items-center justify-center lg:h-full">
                 <video
                   ref={videoRef}
                   src="/assets/belt-benefits-section-video-scrub.webm"
@@ -208,8 +212,8 @@ export function WhySection() {
                 />
               </div>
 
-              {/* Right: Feature Cards */}
-              <div className="relative w-full max-w-xl h-[264px] lg:h-full lg:max-h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
+              {/* Feature Cards — fixed height on mobile so the belt gets the rest */}
+              <div className="relative w-full max-w-xl h-[264px] shrink-0 lg:shrink lg:h-full lg:max-h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
                 {features.map((feature, index) => (
                   <div
                     key={feature.id}
