@@ -17,6 +17,17 @@ import { SHIPPING_COST } from "./shipping";
 const SIZE_PROPERTY = "Розмір";
 const NOVA_POSHTA_DELIVERY_SERVICE_ID = 2;
 
+/**
+ * KeyCRM id of the hidden 0.50 UAH product used to smoke-test live acquiring
+ * (category 7 "Службове (тест)", filtered out of the catalog in lib/api.ts).
+ *
+ * An order containing only this product ships free, so a real-card test costs
+ * 50 copecks rather than 120.50 UAH. It stays a normal product otherwise —
+ * priced, recorded and paid through exactly the same code as everything else,
+ * which is the entire point of testing with it.
+ */
+export const TEST_PRODUCT_ID = 44;
+
 export interface OrderDraftItem {
   /** KeyCRM product id. */
   productId: number;
@@ -85,12 +96,14 @@ export async function priceOrder(draft: OrderDraft): Promise<PricedOrder> {
   );
 
   const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
-  const total = subtotal + SHIPPING_COST;
+  const isTestOnly = lines.every((l) => l.productId === TEST_PRODUCT_ID);
+  const shipping = isTestOnly ? 0 : SHIPPING_COST;
+  const total = subtotal + shipping;
 
   return {
     lines,
     subtotal,
-    shipping: SHIPPING_COST,
+    shipping,
     total,
     // Round once, at the end, on the final UAH figure — rounding per line and
     // summing copecks can drift from what the customer saw.
