@@ -15,14 +15,42 @@ export type InvoiceStatusValue =
   | "reversed"
   | "expired";
 
+/**
+ * Discount or surcharge, on the whole basket (merchantPaymInfo.discounts) or on
+ * one line. Monobank's rule: sum of basketOrder[].total plus the basket-level
+ * discounts must equal `amount`. Anything not a product — delivery, a promo —
+ * belongs here and must never be faked as an extra basket line, or the fiscal
+ * receipt lists it as goods.
+ */
+export interface InvoiceDiscount {
+  /**
+   * UPPERCASE, and the surcharge is EXTRA_CHARGE — not "extra". Monobank's own
+   * prompt templates document these lowercase, but the API rejects that with
+   * INVALID_MERCHANT_PAYM_INFO. Probed against the live endpoint: DISCOUNT and
+   * EXTRA_CHARGE are accepted; extra, EXTRA, SURCHARGE, MARKUP, ALLOWANCE and
+   * ADDITION are all refused.
+   */
+  type: "DISCOUNT" | "EXTRA_CHARGE";
+  /** "VALUE" = fixed sum in copecks, "PERCENT" = percentage. */
+  mode: "VALUE" | "PERCENT";
+  value: number;
+}
+
 export interface BasketItem {
   name: string;
   qty: number;
   /** Unit price in copecks (1 UAH = 100 copecks). */
   sum: number;
+  /** Line total in copecks (sum × qty). Required for fiscal receipts. */
+  total?: number;
   unit?: string;
   code?: string;
+  barcode?: string;
+  /** Tax rates: [0] none, [1] 20%, [2] 7%. Required once ПРРО is active. */
+  tax?: number[];
+  uktzed?: string;
   icon?: string;
+  discounts?: InvoiceDiscount[];
 }
 
 export interface CreateInvoiceInput {
@@ -36,6 +64,8 @@ export interface CreateInvoiceInput {
   destination?: string;
   comment?: string;
   basketOrder?: BasketItem[];
+  /** Basket-level discounts/surcharges — delivery goes here, not in the basket. */
+  discounts?: InvoiceDiscount[];
   customerEmails?: string[];
   redirectUrl?: string;
   webHookUrl?: string;
@@ -88,6 +118,7 @@ export async function createInvoice(
     destination,
     comment,
     basketOrder,
+    discounts,
     customerEmails,
     redirectUrl,
     webHookUrl,
@@ -100,6 +131,7 @@ export async function createInvoice(
   if (destination) merchantPaymInfo.destination = destination;
   if (comment) merchantPaymInfo.comment = comment;
   if (basketOrder?.length) merchantPaymInfo.basketOrder = basketOrder;
+  if (discounts?.length) merchantPaymInfo.discounts = discounts;
   if (customerEmails?.length) merchantPaymInfo.customerEmails = customerEmails;
 
   const body: Record<string, unknown> = { amount, ccy };
