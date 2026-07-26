@@ -8,13 +8,29 @@
 // ("Poseidon Lifting Belt" in Strapi and KeyCRM), while Strapi's own slug
 // field uses a different convention ("belt-poseidon") and cannot be used.
 //
-// Resilient by design: single attempt, 10s timeout, 60s back-off after a
-// failure — a down Strapi degrades the site to fallbacks, never blocks it.
-// The timeout is generous on purpose: Strapi Cloud's free tier sleeps when
-// idle and cold-starts in ~6-7s, so a tighter budget would drop presentation
-// content (hero/bg images) for the first visitor after every quiet spell.
-// Once warm it answers in ~0.15s, and revalidate:300 means only one request
-// per 5 min ever pays the cold-start cost.
+// Resilient by design — and the thing being defended against is not latency
+// but *cache poisoning*. Next doesn't cache a failed fetch, yet it does cache
+// the page rendered from one: a 3-second Strapi blip used to freeze fallback
+// content into static HTML that kept being served long after Strapi recovered.
+// Three layers, in order of what they protect:
+//
+//   1. Retries with a generous budget. This code runs during `next build` and
+//      during background ISR regeneration — nobody is waiting on it, the
+//      visitor is already being served the previous render. A timed-out
+//      attempt also *wakes* a sleeping instance, so attempt 2 usually lands
+//      fast. Spending 30s here is free; a wrong render costs hours.
+//   2. `lastGood` — the newest successful index is kept in memory and served
+//      when a later fetch fails, so one blip can't downgrade a process that
+//      already knows the answer. This is what stops a single timeout during a
+//      build burst from baking fallbacks into every remaining page.
+//   3. Back-off after failure, so a genuinely dead Strapi doesn't re-pay the
+//      whole retry budget on every render.
+//
+// Freshness comes from the webhook at app/api/revalidate, which busts the
+// "strapi-extras" tag the moment content is published in Strapi. The
+// revalidate window below is only a safety net for a missed webhook, so it is
+// deliberately long: the fewer times we touch Strapi, the fewer chances a blip
+// there has to become a visible bug here.
 
 import { getStrapiURL, getStrapiMedia } from "./strapi";
 import { slugify } from "./slugify";
@@ -31,9 +47,29 @@ export interface ExtrasIndex {
 
 const EMPTY: ExtrasIndex = { byKeycrmId: new Map(), bySlug: new Map() };
 
-// After a failed fetch, skip Strapi for a minute so an unreachable instance
-// doesn't add latency to every page render.
+/** Cache tag busted by the Strapi webhook at app/api/revalidate. */
+export const STRAPI_EXTRAS_TAG = "strapi-extras";
+
+// Strapi Cloud's free tier sleeps when idle and cold-starts in ~6-7s (warm:
+// ~0.2s). One attempt has to clear that comfortably, and a miss is worth
+// retrying rather than degrading — the timed-out attempt has already started
+// the wake-up, so the retry is usually the fast case.
+const ATTEMPT_TIMEOUT_MS = 12_000;
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1_000;
+
+// Safety net for a missed webhook, not the freshness mechanism. See the note
+// at the top of this file.
+const REVALIDATE_S = 86_400;
+
+// After exhausting every attempt, stop trying for a minute so a genuinely
+// unreachable Strapi doesn't re-pay the full retry budget on every render.
+const FAILURE_BACKOFF_MS = 60_000;
 let skipUntil = 0;
+
+// Last index fetched successfully by this process. Served instead of EMPTY
+// whenever a later fetch fails, so a blip can't cost content we already have.
+let lastGood: ExtrasIndex | null = null;
 
 // Single-flight guard: while one fetch is in progress, concurrent callers
 // share its promise instead of each opening their own request. Without this,
@@ -42,7 +78,7 @@ let skipUntil = 0;
 let inFlight: Promise<ExtrasIndex> | null = null;
 
 export function getStrapiExtras(): Promise<ExtrasIndex> {
-  if (Date.now() < skipUntil) return Promise.resolve(EMPTY);
+  if (Date.now() < skipUntil) return Promise.resolve(lastGood ?? EMPTY);
   if (inFlight) return inFlight;
   inFlight = fetchStrapiExtras().finally(() => {
     inFlight = null;
@@ -50,20 +86,21 @@ export function getStrapiExtras(): Promise<ExtrasIndex> {
   return inFlight;
 }
 
+/**
+ * Cancel the failure back-off so the next read retries Strapi immediately.
+ *
+ * Deliberately does NOT clear `lastGood`: that value is only ever replaced by a
+ * newer successful fetch. Dropping it would mean a refetch that fails right
+ * after this call falls all the way back to EMPTY — reintroducing exactly the
+ * poisoned render this module exists to prevent.
+ */
+export function clearStrapiExtrasBackoff(): void {
+  skipUntil = 0;
+}
+
 async function fetchStrapiExtras(): Promise<ExtrasIndex> {
   try {
-    const response = await fetch(
-      getStrapiURL(
-        "/api/products?populate[model3d]=true&populate[heroImage]=true&populate[backgroundImage]=true&populate[galleryImages][populate]=image&pagination[limit]=100"
-      ),
-      {
-        signal: AbortSignal.timeout(10000),
-        next: { revalidate: 300, tags: ["strapi-extras"] },
-      }
-    );
-    if (!response.ok) throw new Error(`Strapi responded ${response.status}`);
-
-    const json = (await response.json()) as StrapiResponse<StrapiProduct[]>;
+    const json = await fetchWithRetries();
 
     const byKeycrmId = new Map<number, ProductExtras>();
     const bySlug = new Map<string, ProductExtras>();
@@ -100,16 +137,62 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
       bySlug.set(slugify(p.name), extras);
     }
 
-    return { byKeycrmId, bySlug };
+    lastGood = { byKeycrmId, bySlug };
+    return lastGood;
   } catch (error) {
+    skipUntil = Date.now() + FAILURE_BACKOFF_MS;
+    const reason = error instanceof Error ? error.message : String(error);
     console.warn(
-      "Strapi extras unavailable, rendering with fallbacks:",
-      error instanceof Error ? error.message : error
+      lastGood
+        ? `Strapi extras fetch failed (${reason}), serving last known good index`
+        : `Strapi extras unavailable (${reason}), rendering with fallbacks`
     );
-    skipUntil = Date.now() + 60_000;
-    return EMPTY;
+    return lastGood ?? EMPTY;
   }
 }
+
+/**
+ * One GET, retried on anything transient. 4xx is not retried: a bad token or a
+ * malformed query won't fix itself, and burning the budget on it only delays
+ * the fallback render.
+ */
+async function fetchWithRetries(): Promise<StrapiResponse<StrapiProduct[]>> {
+  const url = getStrapiURL(
+    "/api/products?populate[model3d]=true&populate[heroImage]=true&populate[backgroundImage]=true&populate[galleryImages][populate]=image&pagination[limit]=100"
+  );
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
+        next: { revalidate: REVALIDATE_S, tags: [STRAPI_EXTRAS_TAG] },
+      });
+
+      if (response.status >= 400 && response.status < 500) {
+        throw new NonRetryableError(`Strapi responded ${response.status}`);
+      }
+      if (!response.ok) throw new Error(`Strapi responded ${response.status}`);
+
+      return (await response.json()) as StrapiResponse<StrapiProduct[]>;
+    } catch (error) {
+      if (error instanceof NonRetryableError) throw error;
+      lastError = error;
+      if (attempt < MAX_ATTEMPTS) {
+        const reason = error instanceof Error ? error.message : String(error);
+        console.warn(
+          `Strapi extras attempt ${attempt}/${MAX_ATTEMPTS} failed (${reason}), retrying`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+class NonRetryableError extends Error {}
 
 /** Strapi first (keycrmId, then slug), local file as offline fallback. */
 export function resolveExtras(
