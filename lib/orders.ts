@@ -171,8 +171,8 @@ interface KeyCrmCreatedOrder {
 }
 
 /**
- * Create the order in KeyCRM. Passing the offer SKU is what makes KeyCRM
- * reserve the right variant, so this doubles as stock reservation.
+ * Create the order in KeyCRM. The offer SKU is sent so the line lands against
+ * the right variant rather than as a loose free-text product.
  *
  * The payment row is created up front with status "not_paid"; the Monobank
  * webhook flips it once the money actually arrives.
@@ -188,6 +188,9 @@ export async function createKeyCrmOrder(
 
   const order = await postKeyCrm<KeyCrmCreatedOrder>("/order", {
     source_id: requiredEnvId("KEYCRM_SOURCE_ID"),
+    // Root level, not inside `shipping`: sent there it is silently dropped and
+    // grand_total comes back as goods-only, disagreeing with what we charged.
+    shipping_price: priced.shipping,
     buyer: {
       full_name: draft.customer.fullName,
       phone: draft.customer.phone,
@@ -200,16 +203,12 @@ export async function createKeyCrmOrder(
       shipping_address_country: "Україна",
       shipping_address_city: draft.delivery.cityName,
       shipping_receive_point: draft.delivery.branchName,
-      shipping_price: priced.shipping,
-      // The Nova Poshta refs the checkout already collects. Sending them (not
-      // just the display names) is what lets KeyCRM create the waybill without
-      // anyone re-picking the branch by hand.
-      address_payload: {
-        city_ref: draft.delivery.cityRef,
-        city_desc: draft.delivery.cityName,
-        warehouse_ref: draft.delivery.branchRef,
-        warehouse_desc: draft.delivery.branchName,
-      },
+      // The Nova Poshta refs the checkout already collects, flat — nesting them
+      // in an `address_payload` object gets them dropped. With the refs KeyCRM
+      // resolves the address against Nova Poshta itself (it fills in the region
+      // and the official branch name), so the waybill needs no manual re-pick.
+      city_ref: draft.delivery.cityRef,
+      warehouse_ref: draft.delivery.branchRef,
       is_warehouse: true,
     },
     products: priced.lines.map((line) => ({
