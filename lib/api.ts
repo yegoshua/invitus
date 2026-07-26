@@ -42,6 +42,7 @@ const CATEGORY_SLUG_BY_ID: Record<number, string> = {
 // every consumer is covered. To bring a category back, just remove its id.
 const HIDDEN_CATEGORY_IDS = new Set<number>([
   6, // Футболки — поки немає в продажу
+  7, // Службове (тест) — 0.50 ₴ товар для перевірки бойового еквайрингу
 ]);
 
 // ──────────────────────────────────────────────────────────────────────────
