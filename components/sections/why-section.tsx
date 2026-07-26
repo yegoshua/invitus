@@ -7,7 +7,7 @@ import { beltFeatures as features } from "@/content/why-belt-features";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Seconds, relative to belt-benefits-section-video-scrub.webm (~14.17s).
+// Seconds, relative to belt-benefits-section-video-scrub.mp4 (~14.17s).
 // Each tuple is [fullyVisibleStart, fullyVisibleEnd]; gaps between cards are
 // the transition windows where the previous card exits and the next enters.
 const CARD_TIMINGS: Array<[number, number]> = [
@@ -185,7 +185,9 @@ export function WhySection() {
         style={{ height: "700vh" }}
       >
         <div className="sticky top-0 h-screen overflow-hidden">
-          <div className="container-main relative z-10 h-full flex flex-col py-6 lg:py-30">
+          {/* pt clears the fixed header (64px on mobile) — the section is
+              pinned, so the heading would otherwise sit under it. */}
+          <div className="container-main relative z-10 h-full flex flex-col pt-20 pb-6 lg:py-30">
             {/* Heading */}
             <h2 className="text-h2 font-bold text-black leading-[1.1] max-w-xl">
               Чому наші пояси —&nbsp;
@@ -193,23 +195,35 @@ export function WhySection() {
               це база
             </h2>
 
-            {/* Main content row */}
-            <div className="flex-1 min-h-0 flex items-center justify-between gap-8">
-              {/* Left: scroll-controlled video (desktop only) */}
-              <div className="hidden lg:flex flex-1 items-center justify-center h-full">
+            {/* Main content row — belt above cards on mobile/tablet,
+                side by side from lg up. */}
+            <div className="flex-1 min-h-0 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
+              {/* Scroll-controlled belt. Takes whatever height the cards
+                  leave; object-contain keeps it whole at any size. */}
+              <div className="flex flex-1 min-h-0 w-full items-center justify-center lg:h-full">
+                {/* H.264 with the coral background baked in, not the VP9/WebM
+                    alpha master: Safari plays VP9 but ignores its alpha
+                    channel, so on iOS the belt sat on a black rectangle.
+                    A <source> fallback can't fix that — Safari reports the
+                    WebM as playable and picks it. The section background is a
+                    flat coral, so baking it in reads the same, plays
+                    everywhere, decodes in hardware, and is ~3.6x smaller.
+                    The bake lands 1/255 off --color-coral after the
+                    RGB->YUV->RGB round trip; that step is below the visible
+                    threshold (checked against a side-by-side patch), so no
+                    edge treatment is needed. */}
                 <video
                   ref={videoRef}
-                  src="/assets/belt-benefits-section-video-scrub.webm"
+                  src="/assets/belt-benefits-section-video-scrub.mp4"
                   muted
                   playsInline
                   preload="auto"
                   className="w-full max-w-[816px] max-h-full object-contain"
-                  style={{ background: "transparent" }}
                 />
               </div>
 
-              {/* Right: Feature Cards */}
-              <div className="relative w-full max-w-xl h-[264px] lg:h-full lg:max-h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
+              {/* Feature Cards — fixed height on mobile so the belt gets the rest */}
+              <div className="relative w-full max-w-xl h-[264px] shrink-0 lg:shrink lg:h-full lg:max-h-180 overflow-hidden rounded-[32px] lg:rounded-[40px]">
                 {features.map((feature, index) => (
                   <div
                     key={feature.id}
