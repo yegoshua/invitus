@@ -70,8 +70,6 @@ export function CheckoutPage() {
       Clarity.identify(data.email, undefined, undefined, data.fullName);
     }
 
-    const reference = `invitus-${Date.now()}`;
-    const totalCopecks = Math.round((subtotal + SHIPPING_COST) * 100);
     const order: SubmittedOrder = {
       customer: {
         fullName: data.fullName,
@@ -98,59 +96,69 @@ export function CheckoutPage() {
       createdAt: new Date().toISOString(),
     };
 
-    if (data.paymentMethod === "online") {
-      console.log("[INVITUS checkout] Initiating Monobank payment:", {
-        reference,
-        order,
+    // The server prices the order and records it in KeyCRM. Only *what* was
+    // ordered goes over the wire — no amounts, so nothing here can decide what
+    // the customer is charged.
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: {
+            fullName: data.fullName,
+            phone: data.phone,
+            email: data.email || null,
+          },
+          delivery: {
+            cityRef: data.cityRef,
+            cityName: data.cityName,
+            branchRef: data.branchRef,
+            branchName: data.branchName,
+          },
+          paymentMethod: data.paymentMethod,
+          items: items.map((i) => ({
+            productId: Number(i.product.id),
+            size: i.size ?? null,
+            quantity: i.quantity,
+          })),
+        }),
       });
-      try {
-        const res = await fetch("/api/monobank/create-invoice", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: totalCopecks,
-            reference,
-            destination: `Замовлення INVITUS (${items.length} ${
-              items.length === 1 ? "товар" : "товари"
-            })`,
-            email: data.email || undefined,
-            basketOrder: items.map((i) => ({
-              name: i.product.name + (i.size ? ` (${i.size})` : ""),
-              qty: i.quantity,
-              sum: Math.round(i.product.price * 100), // unit price in copecks
-            })),
-          }),
-        });
 
-        if (!res.ok) {
-          const err = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(err.error || `HTTP ${res.status}`);
-        }
+      const payload = (await res.json().catch(() => ({}))) as {
+        orderId?: number;
+        pageUrl?: string;
+        error?: string;
+      };
 
-        const { pageUrl } = (await res.json()) as { pageUrl: string };
-        window.location.href = pageUrl;
+      if (!res.ok) {
+        throw new Error(payload.error || `HTTP ${res.status}`);
+      }
+
+      if (data.paymentMethod === "online") {
+        if (!payload.pageUrl) throw new Error("Немає посилання на оплату");
+        window.location.href = payload.pageUrl;
         // Block the rest of the handler — page is leaving the SPA.
         await new Promise(() => {});
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[INVITUS checkout] Monobank failed:", msg);
-        setPaymentError(
-          "Не вдалося ініціювати оплату. Спробуй ще раз або обери оплату при отриманні."
-        );
+        return;
       }
-      return;
-    }
 
-    // COD path — no external payment, the order is placed here. This is the
-    // conversion, so fire purchase now (online purchases fire on payment-result).
-    console.log("[INVITUS checkout] Order submitted (COD):", order);
-    trackEvent("purchase", {
-      transaction_id: reference,
-      value: order.totals.total,
-      shipping: order.totals.shipping,
-      items: gaItems(items),
-    });
-    setSubmittedOrder(order);
+      // COD — the order is placed here, so this is the conversion. Online
+      // purchases fire on /payment-result instead.
+      trackEvent("purchase", {
+        transaction_id: String(payload.orderId),
+        value: order.totals.total,
+        shipping: order.totals.shipping,
+        items: gaItems(items),
+      });
+      setSubmittedOrder(order);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[INVITUS checkout] order failed:", msg);
+      setPaymentError(
+        msg ||
+          "Не вдалося оформити замовлення. Спробуй ще раз або обери оплату при отриманні."
+      );
+    }
   };
 
   return (
