@@ -18,7 +18,6 @@ interface ProductPageContentProps {
 }
 
 const PRODUCT_BG_FALLBACK = "/assets/img/product_bg.png";
-const MODEL_FALLBACK = "/models/black_belt-transformed.glb";
 
 export function ProductPageContent({ product }: ProductPageContentProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(product.sizes?.[0] ?? null);
@@ -35,10 +34,19 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
     });
   }, [product.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 3D is a belts-only experience: belts get their own model or the fallback
-  // belt; other categories show the product photo (a fallback belt model on
-  // a t-shirt page would be nonsense). An explicit model still wins anywhere.
-  const show3dModel = Boolean(product.model3dUrl) || product.category === "belts";
+  // Only ever show the 3D viewer when this product actually has a model.
+  //
+  // This used to be `|| product.category === "belts"`, which forced the viewer
+  // on for every belt and let ModelLoader fall back to a bundled .glb. That
+  // bundled model is the Akatsuki belt (despite its "black_belt" filename), so
+  // any belt without a model of its own rendered as a *different product*:
+  // permanently for the one belt Strapi has no model for, and for every belt
+  // whenever Strapi was unreachable while the page was generated — ISR then
+  // cached that render, so the next first-time visitor was served it.
+  //
+  // Without a model we now show the product's own photo instead: a Strapi
+  // outage degrades to "real photo, no 3D" rather than "wrong belt".
+  const show3dModel = Boolean(product.model3dUrl);
 
   const handleAddToCart = () => {
     addItem(product, selectedSize ?? undefined);
@@ -69,7 +77,6 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
               {show3dModel ? (
                 <ModelLoader
                   modelUrl={product.model3dUrl}
-                  fallbackModelUrl={MODEL_FALLBACK}
                 />
               ) : (
                 <ProductMedia
@@ -144,7 +151,6 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         {show3dModel ? (
           <ModelLoader
             modelUrl={product.model3dUrl}
-            fallbackModelUrl={MODEL_FALLBACK}
           />
         ) : (
           <div className="absolute inset-0 z-10 flex items-center justify-center pb-40">
