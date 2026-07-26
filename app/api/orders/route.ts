@@ -50,6 +50,13 @@ const orderRequestSchema = z.object({
  * request so local runs are testable.
  */
 function callbackBase(req: Request): string {
+  // Vercel preview deploys also run with NODE_ENV=production, so keying off
+  // that alone would send every preview's callbacks to the live site — and make
+  // it impossible to test a payment anywhere but production. VERCEL_URL is set
+  // by the platform, not the client, so it is safe to trust.
+  if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
   if (process.env.NODE_ENV === "production") return SITE_URL;
   return req.headers.get("origin") || "http://localhost:3000";
 }
