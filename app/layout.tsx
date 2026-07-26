@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     "спортивне екіпірування",
     "Україна",
   ],
-  icons: {
-    icon: "/assets/icons/favico.jpeg",
-  },
+  // No `icons` block on purpose: app/favicon.ico and app/apple-icon.png are
+  // picked up by Next's file convention and linked automatically. Declaring
+  // them here too would emit a second, competing <link rel="icon">.
   // Google Search Console: renders <meta name="google-site-verification" ...>
   // when GOOGLE_SITE_VERIFICATION is set (URL-prefix / HTML-tag method).
   verification: {
