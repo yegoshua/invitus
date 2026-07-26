@@ -130,6 +130,59 @@ export async function createInvoice(
   return (await res.json()) as CreateInvoiceResult;
 }
 
+// Monobank's webhook signing key (EC P-256). Cached for the process: it is
+// stable, but Monobank can rotate it, so verifyWebhookSignature drops the cache
+// and retries once before rejecting a payload.
+let cachedPubKey: string | null = null;
+
+async function fetchPubKeyPem(): Promise<string> {
+  const res = await fetch(`${MONO_BASE}/api/merchant/pubkey`, {
+    headers: { "X-Token": token() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Monobank pubkey ${res.status}`);
+  }
+  // The `key` field is base64 of the PEM (SPKI), not of the raw DER.
+  const { key } = (await res.json()) as { key: string };
+  return Buffer.from(key, "base64").toString("utf8");
+}
+
+/**
+ * Verify the X-Sign header of an acquiring webhook: ECDSA-SHA256 over the raw
+ * request body, signature DER-encoded and base64'd.
+ *
+ * `rawBody` must be the bytes as received — verifying a re-serialised object
+ * would change key order and whitespace and never match.
+ */
+export async function verifyWebhookSignature(
+  rawBody: string,
+  signatureBase64: string
+): Promise<boolean> {
+  const { createVerify } = await import("node:crypto");
+
+  const check = (pem: string) =>
+    createVerify("SHA256")
+      .update(rawBody)
+      .verify(pem, Buffer.from(signatureBase64, "base64"));
+
+  try {
+    if (!cachedPubKey) cachedPubKey = await fetchPubKeyPem();
+    if (check(cachedPubKey)) return true;
+
+    // Wrong signature, or a rotated key. Refetch once and re-check before
+    // deciding the payload is forged.
+    cachedPubKey = await fetchPubKeyPem();
+    return check(cachedPubKey);
+  } catch (err) {
+    console.error(
+      "[Monobank] signature verification error:",
+      err instanceof Error ? err.message : err
+    );
+    return false;
+  }
+}
+
 export async function getInvoiceStatus(
   invoiceId: string
 ): Promise<InvoiceStatusResponse> {

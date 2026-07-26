@@ -6,7 +6,8 @@ import { formatPrice } from "@/lib/format";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { cn } from "@/lib/utils";
 
-export const SHIPPING_COST = 120; // TODO: replace with real Nova Poshta rate API
+export { SHIPPING_COST } from "@/lib/shipping";
+import { SHIPPING_COST } from "@/lib/shipping";
 
 interface OrderSummaryProps {
   variant?: "desktop" | "mobile-bottom";
