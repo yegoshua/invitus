@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
 import { formatPriceWithCurrency } from "@/lib/format";
-import type { Product } from "@/types";
+import type { Product, ProductSize } from "@/types";
 import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
 import { ModelLoader } from "@/components/models/model-loader";
@@ -20,7 +20,11 @@ interface ProductPageContentProps {
 const PRODUCT_BG_FALLBACK = "/assets/img/product_bg.png";
 
 export function ProductPageContent({ product }: ProductPageContentProps) {
-  const [selectedSize, setSelectedSize] = useState<string | null>(product.sizes?.[0] ?? null);
+  // The whole size is held, not just its value: the cart needs the label to
+  // show what the product page showed, and the order needs the KeyCRM value.
+  const [selectedSize, setSelectedSize] = useState<ProductSize | null>(
+    product.sizes?.[0] ?? null
+  );
   const addItem = useAddToCart();
   const openCart = useOpenCart();
 
@@ -49,7 +53,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const show3dModel = Boolean(product.model3dUrl);
 
   const handleAddToCart = () => {
-    addItem(product, selectedSize ?? undefined);
+    addItem(product, selectedSize?.value, selectedSize?.label);
     openCart();
   };
 
@@ -103,7 +107,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
             <div className="mt-6">
               <SizeSelector
                 sizes={product.sizes}
-                selectedSize={selectedSize}
+                selectedSize={selectedSize?.value ?? null}
                 onSelect={setSelectedSize}
               />
             </div>
@@ -186,7 +190,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   </p>
                   <SizeSelector
                     sizes={product.sizes}
-                    selectedSize={selectedSize}
+                    selectedSize={selectedSize?.value ?? null}
                     onSelect={setSelectedSize}
                   />
                 </motion.div>

@@ -58,7 +58,7 @@ export function OrderSummary({
                 <div className="mt-4 space-y-1">
                   {item.size && (
                     <p className="text-[15px] text-white/78">
-                      Розмір: {item.size}
+                      Розмір: {item.sizeLabel ?? item.size}
                     </p>
                   )}
                   {item.quantity > 1 && (
@@ -136,7 +136,7 @@ export function OrderSummaryMobileTop() {
         </p>
         {first.size && (
           <p className="mt-4 font-sans font-medium text-base/6 text-white/50">
-            {first.size}
+            {first.sizeLabel ?? first.size}
             {more > 0 ? ` · та ще ${more} ${more === 1 ? "товар" : "товари"}` : ""}
           </p>
         )}
