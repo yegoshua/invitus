@@ -7,7 +7,14 @@ import { ProductImagesSection } from "@/components/product/product-images-sectio
 import { RelatedProducts } from "@/components/product/related-products";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
-import { getProductBySlug, getAllProductSlugs, getProducts } from "@/lib/api";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  getProductBySlug,
+  getAllProductSlugs,
+  getProducts,
+  getCategoryBySlug,
+} from "@/lib/api";
+import { breadcrumbSchema, productSchema } from "@/lib/structured-data";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -26,6 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `${product.name} | INVITUS`,
       description: product.description,
+      alternates: { canonical: `/product/${slug}` },
     };
   } catch {
     return { title: "Товар | INVITUS" };
@@ -50,15 +58,32 @@ export default async function ProductPage({ params }: Props) {
     notFound();
   }
 
-  const relatedProducts = await getProducts({
-    category: product.category,
-    limit: 4,
-  }).then((products) =>
-    products.filter((p) => p.slug !== slug).slice(0, 4)
-  );
+  const [relatedProducts, category] = await Promise.all([
+    getProducts({ category: product.category, limit: 4 }).then((products) =>
+      products.filter((p) => p.slug !== slug).slice(0, 4)
+    ),
+    // Only needed for the breadcrumb trail and the Product `category` field;
+    // the categories listing is already cached, so this is not an extra
+    // round-trip to KeyCRM in practice.
+    product.category ? getCategoryBySlug(product.category) : null,
+  ]);
+
+  const breadcrumbs = [
+    { name: "Головна", path: "/" },
+    ...(category
+      ? [{ name: category.name, path: `/shop/${category.slug}` }]
+      : []),
+    { name: product.name, path: `/product/${product.slug}` },
+  ];
 
   return (
     <>
+      <JsonLd
+        data={[
+          productSchema(product, category?.name),
+          breadcrumbSchema(breadcrumbs),
+        ]}
+      />
       <Header />
       <ProductPageContent product={product} />
       <ProductImagesSection images={product.galleryImages || []} />

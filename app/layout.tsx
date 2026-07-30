@@ -3,7 +3,9 @@ import { Golos_Text } from "next/font/google";
 import { Providers } from "./providers";
 import { ClarityAnalytics } from "@/components/analytics/clarity";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL } from "@/lib/site";
+import { organizationSchema } from "@/lib/structured-data";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -48,6 +50,10 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
   },
+  // No `alternates.canonical` here on purpose: metadata is inherited by every
+  // segment that does not override it, so a canonical set at the root would
+  // declare the homepage as the canonical of the entire site. Each page
+  // declares its own.
 };
 
 export default function RootLayout({
@@ -59,6 +65,7 @@ export default function RootLayout({
     <html lang="uk" className="dark">
       <body className={`${golosText.variable} ${drukWide.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
+        <JsonLd data={organizationSchema()} />
         <ClarityAnalytics />
         <GoogleAnalytics />
       </body>

@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Повернення без питань | INVITUS",
   description:
     "Повертай екіп INVITUS протягом 14 днів. Зворотну доставку оплачуємо ми, а гроші повертаємо на картку за 1-3 робочі дні.",
+  alternates: { canonical: "/refund" },
 };
 
 export default function RefundRoute() {
