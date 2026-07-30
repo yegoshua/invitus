@@ -26,6 +26,18 @@ export interface ProductExtras {
   careInstructions?: string;
   /** Marks the product for the homepage showcase. */
   featured?: boolean;
+  /**
+   * KeyCRM offer SKU → the label to show instead of KeyCRM's own size.
+   *
+   * Belts are stocked as S/M/L but sold by waist range, so the page has to say
+   * "65-80 см" while the order still carries "S". The SKU is the join because
+   * it is the one identifier both systems already share per size — matching on
+   * the letter would break the moment a belt has XS or 2XL and Strapi lists
+   * only three variants, and matching on position is worse still.
+   *
+   * A size with no entry here simply shows KeyCRM's value.
+   */
+  sizeLabelsBySku?: Record<string, string>;
 }
 
 export const productExtras: Record<number, ProductExtras> = {

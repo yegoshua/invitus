@@ -12,9 +12,11 @@
 
 import { fetchKeyCrm, postKeyCrm, putKeyCrm } from "./keycrm";
 import type { KeyCrmOffer, KeyCrmProduct } from "./keycrm-schema";
+import { readOfferVariant, VARIANT_PROPERTY_NAMES } from "./variant-property";
 import { SHIPPING_COST } from "./shipping";
 
-const SIZE_PROPERTY = "Розмір";
+/** Used only when a line has a size but no offer to take the property from. */
+const DEFAULT_VARIANT_PROPERTY = VARIANT_PROPERTY_NAMES[0];
 const NOVA_POSHTA_DELIVERY_SERVICE_ID = 2;
 
 /**
@@ -53,6 +55,12 @@ export interface PricedLine {
   name: string;
   sku?: string;
   size?: string | null;
+  /**
+   * KeyCRM property the size came from — "Розмір" for belts, "Довжина" for
+   * wrist wraps. Echoed back on the order so the line is filed under the same
+   * property the offer uses, rather than inventing a second one.
+   */
+  sizeProperty?: string;
   quantity: number;
   /** UAH per unit, as displayed to the customer. */
   unitPrice: number;
@@ -135,13 +143,13 @@ async function priceLine(item: OrderDraftItem): Promise<PricedLine> {
   // divergence is only logged.
   const unitPrice = product.min_price;
   let sku: string | undefined;
+  let sizeProperty: string | undefined;
 
   if (product.has_offers) {
     const offers = await fetchOffersFresh(item.productId);
     const active = offers.filter((o) => !o.is_archived);
     const match = active.find(
-      (o) =>
-        o.properties.find((p) => p.name === SIZE_PROPERTY)?.value === item.size
+      (o) => readOfferVariant(o)?.value === item.size
     );
 
     if (!match) {
@@ -151,6 +159,7 @@ async function priceLine(item: OrderDraftItem): Promise<PricedLine> {
     }
 
     sku = match.sku ?? undefined;
+    sizeProperty = readOfferVariant(match)?.property;
 
     if (match.price !== unitPrice) {
       console.warn(
@@ -164,6 +173,7 @@ async function priceLine(item: OrderDraftItem): Promise<PricedLine> {
     name: product.name,
     sku,
     size: item.size ?? null,
+    sizeProperty,
     quantity: item.quantity,
     unitPrice,
     lineTotal: unitPrice * item.quantity,
@@ -230,7 +240,14 @@ export async function createKeyCrmOrder(
       price: line.unitPrice,
       quantity: line.quantity,
       ...(line.size
-        ? { properties: [{ name: SIZE_PROPERTY, value: line.size }] }
+        ? {
+            properties: [
+              {
+                name: line.sizeProperty ?? DEFAULT_VARIANT_PROPERTY,
+                value: line.size,
+              },
+            ],
+          }
         : {}),
     })),
     payments: [

@@ -53,8 +53,10 @@ export const useOpenCart = () => {
 export const useAddToCart = () => {
   const addItem = useCartStore((s) => s.addItem);
   return useCallback(
-    (product: Product, size?: string) => {
-      addItem(product, size);
+    (product: Product, size?: string, sizeLabel?: string) => {
+      addItem(product, size, sizeLabel);
+      // GA reports the KeyCRM value, so item_variant stays comparable with
+      // KeyCRM's own reporting rather than following display copy.
       trackEvent("add_to_cart", {
         value: product.price,
         items: [gaItem(product, { size })],

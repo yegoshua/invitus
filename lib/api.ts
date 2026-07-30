@@ -13,6 +13,7 @@
 
 import { fetchKeyCrm, fetchKeyCrmAll } from "./keycrm";
 import { slugify } from "./slugify";
+import { readOfferVariant, VARIANT_PROPERTY_NAMES } from "./variant-property";
 import {
   getStrapiExtras,
   resolveExtras,
@@ -23,7 +24,12 @@ import type {
   KeyCrmOffer,
   KeyCrmCategory,
 } from "./keycrm-schema";
-import type { Product, Category, ProductVariant } from "@/types";
+import type {
+  Product,
+  Category,
+  ProductVariant,
+  ProductSize,
+} from "@/types";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Category mapping: KeyCRM category id → site slug
@@ -57,7 +63,12 @@ function categorySlug(category: KeyCrmCategory): string {
 // Internal: size ordering (S/M/L/XL and numeric ranges like "65-80 см")
 // ──────────────────────────────────────────────────────────────────────────
 
-const LETTER_SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
+// Covers the full belt size chart (XS–4XL). A letter missing from this list
+// falls through to the numeric/alphabetical comparison below, where "4XL"
+// sorted ahead of "S" — the belt chips came out in the wrong order.
+const LETTER_SIZE_ORDER = [
+  "XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL", "4XL", "5XL",
+];
 
 function compareSizes(a: string, b: string): number {
   const ia = LETTER_SIZE_ORDER.indexOf(a.toUpperCase());
@@ -72,8 +83,6 @@ function compareSizes(a: string, b: string): number {
 // ──────────────────────────────────────────────────────────────────────────
 // Internal: KeyCrmProduct → Product
 // ──────────────────────────────────────────────────────────────────────────
-
-const SIZE_PROPERTY = "Розмір";
 
 function toProduct(
   p: KeyCrmProduct,
@@ -90,29 +99,49 @@ function toProduct(
 
   const activeOffers = offers?.filter((o) => !o.is_archived) ?? [];
 
-  const sizes = [
-    ...new Set(
-      activeOffers
-        .map(
-          (o) => o.properties.find((prop) => prop.name === SIZE_PROPERTY)?.value
-        )
-        .filter((v): v is string => Boolean(v))
-    ),
-  ].sort(compareSizes);
+  const slug = slugify(p.name);
+  const extras = resolveExtras(extrasIndex, p.id, slug);
+
+  // KeyCRM owns which sizes exist; Strapi only supplies nicer wording for them,
+  // keyed by the offer SKU. An offer Strapi says nothing about keeps KeyCRM's
+  // own value as its label, so a belt added today is merely plainer, not broken.
+  const sizes: ProductSize[] = [];
+  const seenSizeValues = new Set<string>();
+  for (const offer of activeOffers) {
+    const value = readOfferVariant(offer)?.value;
+    if (!value || seenSizeValues.has(value)) continue;
+    seenSizeValues.add(value);
+    sizes.push({
+      value,
+      label: (offer.sku && extras?.sizeLabelsBySku?.[offer.sku]) || value,
+    });
+  }
+  sizes.sort((a, b) => compareSizes(a.value, b.value));
+
+  // A product with offers but no readable variant property cannot be ordered:
+  // the size selector renders nothing, and lib/orders.ts then rejects the line
+  // because no offer matches an empty size. Loud beats silently unbuyable.
+  if (activeOffers.length && !sizes.length) {
+    const found = [
+      ...new Set(activeOffers.flatMap((o) => o.properties.map((x) => x.name))),
+    ];
+    console.warn(
+      `[api] ${p.name} (id ${p.id}) has ${activeOffers.length} offers but none ` +
+        `carries ${JSON.stringify(VARIANT_PROPERTY_NAMES)} — found ` +
+        `${JSON.stringify(found)}. It cannot be ordered until KeyCRM is fixed.`
+    );
+  }
 
   const variants: ProductVariant[] | undefined = activeOffers.length
     ? activeOffers.map((o) => ({
         name:
-          o.properties.find((prop) => prop.name === SIZE_PROPERTY)?.value ??
+          readOfferVariant(o)?.value ??
           o.properties.map((prop) => prop.value).join(" / "),
         stock: Math.max(0, o.quantity),
         sku: o.sku ?? undefined,
         priceModifier: o.price - p.min_price || undefined,
       }))
     : undefined;
-
-  const slug = slugify(p.name);
-  const extras = resolveExtras(extrasIndex, p.id, slug);
 
   // Two distinct photo slots:
   //   mainImage — the KeyCRM thumbnail (clean white-bg studio shot). Used in

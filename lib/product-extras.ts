@@ -113,6 +113,15 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
           alt: g.alt || g.image.alternativeText || p.name,
         }));
 
+      // Only variants carrying a SKU can be linked to a KeyCRM offer; the rest
+      // are ignored rather than guessed at. See ProductExtras.sizeLabelsBySku.
+      const sizeLabelsBySku: Record<string, string> = {};
+      for (const variant of p.variants ?? []) {
+        if (variant.sku && variant.name) {
+          sizeLabelsBySku[variant.sku] = variant.name;
+        }
+      }
+
       const extras: ProductExtras = {
         model3dUrl: p.model3d ? getStrapiMedia(p.model3d.url) : undefined,
         heroImage: p.heroImage
@@ -131,6 +140,9 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
         howToMeasure: p.howToMeasure ?? undefined,
         careInstructions: p.careInstructions ?? undefined,
         featured: p.featured || undefined,
+        sizeLabelsBySku: Object.keys(sizeLabelsBySku).length
+          ? sizeLabelsBySku
+          : undefined,
       };
 
       if (p.keycrmId != null) byKeycrmId.set(p.keycrmId, extras);
@@ -158,7 +170,7 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
  */
 async function fetchWithRetries(): Promise<StrapiResponse<StrapiProduct[]>> {
   const url = getStrapiURL(
-    "/api/products?populate[model3d]=true&populate[heroImage]=true&populate[backgroundImage]=true&populate[galleryImages][populate]=image&pagination[limit]=100"
+    "/api/products?populate[model3d]=true&populate[heroImage]=true&populate[backgroundImage]=true&populate[galleryImages][populate]=image&populate[variants]=true&pagination[limit]=100"
   );
 
   let lastError: unknown;

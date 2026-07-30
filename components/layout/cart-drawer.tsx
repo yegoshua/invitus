@@ -153,7 +153,7 @@ function CartItems({
   return (
     <div className="flex flex-col gap-6">
       {items.map((item) => {
-        const { product, quantity, size } = item;
+        const { product, quantity, size, sizeLabel } = item;
         const formattedPrice = formatPrice(product.price * quantity);
 
         return (
@@ -181,7 +181,8 @@ function CartItems({
               <div className="flex items-center justify-between">
                 {size && (
                   <span className="text-black text-xl leading-6 font-medium tracking-[0.01em]">
-                    <span className="hidden lg:inline">Розмір: </span>{size}
+                    <span className="hidden lg:inline">Розмір: </span>
+                    {sizeLabel ?? size}
                   </span>
                 )}
                 <div className="flex items-center gap-3 ml-auto">

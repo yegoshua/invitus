@@ -11,7 +11,9 @@ export const useCartStore = create<CartState>()(
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
 
-      addItem: (product: Product, size?: string) => {
+      // `size` alone identifies the line — it is KeyCRM's value, and two
+      // labels can never disagree about the same value.
+      addItem: (product: Product, size?: string, sizeLabel?: string) => {
         const items = get().items;
         const existing = items.find(
           (item) => item.product.id === product.id && item.size === size
@@ -26,7 +28,7 @@ export const useCartStore = create<CartState>()(
             ),
           });
         } else {
-          set({ items: [...items, { product, quantity: 1, size }] });
+          set({ items: [...items, { product, quantity: 1, size, sizeLabel }] });
         }
       },
 

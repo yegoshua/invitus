@@ -18,6 +18,21 @@ export interface ProductAttribute {
   value: string;
 }
 
+/**
+ * One selectable size, with the two halves kept apart on purpose.
+ *
+ * KeyCRM knows belts as S/M/L; customers shop for them in centimetres. The
+ * label is what the page shows, the value is what KeyCRM matches an offer by —
+ * send the label with an order and pricing fails, show the value and the belt
+ * page stops telling anyone what it actually fits.
+ */
+export interface ProductSize {
+  /** KeyCRM's own size, e.g. "S". Sent with the order; never displayed. */
+  value: string;
+  /** What the customer sees, e.g. "65-80 см". Falls back to `value`. */
+  label: string;
+}
+
 export interface Product {
   id: string;
   documentId: string;
@@ -38,7 +53,7 @@ export interface Product {
 
   model3dUrl?: string;
 
-  sizes?: string[];
+  sizes?: ProductSize[];
   filterTags?: string[];
 
   variants?: ProductVariant[];
@@ -65,7 +80,10 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
+  /** KeyCRM's size value — the line's identity, and what the order carries. */
   size?: string;
+  /** Display copy for `size`. Absent on carts persisted before labels existed. */
+  sizeLabel?: string;
 }
 
 export interface CartState {
@@ -73,7 +91,7 @@ export interface CartState {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (product: Product, size?: string) => void;
+  addItem: (product: Product, size?: string, sizeLabel?: string) => void;
   removeItem: (productId: string, size?: string) => void;
   updateQuantity: (productId: string, quantity: number, size?: string) => void;
   clearCart: () => void;
