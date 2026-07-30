@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { CatalogHero } from "@/components/sections/catalog-hero";
+import { PageHero } from "@/components/ui/page-hero";
 import { CatalogGrid } from "@/components/sections/catalog-grid";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
@@ -81,10 +81,7 @@ async function CatalogContent({
 
   return (
     <>
-      <CatalogHero
-        categoryName={category.name}
-        productCount={products.length}
-      />
+      <PageHero title={`${category.name} (${products.length})`} />
       <CatalogGrid products={products} />
     </>
   );

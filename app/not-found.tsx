@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { NotFoundHero } from "@/components/not-found/not-found-hero";
+import { PageHero } from "@/components/ui/page-hero";
 import { CTAButton } from "@/components/ui/cta-button";
 
 // Root not-found boundary: serves both unmatched URLs and every notFound()
@@ -12,7 +12,7 @@ export default function NotFound() {
     <>
       <Header />
       <main className="bg-black">
-        <NotFoundHero />
+        <PageHero title="Сторінку не знайдено" />
 
         <section className="container-main pb-20 lg:pb-30">
           <p className="text-body-1 text-white/70 max-w-xl">
