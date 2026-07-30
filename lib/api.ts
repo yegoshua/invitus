@@ -41,6 +41,8 @@ const CATEGORY_SLUG_BY_ID: Record<number, string> = {
 // sitemap, featured lists and product pages. Filtered at the fetch layer so
 // every consumer is covered. To bring a category back, just remove its id.
 const HIDDEN_CATEGORY_IDS = new Set<number>([
+  5, // Додаткові товари — Браслет, Рушник, ID Card. Ціна 0, категорії немає в
+  //    навігації, а сторінки все одно віддавались і лежали в sitemap.
   6, // Футболки — поки немає в продажу
   7, // Службове (тест) — 0.50 ₴ товар для перевірки бойового еквайрингу
 ]);

@@ -19,6 +19,7 @@ import {
 } from "@/lib/api";
 import { ALL_FILTER_SLUG } from "@/lib/filter";
 import { breadcrumbSchema } from "@/lib/structured-data";
+import type { Category } from "@/types";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -70,32 +71,16 @@ export async function generateMetadata({
 }
 
 async function CatalogContent({
-  categorySlug,
+  category,
   filter,
 }: {
-  categorySlug: string;
+  category: Category;
   filter: string;
 }) {
-  const [category, products] = await Promise.all([
-    getCategoryBySlug(categorySlug),
-    getProducts({ category: categorySlug, filter }),
-  ]);
-
-  if (!category) {
-    notFound();
-  }
+  const products = await getProducts({ category: category.slug, filter });
 
   return (
     <>
-      {/* Inside Suspense because the category name only exists once this
-          resolves. It still lands in the streamed HTML response, so crawlers
-          see it without running any JS. */}
-      <JsonLd
-        data={breadcrumbSchema([
-          { name: "Головна", path: "/" },
-          { name: category.name, path: `/shop/${category.slug}` },
-        ])}
-      />
       <PageHero title={`${category.name} (${products.length})`} />
       <CatalogGrid products={products} />
     </>
@@ -110,12 +95,28 @@ export default async function ShopCategoryPage({
   const { filter } = await searchParams;
   const activeFilter = filter || ALL_FILTER_SLUG;
 
+  // Resolved here rather than inside <Suspense>. Once the shell has streamed,
+  // the 200 is already on the wire, so a notFound() deeper in the tree renders
+  // the not-found screen under a 200 — a soft 404 that Google happily keeps in
+  // the index. Only the category list is awaited (small and cached); the slow
+  // products fetch stays behind the skeleton.
+  const category = await getCategoryBySlug(categorySlug);
+  if (!category) {
+    notFound();
+  }
+
   return (
     <>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Головна", path: "/" },
+          { name: category.name, path: `/shop/${category.slug}` },
+        ])}
+      />
       <Header />
       <main>
         <Suspense fallback={<CatalogSkeleton />}>
-          <CatalogContent categorySlug={categorySlug} filter={activeFilter} />
+          <CatalogContent category={category} filter={activeFilter} />
         </Suspense>
         <FAQSection />
         <BenefitsGrid />

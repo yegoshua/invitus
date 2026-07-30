@@ -131,10 +131,10 @@ export function productSchema(
   if (product.description) schema.description = product.description;
   if (categoryName) schema.category = categoryName;
 
-  // Three KeyCRM entries in "Додаткові товари" (Браслет, Рушник, ID Card) carry
-  // a price of 0 yet still render as product pages and sit in the sitemap. An
-  // Offer priced at 0 reads as "free" and is rejected as a merchant listing, so
-  // those pages describe the product and stop short of claiming a price.
+  // An Offer priced at 0 reads as "free" and is rejected as a merchant listing.
+  // The category that held every such entry ("Додаткові товари") is hidden in
+  // lib/api.ts, so nothing should reach this branch today — it stays as a guard
+  // for the next KeyCRM item that arrives without a price.
   if (product.price > 0) {
     schema.offers = {
       "@type": "Offer",
