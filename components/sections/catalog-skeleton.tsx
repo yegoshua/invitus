@@ -1,12 +1,12 @@
 /**
  * Loading placeholder for the shop category page. Plain blocks that match the
- * exact sizes of CatalogHero + CatalogGrid / ProductCard (1 column on mobile,
+ * exact sizes of PageHero + CatalogGrid / ProductCard (1 column on mobile,
  * 4 columns on desktop) so there is no layout shift once the products arrive.
  */
 export function CatalogSkeleton() {
   return (
     <>
-      {/* Hero placeholder — same footprint as CatalogHero */}
+      {/* Hero placeholder — same footprint as PageHero */}
       <div className="bg-black px-2 pb-4 sm:p-3 lg:p-4">
         <div className="mt-16 animate-pulse rounded-[24px] bg-surface py-6 lg:mt-0 lg:rounded-section lg:pt-30 lg:pb-16">
           <div className="container-main">

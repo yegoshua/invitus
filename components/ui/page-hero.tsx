@@ -3,12 +3,23 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 
-interface CatalogHeroProps {
-  categoryName: string;
-  productCount: number;
-}
+// The banner at the top of every non-landing page: catalogue, refund policy,
+// 404, error. It used to exist as three byte-identical copies — CatalogHero,
+// NotFoundHero and RefundHero — differing only in what went inside the <h1>,
+// each carrying its own note saying it mirrored the others. Four copies was the
+// point to stop: the geometry below is a design spec, and a spec that lives in
+// four files drifts in four directions.
+//
+// Note that CatalogSkeleton reproduces this footprint independently, since a
+// skeleton has to occupy the space before this renders. Changing the vertical
+// rhythm here means changing it there too.
 
-export function CatalogHero({ categoryName, productCount }: CatalogHeroProps) {
+type Props = {
+  /** Rendered inside the h1. A node, so a caller can emphasise part of it. */
+  title: React.ReactNode;
+};
+
+export function PageHero({ title }: Props) {
   return (
     <div className="bg-black pb-4 sm:p-3 lg:p-4 px-2">
       <section className="relative py-6 lg:pt-30 lg:pb-16 overflow-hidden rounded-[24px] lg:rounded-section mt-16 lg:mt-0">
@@ -24,14 +35,13 @@ export function CatalogHero({ categoryName, productCount }: CatalogHeroProps) {
         <div className="absolute inset-0 bg-black/30 pointer-events-none" />
 
         <div className="container-main relative z-10">
-          {/* Category title with count */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="font-heading text-[32px] lg:text-[48px] font-bold text-white"
           >
-            {categoryName} ({productCount})
+            {title}
           </motion.h1>
         </div>
       </section>

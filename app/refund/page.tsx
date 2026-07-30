@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { RefundHero } from "@/components/refund/refund-hero";
+import { PageHero } from "@/components/ui/page-hero";
 import { RefundGuarantees } from "@/components/refund/refund-guarantees";
 import { RefundProcess } from "@/components/refund/refund-process";
 
@@ -16,7 +16,7 @@ export default function RefundRoute() {
     <>
       <Header />
       <main className="bg-black">
-        <RefundHero />
+        <PageHero title="Повернення без питань" />
         <RefundGuarantees />
         <RefundProcess />
       </main>
