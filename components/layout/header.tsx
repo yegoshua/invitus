@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useCartCount, useOpenCart } from "@/hooks/use-cart";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { useMenuStore } from "@/stores/menu";
 import { cn } from "@/lib/utils";
 import { navLinks } from "@/content/navigation";
@@ -11,15 +12,13 @@ import MenuIcon from "@/public/assets/icons/menu-icon.svg";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  // The cart lives in localStorage, so its count only exists on the client —
+  // rendering it during hydration would not match the server's markup.
+  const isHydrated = useIsHydrated();
   const pathname = usePathname();
   const itemCount = useCartCount();
   const openCart = useOpenCart();
   const openMenu = useMenuStore((state) => state.openMenu);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -77,7 +76,7 @@ export function Header() {
               onClick={openCart}
               className="p-2 text-white text-base leading-6 font-medium cursor-pointer"
             >
-              Кошик ({isMounted ? itemCount : 0})
+              Кошик ({isHydrated ? itemCount : 0})
             </button>
 
             <button

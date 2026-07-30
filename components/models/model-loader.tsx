@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArnoldLoader } from "@/components/ui/arnold-loader";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { Canvas, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -13,19 +14,25 @@ import * as THREE from "three";
 import { DynamicModel, FallbackModel } from "./dynamic-model";
 
 function CameraController() {
-  const { camera, size } = useThree();
+  // Read through r3f's store getter rather than destructuring the camera out of
+  // useThree(). Mutating a three.js object is the whole r3f model, but a value
+  // handed straight back from a hook is not ours to mutate — and calling get()
+  // inside the effect also guarantees the camera that is current when the
+  // effect runs, not the one captured at render time.
+  const get = useThree((state) => state.get);
+  const width = useThree((state) => state.size.width);
 
   useEffect(() => {
-    const cam = camera as THREE.PerspectiveCamera;
-    if (size.width >= 1024) {
-      cam.fov = 38; // desktop — slightly zoomed out
-    } else if (size.width >= 768) {
-      cam.fov = 22; // tablet — zoomed in
+    const camera = get().camera as THREE.PerspectiveCamera;
+    if (width >= 1024) {
+      camera.fov = 38; // desktop — slightly zoomed out
+    } else if (width >= 768) {
+      camera.fov = 22; // tablet — zoomed in
     } else {
-      cam.fov = 26; // mobile — zoomed in
+      camera.fov = 26; // mobile — zoomed in
     }
-    cam.updateProjectionMatrix();
-  }, [camera, size.width]);
+    camera.updateProjectionMatrix();
+  }, [get, width]);
 
   return null;
 }
@@ -83,11 +90,9 @@ function LoadingOverlay() {
 
 // Main component with Canvas and loading
 export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // WebGL has no server-side equivalent, so the canvas cannot be part of the
+  // server render — show the loader until hydration has happened.
+  const isClient = useIsHydrated();
 
   if (!isClient) {
     return (

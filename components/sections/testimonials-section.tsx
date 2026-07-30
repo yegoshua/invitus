@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { motion } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -19,7 +25,6 @@ export function TestimonialsSection() {
     startIndex: START_INDEX,
   });
 
-  const [selectedIndex, setSelectedIndex] = useState(START_INDEX);
   const [isMuted, setIsMuted] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -46,19 +51,26 @@ export function TestimonialsSection() {
     [emblaApi]
   );
 
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
+  // Embla already owns the current slide, so mirroring it into React state only
+  // creates a second copy to keep in sync — and the sync had to happen inside an
+  // effect, which is what made it a cascading render. Subscribing to the
+  // carousel as an external store reads the value straight from the source.
+  const subscribeToEmbla = useCallback(
+    (onChange: () => void) => {
+      if (!emblaApi) return () => {};
+      emblaApi.on("select", onChange).on("reInit", onChange);
+      return () => {
+        emblaApi.off("select", onChange).off("reInit", onChange);
+      };
+    },
+    [emblaApi]
+  );
 
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    return () => {
-      emblaApi.off("select", onSelect);
-    };
-  }, [emblaApi, onSelect]);
+  const selectedIndex = useSyncExternalStore(
+    subscribeToEmbla,
+    () => emblaApi?.selectedScrollSnap() ?? START_INDEX,
+    () => START_INDEX
+  );
 
   // Manage video playback - only play the selected video
   useEffect(() => {
