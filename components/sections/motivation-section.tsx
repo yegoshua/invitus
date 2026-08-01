@@ -7,6 +7,14 @@ import {
   ScrollVelocityRow,
 } from "@/components/ui/scroll-based-velocity";
 
+// Hosted on Vercel Blob rather than public/, like the testimonial clips: this
+// is content that gets recut without a code change, and a video committed to
+// the repo stays in git history at full weight forever. Encoded 720x1280
+// H.264 with +faststart — the card is 384px wide, so 1080p was paying for
+// pixels nobody sees, and without faststart playback waits on the whole file.
+const VIDEO_URL =
+  "https://8azpg4yt0gjxqxuj.public.blob.vercel-storage.com/motivation/motivation-section.mp4";
+
 export function MotivationSection() {
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,7 +59,7 @@ export function MotivationSection() {
               playsInline
               className="absolute inset-0 w-full h-full object-cover"
             >
-              <source src="/assets/Motivation Section.MP4" type="video/mp4" />
+              <source src={VIDEO_URL} type="video/mp4" />
             </video>
 
             {/* Mute/Unmute Button */}
