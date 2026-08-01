@@ -10,6 +10,14 @@ import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { MotivationSection } from "@/components/sections/motivation-section";
 import { getFeaturedProducts } from "@/lib/api";
+import type { Metadata } from "next";
+
+// Title and description are inherited from the root layout; this only pins the
+// canonical, so the homepage served from a preview deploy or any other host
+// still points the index at the real domain.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Home() {
   const featuredProducts = await getFeaturedProducts(4);

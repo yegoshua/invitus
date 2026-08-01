@@ -10,6 +10,7 @@ import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { CatalogSkeleton } from "@/components/sections/catalog-skeleton";
+import { JsonLd } from "@/components/seo/json-ld";
 
 import {
   getCategoryBySlug,
@@ -17,6 +18,8 @@ import {
   getProducts,
 } from "@/lib/api";
 import { ALL_FILTER_SLUG } from "@/lib/filter";
+import { breadcrumbSchema } from "@/lib/structured-data";
+import type { Category } from "@/types";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -55,6 +58,10 @@ export async function generateMetadata({
     return {
       title: `${category.name} | INVITUS`,
       description: `Купуйте ${category.name.toLowerCase()} від INVITUS. Українська якість для пауерліфтингу та важкої атлетики.`,
+      // Query-less on purpose: ?filter= narrows the same catalog rather than
+      // producing a new page, so every filtered view points the index back at
+      // the bare category URL.
+      alternates: { canonical: `/shop/${categorySlug}` },
     };
   } catch {
     return {
@@ -64,20 +71,13 @@ export async function generateMetadata({
 }
 
 async function CatalogContent({
-  categorySlug,
+  category,
   filter,
 }: {
-  categorySlug: string;
+  category: Category;
   filter: string;
 }) {
-  const [category, products] = await Promise.all([
-    getCategoryBySlug(categorySlug),
-    getProducts({ category: categorySlug, filter }),
-  ]);
-
-  if (!category) {
-    notFound();
-  }
+  const products = await getProducts({ category: category.slug, filter });
 
   return (
     <>
@@ -95,12 +95,28 @@ export default async function ShopCategoryPage({
   const { filter } = await searchParams;
   const activeFilter = filter || ALL_FILTER_SLUG;
 
+  // Resolved here rather than inside <Suspense>. Once the shell has streamed,
+  // the 200 is already on the wire, so a notFound() deeper in the tree renders
+  // the not-found screen under a 200 — a soft 404 that Google happily keeps in
+  // the index. Only the category list is awaited (small and cached); the slow
+  // products fetch stays behind the skeleton.
+  const category = await getCategoryBySlug(categorySlug);
+  if (!category) {
+    notFound();
+  }
+
   return (
     <>
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Головна", path: "/" },
+          { name: category.name, path: `/shop/${category.slug}` },
+        ])}
+      />
       <Header />
       <main>
         <Suspense fallback={<CatalogSkeleton />}>
-          <CatalogContent categorySlug={categorySlug} filter={activeFilter} />
+          <CatalogContent category={category} filter={activeFilter} />
         </Suspense>
         <FAQSection />
         <BenefitsGrid />
