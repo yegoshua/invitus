@@ -47,11 +47,13 @@ export function RefundProcess() {
             <FadeUp
               key={condition.title}
               delay={index * 0.1}
-              className="bg-surface rounded-3xl p-6 lg:p-10 flex items-center gap-4 lg:gap-6"
+              className="bg-surface rounded-3xl p-6 lg:p-10 flex items-start lg:items-center gap-4 lg:gap-6"
             >
-              <CheckIcon className="w-7 h-7 lg:w-8 lg:h-8 shrink-0" />
-              <div>
-                <h3 className="font-heading text-2xl leading-8 tracking-[0.02em] font-bold text-white mb-2 lg:mb-3">
+              {/* mt keeps the icon on the first line of the title while the card is top-aligned */}
+              <CheckIcon className="w-7 h-7 lg:w-8 lg:h-8 shrink-0 mt-0.5 lg:mt-0" />
+              {/* min-w-0 lets the column shrink; long Ukrainian words otherwise push past the card padding */}
+              <div className="min-w-0">
+                <h3 className="font-heading text-2xl leading-8 tracking-[0.02em] font-bold text-white mb-2 lg:mb-3 break-words">
                   {condition.title}
                 </h3>
                 <p className="text-white font-medium text-xl leading-7 tracking-[0.01em]">
