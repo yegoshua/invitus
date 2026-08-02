@@ -82,9 +82,7 @@ export function OrderSummary({
         </div>
         <div className="flex justify-between items-baseline mt-2 text-base leading-6 font-medium tracking-[0.01em] text-white">
           <span>Доставка</span>
-          <span className="font-medium">
-            від {SHIPPING_COST} ₴
-          </span>
+          <span className="font-medium">Тарифи оператора</span>
         </div>
         <div className="flex justify-between items-baseline mt-4">
           <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
