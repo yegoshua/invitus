@@ -11,7 +11,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import {
   getProductBySlug,
   getAllProductSlugs,
-  getProducts,
+  getRelatedProducts,
   getCategoryBySlug,
 } from "@/lib/api";
 import { breadcrumbSchema, productSchema } from "@/lib/structured-data";
@@ -59,9 +59,7 @@ export default async function ProductPage({ params }: Props) {
   }
 
   const [relatedProducts, category] = await Promise.all([
-    getProducts({ category: product.category, limit: 4 }).then((products) =>
-      products.filter((p) => p.slug !== slug).slice(0, 4)
-    ),
+    getRelatedProducts(product),
     // Only needed for the breadcrumb trail and the Product `category` field;
     // the categories listing is already cached, so this is not an extra
     // round-trip to KeyCRM in practice.

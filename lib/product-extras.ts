@@ -1,10 +1,12 @@
 // Strapi-backed presentation extras, merged into KeyCRM products in lib/api.ts.
 //
 // KeyCRM owns commerce (prices, stock, photos, orders); Strapi owns
-// presentation (3D models, hero backgrounds, measurement guides, featured).
-// Matching: by `keycrmId` field on the Strapi product when present (add a
-// number field in Strapi Content-Type Builder to make links rename-proof),
-// otherwise by slugified product NAME — names match across both systems
+// presentation (3D models, hero backgrounds, measurement guides) and
+// *placement* — catalog order, the two curated homepage rows, cross-sell.
+// Matching: by the `keycrmId` field on the Strapi product when present (which
+// is what makes the link survive a rename in KeyCRM; backfilled by
+// scripts/backfill-strapi-placement.mts), otherwise by slugified product
+// NAME — names match across both systems
 // ("Poseidon Lifting Belt" in Strapi and KeyCRM), while Strapi's own slug
 // field uses a different convention ("belt-poseidon") and cannot be used.
 //
@@ -34,18 +36,37 @@
 
 import { getStrapiURL, getStrapiMedia } from "./strapi";
 import { slugify } from "./slugify";
-import type { StrapiProduct, StrapiResponse } from "./strapi-schema";
+import type {
+  StrapiHomepage,
+  StrapiProduct,
+  StrapiProductRef,
+  StrapiResponse,
+} from "./strapi-schema";
 import {
   productExtras as localFallbackExtras,
   type ProductExtras,
+  type ProductRef,
 } from "@/content/product-extras";
+
+/** The two curated product rows on the homepage, in the order they render. */
+export interface HomepageLists {
+  showcase: ProductRef[];
+  shopCta: ProductRef[];
+}
 
 export interface ExtrasIndex {
   byKeycrmId: Map<number, ProductExtras>;
   bySlug: Map<string, ProductExtras>;
+  homepage: HomepageLists;
 }
 
-const EMPTY: ExtrasIndex = { byKeycrmId: new Map(), bySlug: new Map() };
+const EMPTY_HOMEPAGE: HomepageLists = { showcase: [], shopCta: [] };
+
+const EMPTY: ExtrasIndex = {
+  byKeycrmId: new Map(),
+  bySlug: new Map(),
+  homepage: EMPTY_HOMEPAGE,
+};
 
 /** Cache tag busted by the Strapi webhook at app/api/revalidate. */
 export const STRAPI_EXTRAS_TAG = "strapi-extras";
@@ -66,6 +87,7 @@ const REVALIDATE_S = 86_400;
 // unreachable Strapi doesn't re-pay the full retry budget on every render.
 const FAILURE_BACKOFF_MS = 60_000;
 let skipUntil = 0;
+let homepageSkipUntil = 0;
 
 // Last index fetched successfully by this process. Served instead of EMPTY
 // whenever a later fetch fails, so a blip can't cost content we already have.
@@ -96,9 +118,17 @@ export function getStrapiExtras(): Promise<ExtrasIndex> {
  */
 export function clearStrapiExtrasBackoff(): void {
   skipUntil = 0;
+  homepageSkipUntil = 0;
 }
 
 async function fetchStrapiExtras(): Promise<ExtrasIndex> {
+  // The homepage lists go out in parallel and under the same cache tag, so the
+  // existing Strapi webhook already invalidates them — but they are a separate
+  // request, and one that is allowed to come back empty: the single type 404s
+  // until someone saves it once. Started before the await so a cold Strapi is
+  // woken by both at the same time rather than twice in a row.
+  const homepagePromise = fetchHomepage();
+
   try {
     const json = await fetchWithRetries();
 
@@ -140,6 +170,10 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
         howToMeasure: p.howToMeasure ?? undefined,
         careInstructions: p.careInstructions ?? undefined,
         featured: p.featured || undefined,
+        // Strapi's integer field defaults to 0, and 0 is a position like any
+        // other; only a genuinely absent value means "no opinion, sort last".
+        order: p.order ?? undefined,
+        relatedProducts: toProductRefs(p.relatedProducts),
         sizeLabelsBySku: Object.keys(sizeLabelsBySku).length
           ? sizeLabelsBySku
           : undefined,
@@ -149,7 +183,7 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
       bySlug.set(slugify(p.name), extras);
     }
 
-    lastGood = { byKeycrmId, bySlug };
+    lastGood = { byKeycrmId, bySlug, homepage: await homepagePromise };
     return lastGood;
   } catch (error) {
     skipUntil = Date.now() + FAILURE_BACKOFF_MS;
@@ -159,9 +193,31 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
         ? `Strapi extras fetch failed (${reason}), serving last known good index`
         : `Strapi extras unavailable (${reason}), rendering with fallbacks`
     );
-    return lastGood ?? EMPTY;
+    // The homepage half may well have succeeded — the two requests fail
+    // independently. Keeping its result costs nothing and is strictly better
+    // than throwing away curation because the products query timed out. (It
+    // also settles the promise, which would otherwise float on this path.)
+    const homepage = await homepagePromise;
+    if (!lastGood) return { ...EMPTY, homepage };
+    return { ...lastGood, homepage };
   }
 }
+
+// Relations are populated with `name` and `keycrmId` only. The products
+// themselves always come from KeyCRM — Strapi's own price/stock columns are
+// stale copies of it, and rendering one would be worse than rendering nothing.
+const relationFields = (relation: string) =>
+  `populate[${relation}][fields][0]=name&populate[${relation}][fields][1]=keycrmId`;
+
+const PRODUCTS_QUERY =
+  "/api/products?populate[model3d]=true&populate[heroImage]=true" +
+  "&populate[backgroundImage]=true&populate[galleryImages][populate]=image" +
+  "&populate[variants]=true" +
+  `&${relationFields("relatedProducts")}` +
+  "&pagination[limit]=100";
+
+const HOMEPAGE_QUERY =
+  `/api/homepage?${relationFields("showcase")}&${relationFields("shopCta")}`;
 
 /**
  * One GET, retried on anything transient. 4xx is not retried: a bad token or a
@@ -169,32 +225,96 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
  * the fallback render.
  */
 async function fetchWithRetries(): Promise<StrapiResponse<StrapiProduct[]>> {
-  const url = getStrapiURL(
-    "/api/products?populate[model3d]=true&populate[heroImage]=true&populate[backgroundImage]=true&populate[galleryImages][populate]=image&populate[variants]=true&pagination[limit]=100"
+  return getWithRetries<StrapiResponse<StrapiProduct[]>>(
+    PRODUCTS_QUERY,
+    "extras"
   );
+}
+
+/**
+ * The two curated homepage rows.
+ *
+ * Never throws — the caller has already decided that a homepage it can't read
+ * is not a reason to render every product page without its 3D model. `404` in
+ * particular is the normal state of a single type nobody has saved yet, so it
+ * is not even logged as a failure. Anything else falls back to whatever this
+ * process last read successfully, for the same reason `lastGood` exists at all.
+ */
+async function fetchHomepage(): Promise<HomepageLists> {
+  // Its own back-off, separate from the products one. Both directions matter:
+  // a broken homepage route must not stop products being retried, and — since
+  // the products fetch waits on this one before returning — a hanging homepage
+  // must not add its full 3×12s budget to every single extras refresh.
+  if (Date.now() < homepageSkipUntil) return lastGood?.homepage ?? EMPTY_HOMEPAGE;
+
+  try {
+    const json = await getWithRetries<StrapiResponse<StrapiHomepage | null>>(
+      HOMEPAGE_QUERY,
+      "homepage",
+      // Products are readable anonymously; the `Homepage` single type is not —
+      // its find permission is granted to the API token, and an unauthenticated
+      // read gets a 403 that would leave the homepage on the `featured`
+      // fallback forever. Only this query carries the token: putting the
+      // products query behind a second auth surface would add a way for
+      // something that works today to start failing, and buy nothing.
+      strapiAuthHeaders()
+    );
+    return {
+      showcase: toProductRefs(json.data?.showcase) ?? [],
+      shopCta: toProductRefs(json.data?.shopCta) ?? [],
+    };
+  } catch (error) {
+    homepageSkipUntil = Date.now() + FAILURE_BACKOFF_MS;
+    if (!(error instanceof NotFoundError)) {
+      const reason = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `Strapi homepage fetch failed (${reason}), ` +
+          `homepage sections fall back to featured/order`
+      );
+    }
+    return lastGood?.homepage ?? EMPTY_HOMEPAGE;
+  }
+}
+
+/** Server-only module, so the token never reaches the client bundle. */
+function strapiAuthHeaders(): Record<string, string> {
+  const token = process.env.STRAPI_API_TOKEN;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function getWithRetries<T>(
+  query: string,
+  label: string,
+  headers: Record<string, string> = {}
+): Promise<T> {
+  const url = getStrapiURL(query);
 
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const response = await fetch(url, {
+        headers,
         signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
         next: { revalidate: REVALIDATE_S, tags: [STRAPI_EXTRAS_TAG] },
       });
 
+      if (response.status === 404) {
+        throw new NotFoundError(`Strapi responded 404`);
+      }
       if (response.status >= 400 && response.status < 500) {
         throw new NonRetryableError(`Strapi responded ${response.status}`);
       }
       if (!response.ok) throw new Error(`Strapi responded ${response.status}`);
 
-      return (await response.json()) as StrapiResponse<StrapiProduct[]>;
+      return (await response.json()) as T;
     } catch (error) {
       if (error instanceof NonRetryableError) throw error;
       lastError = error;
       if (attempt < MAX_ATTEMPTS) {
         const reason = error instanceof Error ? error.message : String(error);
         console.warn(
-          `Strapi extras attempt ${attempt}/${MAX_ATTEMPTS} failed (${reason}), retrying`
+          `Strapi ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed (${reason}), retrying`
         );
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
       }
@@ -205,6 +325,24 @@ async function fetchWithRetries(): Promise<StrapiResponse<StrapiProduct[]>> {
 }
 
 class NonRetryableError extends Error {}
+/** A 4xx that carries meaning: the single type has no saved entry yet. */
+class NotFoundError extends NonRetryableError {}
+
+/**
+ * Strapi relation entries → unresolved pointers. Returns undefined for an empty
+ * relation so `ProductExtras` stays free of empty arrays that would read as
+ * "curated to nothing" rather than "not curated".
+ */
+function toProductRefs(
+  entries: StrapiProductRef[] | undefined
+): ProductRef[] | undefined {
+  if (!entries?.length) return undefined;
+  return entries.map((entry) => ({
+    keycrmId: entry.keycrmId ?? undefined,
+    slug: slugify(entry.name),
+    name: entry.name,
+  }));
+}
 
 /** Strapi first (keycrmId, then slug), local file as offline fallback. */
 export function resolveExtras(

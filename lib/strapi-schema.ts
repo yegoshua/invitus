@@ -93,7 +93,7 @@ export interface StrapiProduct {
   documentId: string;
   name: string;
   slug: string;
-  /** Optional explicit link to the KeyCRM product (number field, add in Content-Type Builder). */
+  /** Explicit link to the KeyCRM product. Optional — null until backfilled. */
   keycrmId?: number | null;
   price: number;
   description: string | null;
@@ -113,7 +113,33 @@ export interface StrapiProduct {
   attributes: StrapiAttribute[];
   category?: StrapiCategory;
   filterTags?: StrapiFilterTag[];
+  /** One-way relation; populated with `name`/`keycrmId` only. Order is manual. */
+  relatedProducts?: StrapiProductRef[];
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+}
+
+/**
+ * A product as it comes back inside a relation, populated with just enough to
+ * find it in KeyCRM. The products themselves are always re-read from KeyCRM —
+ * Strapi's own `price`/`variants` are stale copies and must never be rendered.
+ */
+export interface StrapiProductRef {
+  id: number;
+  documentId: string;
+  name: string;
+  keycrmId?: number | null;
+}
+
+/**
+ * The `Homepage` single type. Note it is `draftAndPublish: false`, so there is
+ * no Publish button and no draft state — but the entry does not exist at all
+ * until someone saves it once, and Strapi answers 404 until then.
+ */
+export interface StrapiHomepage {
+  id: number;
+  documentId: string;
+  showcase?: StrapiProductRef[];
+  shopCta?: StrapiProductRef[];
 }
