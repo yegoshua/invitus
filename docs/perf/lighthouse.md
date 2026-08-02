@@ -79,17 +79,17 @@ ticket compares against; it is also posted on
 | --- | --- | --- |
 | Performance score | 82 | — |
 | LCP | **4.84 s** | < 2.5 s |
-| Transfer before `load` | **37.29 MiB** | ≤ 3 MiB |
-| Speed Index | 2.34 s | < 4 s |
+| Transfer before `load` | **36.94 MiB** | ≤ 3 MiB |
+| Speed Index | 2.29 s | < 4 s |
 | CLS | 0 | 0 |
-| TBT | 17 ms | 200 ms (soft) |
-| FCP | 1.06 s | — |
+| TBT | 18 ms | 200 ms (soft) |
+| FCP | 1.05 s | — |
 | Time to Interactive | 5.77 s | — |
-| Main-thread work | 1.27 s | — |
+| Main-thread work | 1.16 s | — |
 
-58 of the run's 60 requests start before the load event (which fires at 240 ms
-locally); over the whole run the page transfers 37.31 MiB, so essentially
-nothing arrives late today. **36.51 MiB of it is media** — ten requests, four
+58 of the run's 60 requests start before the load event (which fires at 185 ms
+locally); over the whole run the page transfers 36.95 MiB, so essentially
+nothing arrives late today. **36.15 MiB of it is media** — ten requests, four
 video files, three of them below the fold. Scripts are 0.55 MiB, of which a
 single 275 KiB chunk (three.js, pulled in by the prefetched product route) is
 essentially unused on this page.
