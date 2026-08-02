@@ -9,7 +9,7 @@ import { ShopCTA } from "@/components/sections/shop-cta";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { MotivationSection } from "@/components/sections/motivation-section";
-import { getFeaturedProducts } from "@/lib/api";
+import { getHomepageSection } from "@/lib/api";
 import type { Metadata } from "next";
 
 // Title and description are inherited from the root layout; this only pins the
@@ -20,18 +20,24 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const featuredProducts = await getFeaturedProducts(4);
+  // Two visually distinct sections, curated independently in Strapi's Homepage
+  // single type. They used to share one `getFeaturedProducts` call and so
+  // always showed the same four products.
+  const [showcaseProducts, shopCtaProducts] = await Promise.all([
+    getHomepageSection("showcase"),
+    getHomepageSection("shopCta"),
+  ]);
   return (
     <>
       <Header />
       <main>
         <HeroSection />
-        <ProductShowcase products={featuredProducts} />
+        <ProductShowcase products={showcaseProducts} />
         <WhySection />
         <MotivationSection/>
         <FeaturesGrid />
         <TestimonialsSection />
-        <ShopCTA products={featuredProducts} />
+        <ShopCTA products={shopCtaProducts} />
         <FAQSection />
         <BenefitsGrid />
       </main>
