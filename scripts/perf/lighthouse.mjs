@@ -82,7 +82,7 @@ try {
   const { run } = runs.find((r) => r.metrics === median);
   const { pass, results } = evaluateBudget(budget, median);
 
-  report(run.lhr, results, pass, args.runs);
+  report(run.lhr, results, pass, args.runs, median);
   saveReports(run, args.label);
 
   process.exitCode = pass ? 0 : 1;
@@ -104,6 +104,10 @@ function readMetrics(lhr) {
     "cumulative-layout-shift": numeric("cumulative-layout-shift"),
     "total-blocking-time": numeric("total-blocking-time"),
     "transfer-before-load": transferBeforeLoad(lhr),
+    // Not budgeted — printed as context. The gate is drawn at the load event,
+    // so these two drifting apart is how you see bytes moving to just after it.
+    "transfer-total": requestsOf(lhr).reduce((t, r) => t + (r.transferSize ?? 0), 0),
+    "observed-load": loadEvent(lhr),
   };
 }
 
@@ -113,10 +117,10 @@ function readMetrics(lhr) {
  * of the work, so they must not count against, or for, the number.
  */
 function transferBeforeLoad(lhr) {
-  const requests = lhr.audits["network-requests"]?.details?.items;
-  if (!requests) return undefined;
+  const requests = requestsOf(lhr);
+  if (!requests.length) return undefined;
 
-  const load = lhr.audits.metrics?.details?.items?.[0]?.observedLoad;
+  const load = loadEvent(lhr);
   const beforeLoad =
     typeof load === "number"
       ? requests.filter((r) => (r.networkRequestTime ?? 0) <= load)
@@ -125,7 +129,20 @@ function transferBeforeLoad(lhr) {
   return beforeLoad.reduce((total, r) => total + (r.transferSize ?? 0), 0);
 }
 
-function report(lhr, results, pass, runs) {
+function requestsOf(lhr) {
+  return lhr.audits["network-requests"]?.details?.items ?? [];
+}
+
+/**
+ * Observed, not simulated — the same timeline `networkRequestTime` is on. On
+ * localhost it fires early, which makes the before-load window narrow: read the
+ * whole-run figure the report prints beside it before trusting a big drop.
+ */
+function loadEvent(lhr) {
+  return lhr.audits.metrics?.details?.items?.[0]?.observedLoad;
+}
+
+function report(lhr, results, pass, runs, metrics) {
   const score = Math.round((lhr.categories.performance?.score ?? 0) * 100);
 
   console.log(
@@ -148,6 +165,11 @@ function report(lhr, results, pass, runs) {
       `${icon[r.status]} ${r.metric.padEnd(26)} ${value.padStart(10)}  budget ${limit}${note}`,
     );
   }
+
+  const total = (metrics["transfer-total"] / 1024 / 1024).toFixed(2);
+  console.log(
+    `\n  for reference: ${total} MiB transferred over the whole run, load event at ${Math.round(metrics["observed-load"])} ms`,
+  );
 
   console.log(`\n${pass ? "✔ within budget" : "✖ over budget"}`);
 }

@@ -1,7 +1,6 @@
 {
-  "$comment": "Homepage performance budget. Thresholds come from https://github.com/yegoshua/invitus/issues/34. `budgets` is the Lighthouse budget format (pre-10 feature, removed in Lighthouse 13) kept verbatim so it stays portable; `scripts/perf/evaluate-budget.mjs` is what actually enforces it. Timings are milliseconds, cumulative-layout-shift is unitless, resourceSizes are KiB.",
+  "$comment": "Homepage performance budget, measured mobile. Thresholds come from https://github.com/yegoshua/invitus/issues/34. `budgets` borrows the Lighthouse budget format (a pre-10 feature, removed in 13.x) because it is a good shape for this, but Lighthouse no longer reads it and one meaning differs: resourceType `total` here is bytes transferred *before the load event*, not over the whole run. `scripts/perf/evaluate-budget.mjs` is what enforces the thresholds. Timings are milliseconds, cumulative-layout-shift is unitless, resourceSizes are KiB.",
   "url": "/",
-  "formFactor": "mobile",
   "budgets": [
     {
       "path": "/*",

@@ -39,10 +39,12 @@ alone, and those put a floor under it; missing 200 ms is the expected
 consequence of that decision, not a failure. `soft` in the budget file is the
 list of metrics that warn instead of failing the run.
 
-The `budgets` array keeps the Lighthouse budget format verbatim so it stays
-portable, but Lighthouse itself no longer reads it — budgets were a pre-10
-feature and are gone in 13.x. `scripts/perf/evaluate-budget.mjs` is what
-enforces the thresholds.
+The `budgets` array borrows the Lighthouse budget format because it is a good
+shape for this, but Lighthouse itself no longer reads it — budgets were a pre-10
+feature and are gone in 13.x — and one meaning differs from that format: a
+`resourceSizes` entry of `resourceType: "total"` means bytes transferred
+*before the load event* here, where Lighthouse meant all of them.
+`scripts/perf/evaluate-budget.mjs` is what enforces the thresholds.
 
 ## What the numbers do and do not include
 
@@ -55,8 +57,14 @@ enforces the thresholds.
   than production TBT and the two are not comparable. Another reason TBT is a
   target rather than a gate.
 - **Transfer weight counts requests that started before the load event**, which
-  is what #34 measures. Media that only begins downloading after load — the
-  point of the lazy-loading work — correctly does not count.
+  is the line #34 draws. Media that only begins downloading after load — the
+  point of the lazy-loading work — correctly does not count. Watch this one: on
+  localhost the load event fires within a few hundred milliseconds, so the
+  window is narrow and a deferral of a few milliseconds would slip a video out
+  of the gate without helping a real visitor at all. The report prints the
+  whole-run transfer and the load timestamp beside the gated figure for exactly
+  that reason — if a change collapses the gated number while the whole-run
+  number stays put, the bytes moved, they did not go away.
 - **The server is local**, so TTFB is a few milliseconds rather than the 130 ms
   the live site shows. Network conditions are Lighthouse's simulated mobile 4G.
 
@@ -79,6 +87,9 @@ ticket compares against; it is also posted on
 | Time to Interactive | 5.77 s | — |
 | Main-thread work | 1.27 s | — |
 
-Of the 37.29 MiB, **36.51 MiB is media** across 60 requests; scripts are 0.55 MiB,
-of which a single 275 KiB chunk (three.js, pulled in by the prefetched product
-route) is essentially unused on this page.
+58 of the run's 60 requests start before the load event (which fires at 240 ms
+locally); over the whole run the page transfers 37.31 MiB, so essentially
+nothing arrives late today. **36.51 MiB of it is media** — ten requests, four
+video files, three of them below the fold. Scripts are 0.55 MiB, of which a
+single 275 KiB chunk (three.js, pulled in by the prefetched product route) is
+essentially unused on this page.
