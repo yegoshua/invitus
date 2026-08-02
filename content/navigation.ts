@@ -13,7 +13,6 @@ export const navLinks: NavLink[] = [
 ];
 
 export const socialLinks: NavLink[] = [
-  { href: "https://instagram.com/invitus_ua", label: "Instagram" },
-  { href: "https://t.me/invitus_ua", label: "Telegram" },
-  { href: "https://tiktok.com/@invitus_ua", label: "TikTok" },
+  { href: "https://www.instagram.com/invitus.ua", label: "Instagram" },
+  { href: "https://www.tiktok.com/@invitus.ua", label: "TikTok" },
 ];

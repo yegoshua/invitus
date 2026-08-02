@@ -87,7 +87,10 @@ export default async function ProductPage({ params }: Props) {
       <Header />
       <ProductPageContent product={product} />
       <ProductImagesSection images={product.galleryImages || []} />
-      <RelatedProducts products={relatedProducts} />
+      <RelatedProducts
+        products={relatedProducts}
+        categorySlug={category?.slug}
+      />
       <FAQSection />
       <BenefitsGrid />
       <Footer />

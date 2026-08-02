@@ -72,3 +72,17 @@ Next.js 16 App Router application for INVITUS — a Ukrainian powerlifting equip
 - **Online payments** — `paymentMethod === "online"` redirects through Monobank acquiring. Client → `app/api/orders` → Monobank → `app/payment-result` (status check + cart clear on success). Server-side client in `lib/monobank.ts`. Requires `MONOBANK_TOKEN` in `.env.local` (server-only). Status endpoint at `app/api/monobank/status`. Test tokens available at https://api.monobank.ua/.
 
 Pexels api key - AQT9iudesPqlSQYM2L4gVI39ypXc07BTJUNOmNAEk5Nk73bLn5LyPiz6
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `yegoshua/invitus`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

@@ -4,7 +4,23 @@ const nextConfig: NextConfig = {
   turbopack: {
     rules: {
       "**/assets/icons/**/*.svg": {
-        loaders: ["@svgr/webpack"],
+        loaders: [
+          {
+            loader: "@svgr/webpack",
+            options: {
+              // svgo drops viewBox whenever width/height are present. Without it
+              // an icon sized by CSS (w-7 on a 32-unit grid) is clipped, not scaled.
+              svgoConfig: {
+                plugins: [
+                  {
+                    name: "preset-default",
+                    params: { overrides: { removeViewBox: false } },
+                  },
+                ],
+              },
+            },
+          },
+        ],
         as: "*.js",
       },
     },
