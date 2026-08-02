@@ -25,7 +25,7 @@ export type JsonLdObject = Record<string, unknown>;
 const BRAND_NAME = "INVITUS";
 const CURRENCY = "UAH";
 const COUNTRY = "UA";
-const INSTAGRAM_URL = "https://instagram.com/invitus.ua";
+const INSTAGRAM_URL = "https://www.instagram.com/invitus.ua";
 const SUPPORT_EMAIL = "invitus.ua@gmail.com";
 
 // The coral brand mark from public/. Google wants a logo it can fetch; the

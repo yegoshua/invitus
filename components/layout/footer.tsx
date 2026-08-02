@@ -10,8 +10,8 @@ const categoryLinks = [
 ];
 
 const socialLinks = [
-  { href: "https://instagram.com/invitus.ua", label: "Instagram" },
-  { href: "https://tiktok.com/@invitus.ua", label: "TikTok" },
+  { href: "https://www.instagram.com/invitus.ua", label: "Instagram" },
+  { href: "https://www.tiktok.com/@invitus.ua", label: "TikTok" },
 ];
 
 const legalLinks = [

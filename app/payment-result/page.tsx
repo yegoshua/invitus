@@ -17,9 +17,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const socialLinks = [
-  { href: "https://instagram.com/invitus.ua", label: "Instagram" },
-  { href: "https://t.me/invitus_ua", label: "Telegram" },
-  { href: "https://tiktok.com/@invitus.ua", label: "TikTok" },
+  { href: "https://www.instagram.com/invitus.ua", label: "Instagram" },
+  { href: "https://www.tiktok.com/@invitus.ua", label: "TikTok" },
 ];
 
 interface PageProps {
@@ -173,7 +172,7 @@ function SuccessCard() {
       <p className="mt-6 lg:mt-8 font-sans font-medium text-[14px] leading-5 tracking-[0.01em] text-[#FFFFFFA3]">
         Щось пішло не так із замовленням? Напиши нам у{" "}
         <a
-          href="https://instagram.com/invitus.ua"
+          href="https://www.instagram.com/invitus.ua"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white hover:text-coral transition-colors underline underline-offset-2"
