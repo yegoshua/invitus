@@ -11,6 +11,9 @@ pnpm start    # Start production server
 pnpm lint     # Run ESLint
 pnpm type-check           # tsc --noEmit
 pnpm backfill:placement   # One-off Strapi keycrmId/order backfill (dry-run; --apply to write)
+
+pnpm perf:lighthouse      # Build, serve, measure the homepage against perf/budget.json
+pnpm test:perf            # Unit tests for the perf harness
 ```
 
 ## Architecture
@@ -76,6 +79,9 @@ Next.js 16 App Router application for INVITUS — a Ukrainian powerlifting equip
 - **Online payments** — `paymentMethod === "online"` redirects through Monobank acquiring. Client → `app/api/orders` → Monobank → `app/payment-result` (status check + cart clear on success). Server-side client in `lib/monobank.ts`. Requires `MONOBANK_TOKEN` in `.env.local` (server-only). Status endpoint at `app/api/monobank/status`. Test tokens available at https://api.monobank.ua/.
 
 Pexels api key - AQT9iudesPqlSQYM2L4gVI39ypXc07BTJUNOmNAEk5Nk73bLn5LyPiz6
+
+### Performance budget
+- `perf/budget.json` holds the homepage thresholds (LCP, transfer weight before `load`, Speed Index, CLS as gates; TBT as a soft target). `pnpm perf:lighthouse` builds, serves and measures against it in a **clean Chrome profile with no extensions** — the original slow-homepage report was taken with five extensions live and credited the site with ~2 MB of someone else's JavaScript. Lighthouse 13 dropped built-in budgets, so `scripts/perf/evaluate-budget.mjs` enforces them. Baseline numbers and what the harness does *not* measure (analytics never loads on localhost) are in `docs/perf/lighthouse.md`.
 
 ## Agent skills
 

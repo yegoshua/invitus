@@ -1,0 +1,17 @@
+{
+  "$comment": "Homepage performance budget, measured mobile. Thresholds come from https://github.com/yegoshua/invitus/issues/34. `budgets` borrows the Lighthouse budget format (a pre-10 feature, removed in 13.x) because it is a good shape for this, but Lighthouse no longer reads it and one meaning differs: resourceType `total` here is bytes transferred *before the load event*, not over the whole run. `scripts/perf/evaluate-budget.mjs` is what enforces the thresholds. Timings are milliseconds, cumulative-layout-shift is unitless, resourceSizes are KiB.",
+  "url": "/",
+  "budgets": [
+    {
+      "path": "/*",
+      "timings": [
+        { "metric": "largest-contentful-paint", "budget": 2500 },
+        { "metric": "speed-index", "budget": 4000 },
+        { "metric": "cumulative-layout-shift", "budget": 0 },
+        { "metric": "total-blocking-time", "budget": 200 }
+      ],
+      "resourceSizes": [{ "resourceType": "total", "budget": 3072 }]
+    }
+  ],
+  "soft": ["total-blocking-time"]
+}
