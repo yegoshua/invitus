@@ -93,3 +93,33 @@ nothing arrives late today. **36.15 MiB of it is media** — ten requests, four
 video files, three of them below the fold. Scripts are 0.55 MiB, of which a
 single 275 KiB chunk (three.js, pulled in by the prefetched product route) is
 essentially unused on this page.
+
+## After #37 — the hero paints from a poster
+
+| Metric | Baseline | After #37 |
+| --- | --- | --- |
+| Performance score | 82 | 85 |
+| LCP | 4.84 s | 4.29 s |
+| Transfer before `load` | 36.94 MiB | 20.61 MiB |
+| Transfer, whole run | 36.95 MiB | 22.03 MiB |
+| Speed Index | 2.29 s | 2.28 s |
+| CLS | 0 | 0 |
+
+The LCP element is no longer the hero video but the 19 KB poster beside it,
+which lands at 53 ms observed. The two transfer figures are quoted together
+because the doc's own warning applies here: the gate fell by 16.3 MiB but the
+whole run only fell by 14.9 MiB, and the 1.4 MiB of difference is exactly the
+re-encoded video, which moved rather than vanished — it starts downloading a
+few milliseconds after the load event. The other 14.9 MiB is genuinely gone,
+burnt out of the encode.
+
+**LCP barely moved, and the reason is worth writing down.** Observed LCP in the
+trace is 69 ms — the poster paints essentially immediately. The 4.29 s is
+Lighthouse's *simulated* figure, and simulation is where the remaining cost
+lives: FCP alone simulates at 1.06 s, and the gap after it does not close when
+the other media goes away. Measured with the three below-the-fold video
+sections commented out — 1.05 MiB before load, whole run 2.78 MiB — LCP was
+still 3.95 s. So what is left is main-thread work under the 4× CPU multiplier,
+not bytes: the same scripts that put TTI at 7 s in that run. Deferring the rest
+of the media (#38, #41, #42) will collapse the transfer gate; the LCP gate
+needs the script work — #39 gets three.js off this page.
