@@ -13,7 +13,8 @@ pnpm type-check           # tsc --noEmit
 pnpm backfill:placement   # One-off Strapi keycrmId/order backfill (dry-run; --apply to write)
 
 pnpm perf:lighthouse      # Build, serve, measure the homepage against perf/budget.json
-pnpm test:perf            # Unit tests for the perf harness
+pnpm test                 # Unit tests (node:test) — the perf harness and lib/
+pnpm test:perf            # Just the perf harness tests
 ```
 
 ## Architecture
@@ -81,6 +82,7 @@ Next.js 16 App Router application for INVITUS — a Ukrainian powerlifting equip
 Pexels api key - AQT9iudesPqlSQYM2L4gVI39ypXc07BTJUNOmNAEk5Nk73bLn5LyPiz6
 
 ### Performance budget
+- **Videos live on Vercel Blob, posters live in the repo.** `lib/blob.ts` names the one Blob origin (the homepage `preconnect`s to it, so a second origin would need a second hint). The hero is the pattern: `public/assets/hero-poster.webp` is the LCP element, same-origin, 19 KB, with the greyscale and the 30% opacity over `#1a1a1a` **baked into the pixels** so it and the video's first frame are the same picture — the fade-in is invisible. The video itself is not requested until after the `load` event, and not at all when `shouldLoadHeroVideo` in `lib/hero-video.ts` says no (`save-data`, a slow `effectiveType`, or `prefers-reduced-motion`). Re-encoding it hard was free because it renders greyscaled at 30% under a 60% black overlay; regenerate the poster from the video's first frame whenever the clip is recut, or the two will drift apart. **The video fades in inside an opaque `#1a1a1a` wrapper, not as a bare 30% layer** — fading the bare video over the poster leaves the poster visible through its remaining 70%, which is a permanent still of frame one ghosted under the motion and a hero brighter than the design (measured: 16× the pixel deviation from poster-alone).
 - `perf/budget.json` holds the homepage thresholds (LCP, transfer weight before `load`, Speed Index, CLS as gates; TBT as a soft target). `pnpm perf:lighthouse` builds, serves and measures against it in a **clean Chrome profile with no extensions** — the original slow-homepage report was taken with five extensions live and credited the site with ~2 MB of someone else's JavaScript. Lighthouse 13 dropped built-in budgets, so `scripts/perf/evaluate-budget.mjs` enforces them. Baseline numbers and what the harness does *not* measure (analytics never loads on localhost) are in `docs/perf/lighthouse.md`.
 
 ## Agent skills

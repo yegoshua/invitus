@@ -10,6 +10,7 @@ import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { MotivationSection } from "@/components/sections/motivation-section";
 import { getHomepageSection } from "@/lib/api";
+import { BLOB_ORIGIN } from "@/lib/blob";
 import type { Metadata } from "next";
 
 // Title and description are inherited from the root layout; this only pins the
@@ -29,6 +30,10 @@ export default async function Home() {
   ]);
   return (
     <>
+      {/* Both videos on this page come from Blob, and neither is requested
+          until after load — the handshake is the part worth doing early.
+          React hoists this into <head>. */}
+      <link rel="preconnect" href={BLOB_ORIGIN} />
       <Header />
       <main>
         <HeroSection />
