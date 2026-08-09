@@ -20,6 +20,7 @@ import {
   STRAPI_EXTRAS_TAG,
   clearStrapiExtrasBackoff,
 } from "@/lib/product-extras";
+import { STRAPI_PROMO_TAG, clearPromoCodesBackoff } from "@/lib/promo-codes";
 
 /**
  * Compare digests rather than the raw strings: timingSafeEqual throws on a
@@ -60,19 +61,27 @@ export async function POST(request: Request) {
   // out the back-off. Only affects this instance — page renders may run in
   // another — but the tag invalidation below is what actually does the work.
   clearStrapiExtrasBackoff();
+  clearPromoCodesBackoff();
 
   // "max" keeps serving the existing render until the new one is ready, rather
   // than making the next visitor wait for a fresh Strapi fetch.
   revalidateTag(STRAPI_EXTRAS_TAG, "max");
+  // Promo codes are on their own tag but the same webhook: Strapi sends one
+  // call per entry and does not say which collection this is worth acting on,
+  // and switching off a leaked code has to take effect on the next checkout —
+  // waiting out a 24h window is not an option for a kill switch.
+  revalidateTag(STRAPI_PROMO_TAG, "max");
+
+  const tags = [STRAPI_EXTRAS_TAG, STRAPI_PROMO_TAG];
 
   console.log(
     `[revalidate] ${payload?.event ?? "unknown event"} on ${
       payload?.model ?? "unknown model"
-    } → invalidated "${STRAPI_EXTRAS_TAG}"`
+    } → invalidated ${tags.map((t) => `"${t}"`).join(", ")}`
   );
 
   return NextResponse.json({
-    revalidated: STRAPI_EXTRAS_TAG,
+    revalidated: tags,
     event: payload?.event ?? null,
   });
 }
