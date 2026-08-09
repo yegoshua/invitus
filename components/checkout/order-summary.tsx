@@ -6,9 +6,6 @@ import { formatPrice } from "@/lib/format";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { cn } from "@/lib/utils";
 
-export { SHIPPING_COST } from "@/lib/shipping";
-import { SHIPPING_COST } from "@/lib/shipping";
-
 interface OrderSummaryProps {
   variant?: "desktop" | "mobile-bottom";
   submitting?: boolean;
@@ -25,7 +22,9 @@ export function OrderSummary({
 }: OrderSummaryProps) {
   const items = useCartItems();
   const subtotal = useCartTotal();
-  const total = subtotal + SHIPPING_COST;
+  // Delivery is paid to Nova Poshta on collection, so "Тарифи оператора" is the
+  // whole delivery line and the total is the goods.
+  const total = subtotal;
 
   const isDesktop = variant === "desktop";
 

@@ -19,11 +19,7 @@ import { DeliveryFields } from "./delivery-fields";
 import { PaymentMethodRadio } from "./payment-method-radio";
 import { NovaPoshtaIcon } from "./nova-poshta-icon";
 import { CTAButton } from "@/components/ui/cta-button";
-import {
-  OrderSummary,
-  OrderSummaryMobileTop,
-  SHIPPING_COST,
-} from "./order-summary";
+import { OrderSummary, OrderSummaryMobileTop } from "./order-summary";
 import { CheckoutSuccess } from "./checkout-success";
 
 type SubmittedOrder = React.ComponentProps<typeof CheckoutSuccess>["order"] & {
@@ -34,7 +30,7 @@ type SubmittedOrder = React.ComponentProps<typeof CheckoutSuccess>["order"] & {
     quantity: number;
     price: number;
   }>;
-  totals: { subtotal: number; shipping: number; total: number };
+  totals: { subtotal: number; total: number };
   createdAt: string;
 };
 
@@ -88,11 +84,7 @@ export function CheckoutPage() {
         quantity: i.quantity,
         price: i.product.price,
       })),
-      totals: {
-        subtotal,
-        shipping: SHIPPING_COST,
-        total: subtotal + SHIPPING_COST,
-      },
+      totals: { subtotal, total: subtotal },
       createdAt: new Date().toISOString(),
     };
 
@@ -147,7 +139,6 @@ export function CheckoutPage() {
       trackEvent("purchase", {
         transaction_id: String(payload.orderId),
         value: order.totals.total,
-        shipping: order.totals.shipping,
         items: gaItems(items),
       });
       setSubmittedOrder(order);
