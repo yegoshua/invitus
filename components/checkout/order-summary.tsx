@@ -26,7 +26,7 @@ export function OrderSummary({
   // Only a discount the server has confirmed for this exact cart is ever shown;
   // while a re-check is in flight this reports nothing applied, so nobody reads
   // a total the invoice is about to disagree with.
-  const { code: promoCode, discount } = useAppliedPromo();
+  const { discount } = useAppliedPromo();
   const promoStatus = usePromoStatus();
 
   // Delivery is paid to Nova Poshta on collection, so "Тарифи оператора" is the
@@ -87,10 +87,10 @@ export function OrderSummary({
           </span>
         </div>
         {discount > 0 && (
-          <div className="flex justify-between items-baseline mt-2 text-base leading-6 font-medium tracking-[0.01em] text-coral">
-            <span className="truncate pr-4">Промокод {promoCode}</span>
+          <div className="flex justify-between items-baseline mt-2 text-base leading-6 font-medium tracking-[0.01em] text-white">
+            <span>Промокод</span>
             <span className="font-medium whitespace-nowrap">
-              −{formatPrice(discount)} ₴
+              -{formatPrice(discount)} ₴
             </span>
           </div>
         )}
