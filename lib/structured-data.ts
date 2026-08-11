@@ -16,7 +16,6 @@
 //     the whole page would be a wrong identifier, which is worse than none.
 
 import { SITE_URL } from "./site";
-import { SHIPPING_COST } from "./shipping";
 import type { Product, ProductImage } from "@/types";
 
 /** A JSON-LD node. Loose by design — schema.org shapes are open-ended. */
@@ -84,22 +83,6 @@ function merchantReturnPolicy(): JsonLdObject {
   };
 }
 
-/** The flat Nova Poshta rate the checkout adds to every order. */
-function offerShippingDetails(): JsonLdObject {
-  return {
-    "@type": "OfferShippingDetails",
-    shippingRate: {
-      "@type": "MonetaryAmount",
-      value: SHIPPING_COST,
-      currency: CURRENCY,
-    },
-    shippingDestination: {
-      "@type": "DefinedRegion",
-      addressCountry: COUNTRY,
-    },
-  };
-}
-
 // ──────────────────────────────────────────────────────────────────────────
 // Product
 // ──────────────────────────────────────────────────────────────────────────
@@ -148,8 +131,10 @@ export function productSchema(
       // day stock gating lands, this has to start following it.
       availability: "https://schema.org/InStock",
       seller: { "@type": "Organization", "@id": `${SITE_URL}/#organization` },
+      // No shippingDetails: the site charges nothing for delivery, the customer
+      // pays Nova Poshta on collection. A rate of 0 here would read as free
+      // shipping, which is a different promise from the one we make.
       hasMerchantReturnPolicy: merchantReturnPolicy(),
-      shippingDetails: offerShippingDetails(),
     };
   }
 

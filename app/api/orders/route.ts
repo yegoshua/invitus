@@ -117,10 +117,9 @@ export async function POST(req: Request) {
       reference: String(orderId),
       destination: `Замовлення №${orderId} — INVITUS`,
       // Monobank requires sum(basketOrder[].total) + basket discounts == amount.
-      // Delivery is not a product, so it goes in `discounts` as an "extra" —
-      // inventing a basket line for it would put "Доставка" on the fiscal
-      // receipt as goods. Without this the basket was 120 UAH short of the
-      // amount charged.
+      // The goods are the whole amount now that delivery is not charged, so the
+      // basket balances on its own — an EXTRA_CHARGE discount line used to make
+      // up the 120 UAH difference.
       basketOrder: priced.lines.map((line) => ({
         name: line.size ? `${line.name} (${line.size})` : line.name,
         qty: line.quantity,
@@ -128,15 +127,6 @@ export async function POST(req: Request) {
         total: Math.round(line.lineTotal * 100),
         ...(line.sku ? { code: line.sku } : {}),
       })),
-      discounts: priced.shipping
-        ? [
-            {
-              type: "EXTRA_CHARGE" as const,
-              mode: "VALUE" as const,
-              value: Math.round(priced.shipping * 100),
-            },
-          ]
-        : undefined,
       customerEmails: parsed.customer.email
         ? [parsed.customer.email]
         : undefined,

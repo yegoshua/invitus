@@ -2,7 +2,7 @@
 //
 // The one rule here: money is never taken from the client. The browser sends
 // *what* was ordered (product id, size, quantity) and nothing else — every
-// price, the shipping fee and the total are recomputed from KeyCRM. Before
+// price and the total are recomputed from KeyCRM. Before
 // this, /api/monobank/create-invoice accepted an `amount` from the request
 // body, so anyone could have paid 1 UAH for a belt.
 //
@@ -13,7 +13,7 @@
 import { fetchKeyCrm, postKeyCrm, putKeyCrm } from "./keycrm";
 import type { KeyCrmOffer, KeyCrmProduct } from "./keycrm-schema";
 import { readOfferVariant, VARIANT_PROPERTY_NAMES } from "./variant-property";
-import { SHIPPING_COST } from "./shipping";
+import { orderTotals, type OrderTotals } from "./order-totals";
 
 /** Used only when a line has a size but no offer to take the property from. */
 const DEFAULT_VARIANT_PROPERTY = VARIANT_PROPERTY_NAMES[0];
@@ -23,10 +23,9 @@ const NOVA_POSHTA_DELIVERY_SERVICE_ID = 2;
  * KeyCRM id of the hidden 0.50 UAH product used to smoke-test live acquiring
  * (category 7 "Службове (тест)", filtered out of the catalog in lib/api.ts).
  *
- * An order containing only this product ships free, so a real-card test costs
- * 50 copecks rather than 120.50 UAH. It stays a normal product otherwise —
- * priced, recorded and paid through exactly the same code as everything else,
- * which is the entire point of testing with it.
+ * A real-card test therefore costs 50 copecks. It stays a normal product
+ * otherwise — priced, recorded and paid through exactly the same code as
+ * everything else, which is the entire point of testing with it.
  */
 export const TEST_PRODUCT_ID = 44;
 
@@ -67,13 +66,8 @@ export interface PricedLine {
   lineTotal: number;
 }
 
-export interface PricedOrder {
+export interface PricedOrder extends OrderTotals {
   lines: PricedLine[];
-  subtotal: number;
-  shipping: number;
-  total: number;
-  /** Total in copecks, for Monobank. */
-  totalCopecks: number;
 }
 
 export class OrderPricingError extends Error {}
@@ -103,20 +97,7 @@ export async function priceOrder(draft: OrderDraft): Promise<PricedOrder> {
     draft.items.map((item) => priceLine(item))
   );
 
-  const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
-  const isTestOnly = lines.every((l) => l.productId === TEST_PRODUCT_ID);
-  const shipping = isTestOnly ? 0 : SHIPPING_COST;
-  const total = subtotal + shipping;
-
-  return {
-    lines,
-    subtotal,
-    shipping,
-    total,
-    // Round once, at the end, on the final UAH figure — rounding per line and
-    // summing copecks can drift from what the customer saw.
-    totalCopecks: Math.round(total * 100),
-  };
+  return { lines, ...orderTotals(lines) };
 }
 
 async function priceLine(item: OrderDraftItem): Promise<PricedLine> {
@@ -211,9 +192,11 @@ export async function createKeyCrmOrder(
 
   const order = await postKeyCrm<KeyCrmCreatedOrder>("/order", {
     source_id: requiredEnvId("KEYCRM_SOURCE_ID"),
-    // Root level, not inside `shipping`: sent there it is silently dropped and
-    // grand_total comes back as goods-only, disagreeing with what we charged.
-    shipping_price: priced.shipping,
+    // The site charges nothing for delivery — the customer pays Nova Poshta on
+    // collection — so this is always 0 and grand_total is the goods. Sent
+    // explicitly, and at the root: inside `shipping` KeyCRM silently drops it,
+    // which is how a non-zero fee once disagreed with what was charged.
+    shipping_price: 0,
     buyer: {
       full_name: draft.customer.fullName,
       phone: draft.customer.phone,

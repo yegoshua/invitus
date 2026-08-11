@@ -14,7 +14,7 @@ export function TestCheckoutStarter({ product }: { product: Product }) {
   const start = () => {
     setBusy(true);
     // Replace the cart rather than add to it: a leftover belt would turn a
-    // 50-copeck test into a real-money one, and would put shipping back.
+    // 50-copeck test into a real-money one.
     useCartStore.setState({
       items: [{ product, quantity: 1 }],
       isOpen: false,
@@ -49,7 +49,7 @@ export function TestCheckoutStarter({ product }: { product: Product }) {
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-white/60">Доставка</dt>
-            <dd className="text-white">0 ₴ — для цього товару не нараховується</dd>
+            <dd className="text-white">Тарифи оператора</dd>
           </div>
         </dl>
 
