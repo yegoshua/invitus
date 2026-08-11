@@ -1,9 +1,12 @@
 "use client";
 
 import { Suspense, useRef } from "react";
-import { useGLTF } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import * as THREE from "three";
+import { useModelProgressStore } from "@/stores/model-progress";
 
 interface DynamicModelProps {
   url: string;
@@ -34,9 +37,35 @@ function LoadingSpinner() {
   );
 }
 
+// Draco and Meshopt are set up here only to keep the decoders drei's `useGLTF`
+// attached by default — dropping them would turn any compressed .glb Strapi
+// serves in future into a load error rather than a slower load. The decoder
+// itself is fetched lazily, and only by a file that actually needs it.
+let dracoLoader: DRACOLoader | null = null;
+
+function configureLoader(loader: GLTFLoader) {
+  if (!dracoLoader) {
+    dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath(
+      "https://www.gstatic.com/draco/versioned/decoders/1.5.5/"
+    );
+  }
+  loader.setDRACOLoader(dracoLoader);
+  loader.setMeshoptDecoder(MeshoptDecoder);
+}
+
 // The actual model component that loads the GLB
 function Model({ url, position = [0, 0, 0], scale = 2.5 }: DynamicModelProps) {
-  const { scene } = useGLTF(url);
+  // `useLoader` rather than drei's `useGLTF` for one reason: it forwards an
+  // onProgress callback to the loader, and `useGLTF` does not. Everything else
+  // — the suspense cache keyed by url, the decoders — is the same.
+  const { scene } = useLoader(GLTFLoader, url, configureLoader, (event) => {
+    // A response without Content-Length reports total 0; the store reads that
+    // as "unmeasurable" and the overlay falls back to counting items.
+    useModelProgressStore
+      .getState()
+      .report(url, event.loaded, event.lengthComputable ? event.total : 0);
+  });
 
   return (
     <primitive

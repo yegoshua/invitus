@@ -12,6 +12,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { DynamicModel, FallbackModel } from "./dynamic-model";
+import { useModelBytesProgress } from "@/stores/model-progress";
 
 function CameraController() {
   // Read through r3f's store getter rather than destructuring the camera out of
@@ -43,9 +44,22 @@ interface ModelLoaderProps {
 }
 
 // Loading overlay with progress
-function LoadingOverlay() {
+function LoadingOverlay({ modelUrl }: { modelUrl?: string }) {
   const { progress, active } = useProgress();
+  const bytes = useModelBytesProgress(modelUrl);
   const [showLoader, setShowLoader] = useState(true);
+
+  // The .glb is nearly all of the wait, so show its bytes when they are known
+  // and fall back to the item count when they are not — an unmeasurable
+  // response, or a model already in the loader cache, which reports no progress
+  // at all because there is nothing left to download and so stays on the item
+  // count all the way to 100.
+  //
+  // The two are different scales, so in principle the handover could show the
+  // environment map's 50% dropping to the model's 3%. In practice the first
+  // chunk lands within milliseconds of the request, long before anything else
+  // in the scene finishes, so bytes take over while the item count is still 0.
+  const shown = bytes ?? progress;
 
   useEffect(() => {
     if (!active && progress === 100) {
@@ -79,7 +93,7 @@ function LoadingOverlay() {
             className="text-center"
           >
             <p className="font-heading text-lg text-white font-bold tracking-wider">
-              {Math.round(progress)}%
+              {Math.round(shown)}%
             </p>
           </motion.div>
         </motion.div>
@@ -131,7 +145,7 @@ export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
           )}
         </Suspense>
       </Canvas>
-      <LoadingOverlay />
+      <LoadingOverlay modelUrl={modelToLoad} />
     </div>
   );
 }
