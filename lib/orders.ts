@@ -14,6 +14,8 @@ import { fetchKeyCrm, postKeyCrm, putKeyCrm } from "./keycrm";
 import type { KeyCrmOffer, KeyCrmProduct } from "./keycrm-schema";
 import { readOfferVariant, VARIANT_PROPERTY_NAMES } from "./variant-property";
 import { orderTotals, type OrderTotals } from "./order-totals";
+import { checkPromoCode } from "./promo-codes";
+import { normalizePromoCode } from "./promo";
 
 /** Used only when a line has a size but no offer to take the property from. */
 const DEFAULT_VARIANT_PROPERTY = VARIANT_PROPERTY_NAMES[0];
@@ -46,6 +48,12 @@ export interface OrderDraft {
     branchName: string;
   };
   paymentMethod: "online" | "cod";
+  /**
+   * The promo code as the customer typed it — a string and nothing else. What
+   * it is worth is decided here; a discount amount sent by the browser would be
+   * money taken from the client, which is the one thing this module forbids.
+   */
+  promoCode?: string | null;
   items: OrderDraftItem[];
 }
 
@@ -68,9 +76,20 @@ export interface PricedLine {
 
 export interface PricedOrder extends OrderTotals {
   lines: PricedLine[];
+  /** The applied code, normalised. Null when the order carries none. */
+  promoCode: string | null;
 }
 
 export class OrderPricingError extends Error {}
+
+/**
+ * The order was refused *because of the promo code* — not the goods.
+ *
+ * Its own type so the endpoint can tell the checkout to drop the code and
+ * re-render, instead of the customer facing a message about a code that is
+ * still sitting applied in front of them.
+ */
+export class PromoRejectedError extends OrderPricingError {}
 
 function requiredEnvId(name: string): number {
   const raw = process.env[name];
@@ -89,15 +108,40 @@ function requiredEnvId(name: string): number {
  * product, a size that no longer exists, a non-positive quantity.
  */
 export async function priceOrder(draft: OrderDraft): Promise<PricedOrder> {
-  if (!draft.items.length) {
+  const lines = await priceItems(draft.items);
+  const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
+
+  const code = normalizePromoCode(draft.promoCode ?? "");
+  if (!code) return { lines, promoCode: null, ...orderTotals(lines) };
+
+  // A code that has stopped qualifying between the checkout screen and this
+  // moment fails the order rather than quietly pricing it at full. The customer
+  // saw a total; they are told why it changed instead of being charged the
+  // difference. The checkout re-checks and re-renders on the same message.
+  const evaluation = await checkPromoCode(code, subtotal);
+  if (!evaluation.ok) throw new PromoRejectedError(evaluation.message);
+
+  return {
+    lines,
+    promoCode: evaluation.code,
+    ...orderTotals(lines, evaluation.discount),
+  };
+}
+
+/**
+ * Re-price the cart from KeyCRM. Shared by the order endpoint and the promo
+ * check, so a code is always judged against the same subtotal it will be
+ * applied to — a client-supplied cart value would let someone clear a
+ * `minOrderTotal` they have not actually reached.
+ */
+export async function priceItems(
+  items: readonly OrderDraftItem[]
+): Promise<PricedLine[]> {
+  if (!items.length) {
     throw new OrderPricingError("Кошик порожній");
   }
 
-  const lines = await Promise.all(
-    draft.items.map((item) => priceLine(item))
-  );
-
-  return { lines, ...orderTotals(lines) };
+  return Promise.all(items.map((item) => priceLine(item)));
 }
 
 async function priceLine(item: OrderDraftItem): Promise<PricedLine> {
@@ -197,6 +241,15 @@ export async function createKeyCrmOrder(
     // explicitly, and at the root: inside `shipping` KeyCRM silently drops it,
     // which is how a non-zero fee once disagreed with what was charged.
     shipping_price: 0,
+    // Both fields verified against the live API before being relied on (order
+    // #1024, product 44): they are accepted on write, read back unchanged, and
+    // KeyCRM subtracts discount_amount itself — grand_total came back equal to
+    // the payment. Line prices below stay CATALOGUE prices, so a manager sees
+    // both the promotion and what the goods normally cost, and price reporting
+    // is not skewed by every discounted order.
+    ...(priced.promoCode
+      ? { promocode: priced.promoCode, discount_amount: priced.discount }
+      : {}),
     buyer: {
       full_name: draft.customer.fullName,
       phone: draft.customer.phone,
