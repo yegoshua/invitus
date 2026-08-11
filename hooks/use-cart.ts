@@ -7,6 +7,7 @@
 
 import { useCallback } from "react";
 import { useCartStore } from "@/stores/cart";
+import { usePromoStore } from "@/stores/promo";
 import { cartValue, gaItem, gaItems, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
 
@@ -31,7 +32,18 @@ export const useCartTotal = () =>
 export const useCloseCart = () => useCartStore((s) => s.closeCart);
 export const useUpdateCartQuantity = () =>
   useCartStore((s) => s.updateQuantity);
-export const useClearCart = () => useCartStore((s) => s.clearCart);
+/**
+ * Empties the cart and the promo code with it. A code left behind after a
+ * completed order would be re-applied to whatever the customer buys next, which
+ * is a discount nobody granted.
+ */
+export const useClearCart = () => {
+  const clearCart = useCartStore((s) => s.clearCart);
+  return useCallback(() => {
+    clearCart();
+    usePromoStore.getState().clear();
+  }, [clearCart]);
+};
 
 // The three actions below are wrapped so GA4 e-commerce events fire from a
 // single place, regardless of which component triggered them.

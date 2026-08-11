@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingBag } from "lucide-react";
 import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
+import { useAppliedPromo, useRejectPromo } from "@/hooks/use-promo";
 import { gaItems, trackEvent } from "@/lib/gtag";
 import { TrackOnce } from "@/components/analytics/track-once";
 import {
@@ -20,6 +21,7 @@ import { PaymentMethodRadio } from "./payment-method-radio";
 import { NovaPoshtaIcon } from "./nova-poshta-icon";
 import { CTAButton } from "@/components/ui/cta-button";
 import { OrderSummary, OrderSummaryMobileTop } from "./order-summary";
+import { PromoCodeField } from "./promo-code-field";
 import { CheckoutSuccess } from "./checkout-success";
 
 type SubmittedOrder = React.ComponentProps<typeof CheckoutSuccess>["order"] & {
@@ -30,13 +32,17 @@ type SubmittedOrder = React.ComponentProps<typeof CheckoutSuccess>["order"] & {
     quantity: number;
     price: number;
   }>;
-  totals: { subtotal: number; total: number };
+  totals: { subtotal: number; discount: number; total: number };
   createdAt: string;
 };
 
 export function CheckoutPage() {
   const items = useCartItems();
   const subtotal = useCartTotal();
+  // Only a code the server has just confirmed; a code mid-re-check reports as
+  // none, so the submit can never carry a total the customer has not been shown.
+  const { code: appliedCode, discount } = useAppliedPromo();
+  const rejectPromo = useRejectPromo();
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(
     null
   );
@@ -84,7 +90,7 @@ export function CheckoutPage() {
         quantity: i.quantity,
         price: i.product.price,
       })),
-      totals: { subtotal, total: subtotal },
+      totals: { subtotal, discount, total: subtotal - discount },
       createdAt: new Date().toISOString(),
     };
 
@@ -108,6 +114,7 @@ export function CheckoutPage() {
             branchName: data.branchName,
           },
           paymentMethod: data.paymentMethod,
+          promoCode: appliedCode,
           items: items.map((i) => ({
             productId: Number(i.product.id),
             size: i.size ?? null,
@@ -119,14 +126,37 @@ export function CheckoutPage() {
       const payload = (await res.json().catch(() => ({}))) as {
         orderId?: number;
         pageUrl?: string;
+        total?: number;
+        discount?: number;
         error?: string;
+        promoRejected?: boolean;
       };
 
       if (!res.ok) {
+        // The code stopped working between the screen and the submit. Take it
+        // off — so the summary re-renders at the price actually on offer — and
+        // put the server's reason where the code used to be, rather than only
+        // in the banner by the pay button. The customer then decides whether to
+        // place the order at that price.
+        if (payload.promoRejected && payload.error) rejectPromo(payload.error);
         throw new Error(payload.error || `HTTP ${res.status}`);
       }
 
-      if (data.paymentMethod === "online") {
+      // The server priced it; its figures are the ones that were charged.
+      if (typeof payload.total === "number") {
+        order.totals = {
+          subtotal,
+          discount: payload.discount ?? 0,
+          total: payload.total,
+        };
+      }
+
+      // An online order whose total a promo took to zero has nothing to pay, so
+      // there is no invoice to redirect to — it completes here like a
+      // cash-on-delivery one. Keyed on the server's total, not on the missing
+      // pageUrl, so a genuinely absent link is still an error rather than a
+      // success screen over an unpaid order.
+      if (data.paymentMethod === "online" && payload.total !== 0) {
         if (!payload.pageUrl) throw new Error("Немає посилання на оплату");
         window.location.href = payload.pageUrl;
         // Block the rest of the handler — page is leaving the SPA.
@@ -174,6 +204,9 @@ export function CheckoutPage() {
                 headerSlot={<NovaPoshtaIcon className="shrink-0" />}
               >
                 <DeliveryFields />
+              </CheckoutFormSection>
+              <CheckoutFormSection title="Промокод">
+                <PromoCodeField />
               </CheckoutFormSection>
               <CheckoutFormSection title="Оплата">
                 <PaymentMethodRadio />
