@@ -14,11 +14,22 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  // No try/catch: if Strapi cannot be read at build time the blog must not be
-  // built as an empty section. Same reasoning as the listing — see the note at
-  // the top of lib/articles.ts.
-  const articles = await getArticles();
-  return articles.map((article) => ({ slug: article.slug }));
+  // This list is an optimisation, not a source of truth: `dynamicParams` is on,
+  // so a slug missing from it renders on demand and is cached from then on.
+  // That is why this one place swallows the error the rest of the blog throws
+  // — nothing here can render an empty blog under a 200, and taking a deploy
+  // down because the CMS was asleep buys nobody anything. The listing at /blog
+  // still refuses to render, which is where the guarantee actually lives.
+  try {
+    const articles = await getArticles();
+    return articles.map((article) => ({ slug: article.slug }));
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[blog] could not prerender article pages (${reason}) — they will render on demand`
+    );
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

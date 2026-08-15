@@ -40,15 +40,20 @@ import type { Article, ArticleSummary } from "../types/index.ts";
 /** Cache tag busted by the Strapi webhook at app/api/revalidate. */
 export const STRAPI_ARTICLES_TAG = "strapi-articles";
 
-// Shaped like the promo loader's budget rather than the extras loader's,
-// because of case 2 above: a cold render here has a reader waiting on it and
-// the alternative to succeeding is an error page, not a slightly poorer one.
-// Strapi Cloud's free tier was measured at 14.6s from asleep, so the extras
-// loader's 12s attempt loses that race and then loses it twice more. Win the
-// cold start outright, then retry briefly against an instance the first
-// attempt has already woken.
-const ATTEMPT_TIMEOUTS_MS = [20_000, 8_000];
-const RETRY_DELAY_MS = 1_000;
+// Because of case 2 above, this budget is not the promo loader's and not the
+// extras loader's: those two degrade when they give up, this one refuses to
+// render. Every attempt spent here is cheaper than what failing costs.
+//
+// The numbers come from a real failure rather than from a guess. A `next build`
+// with an empty fetch cache against a sleeping Strapi Cloud instance exhausted
+// [20s, 8s] and took the whole deploy down with it — 8s is not a retry against
+// something that is still waking, it is a second way to lose. So: three
+// attempts, none of them short, with a gap long enough for the instance the
+// first attempt woke to actually finish waking (the publish script waits 15s
+// for the same reason). Worst case ~55s on a render nobody is watching;
+// against that, a deploy that fails because a CMS was asleep.
+const ATTEMPT_TIMEOUTS_MS = [20_000, 15_000, 15_000];
+const RETRY_DELAY_MS = 2_500;
 
 // Freshness comes from the webhook, not from this window — see the note at the
 // top of lib/product-extras.ts. It is a safety net for a missed webhook.
