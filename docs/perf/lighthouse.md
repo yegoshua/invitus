@@ -241,3 +241,55 @@ well as this one, so "unchanged" means compared rather than assumed:
 There is no longer a blob *swap* to preserve scrub position across: the file is
 fetched once and the blob URL is the only source the element ever has. The old
 `currentTime + 0.01` nudge existed to repair that swap and is gone with it.
+
+## After #39 — three.js leaves the homepage's dependency graph
+
+| Metric | Baseline | After #42 | After #39 |
+| --- | --- | --- | --- |
+| Performance score | 82 | 85 | 86 |
+| LCP | 4.84 s | 4.28 s | 4.22 s |
+| Transfer before `load` | 36.94 MiB | 0.50 MiB | **0.50 MiB** ✔ |
+| Speed Index | 2.29 s | 2.10 s | 2.15 s |
+| CLS | 0 | 0 | 0 |
+| TBT | 18 ms | 10 ms | 60 ms (soft target: 200 ms) |
+| Unused JavaScript | — | 345 KiB | **281 KiB** |
+
+**Read this one carefully, because the headline number does not move and that is
+not a mistake.** #34's acceptance criterion expected the homepage's unused-JS
+figure to fall by roughly 283 KB. It falls by 64 KiB. The reason is that #34
+also requires the chunk to be **warmed** rather than merely deferred — so a
+normal visitor still downloads it, by choice, in idle time. The 283 KB did not
+leave the page; it stopped being unavoidable.
+
+There is a second reason the gate figure is flat: by the time #38–#42 had
+landed, the load event had moved from 185 ms to 103 ms and the prefetch-driven
+three.js chunk was *already* starting after it. Against the #35 baseline this
+change is worth 283 KB inside the gate; against the branch it follows, nothing.
+Both readings are true and the second is the one this table shows.
+
+What the change is actually worth, and what was verified in a network trace
+rather than reasoned about:
+
+- **The cause is fixed.** With `save-data` set, the product route is still
+  prefetched — #34 leaves prefetch enabled — and it now pulls 10 KB + 27 KB
+  instead of dragging the 1 MB three.js chunk behind it. That is the proof that
+  three.js has left the route's entry chunk rather than merely being scheduled
+  differently.
+- **Under `save-data` it is never speculatively fetched at all**, where before it
+  arrived on every homepage visit.
+- **The idle warm-up fires only after `load`** — the chunk appears in the trace
+  only after the load event, and the rule itself is unit-tested in
+  `lib/idle-after-load.test.ts`, which is where #39's "single easiest way to get
+  this wrong" is pinned down.
+- **Intent still warms under `save-data`**: hovering a product card fetches the
+  chunk immediately. Deferring is not the same as refusing.
+- **The product page renders without waiting for 3D.** At `DOMContentLoaded` the
+  name, price, 23 size buttons and the add-to-cart button are all present and
+  the canvas count is 0; the canvas arrives afterwards.
+
+TBT rose from 10 ms to 60 ms, which is the idle warm-up doing its work inside
+the trace window. It is a soft target of 200 ms and this is comfortably inside
+it. The LCP gate is still the open one, and #37's finding stands: with all media
+removed LCP still simulated at 3.95 s, so what remains is main-thread work under
+the 4× CPU multiplier rather than bytes. #43 is where that gets confronted
+against a real deployment instead of a simulation.

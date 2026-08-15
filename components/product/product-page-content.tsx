@@ -9,7 +9,7 @@ import { formatPriceWithCurrency } from "@/lib/format";
 import type { Product, ProductSize } from "@/types";
 import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
-import { ModelLoader } from "@/components/models/model-loader";
+import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
 
@@ -79,7 +79,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           <div className="py-[60px] sm:py-0 rounded-t-[28px] overflow-hidden">
             <div className="relative h-[200px] sm:h-[340px] md:h-[420px]">
               {show3dModel ? (
-                <ModelLoader
+                <ModelViewer
                   modelUrl={product.model3dUrl}
                 />
               ) : (
@@ -153,7 +153,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
 
         {/* Hero media: 3D model (belts) or product photo */}
         {show3dModel ? (
-          <ModelLoader
+          <ModelViewer
             modelUrl={product.model3dUrl}
           />
         ) : (

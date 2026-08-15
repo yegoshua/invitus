@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ProductMedia } from "@/components/ui/product-media";
+import { warmModelViewer } from "@/components/models/model-viewer";
 import { formatPrice } from "@/lib/format";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
@@ -28,6 +29,12 @@ export function ProductCard({ product, index = 0, listName }: ProductCardProps) 
       <Link
         href={`/product/${product.slug}`}
         className="block"
+        // Reaching for a product is the earliest honest signal that its 3D is
+        // about to be wanted. Next is already prefetching the route itself;
+        // this fetches the chunk that route renders with, so the tap that
+        // follows lands on something warm.
+        onPointerEnter={warmModelViewer}
+        onTouchStart={warmModelViewer}
         onClick={() =>
           trackEvent("select_item", {
             item_list_name: listName,

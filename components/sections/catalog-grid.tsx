@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ProductCard } from "@/components/ui/product-card";
+import { useWarmModelViewerWhenIdle } from "@/components/models/model-viewer";
 import { FadeUp } from "@/components/ui/fade-up";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
@@ -13,6 +14,10 @@ interface CatalogGridProps {
 }
 
 export function CatalogGrid({ products }: CatalogGridProps) {
+  // For the visitor who never hovers — a phone, where the first contact with a
+  // card is the tap itself.
+  useWarmModelViewerWhenIdle();
+
   // GA4: view_item_list once the catalog is rendered.
   useEffect(() => {
     if (products.length) {
