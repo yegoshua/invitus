@@ -7,7 +7,7 @@ import { useCartCount, useOpenCart } from "@/hooks/use-cart";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { useMenuStore } from "@/stores/menu";
 import { cn } from "@/lib/utils";
-import { navLinks } from "@/content/navigation";
+import { blogLink, navLinks } from "@/content/navigation";
 import MenuIcon from "@/public/assets/icons/menu-icon.svg";
 
 export function Header() {
@@ -54,7 +54,7 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
-            {navLinks.map((link) => {
+            {[...navLinks, blogLink].map((link) => {
               return (
                 <Link
                   key={link.href}

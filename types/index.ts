@@ -62,6 +62,33 @@ export interface Product {
   featured?: boolean;
 }
 
+// Blog
+
+/**
+ * An article as the listing shows it: everything the card needs and nothing
+ * else. The body stays in the loader — it is what `readingTimeMinutes` is
+ * computed from, and shipping a dozen full articles to render a dozen cards
+ * would be paying for the whole blog to show its index.
+ */
+export interface ArticleSummary {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  /** One of the Article type's enumeration values, e.g. "ЕКІПІРУВАННЯ". */
+  category: string;
+  /** Strapi's publish timestamp — the sort key; there is no separate date field. */
+  publishedAt: string;
+  /** Derived from the body, never stored. See lib/article-body.ts. */
+  readingTimeMinutes: number;
+  cover: {
+    url: string;
+    alt: string;
+    width?: number;
+    height?: number;
+  };
+}
+
 export interface FilterTag {
   slug: string;
   label: string;
