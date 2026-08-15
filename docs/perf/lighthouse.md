@@ -158,3 +158,40 @@ exactly one once the section is approached, buffered to `readyState 4` and
 playing before it is on screen; paused after scrolling past and playing again on
 the way back; and under `prefers-reduced-motion: reduce` no request at all, with
 the section keeping its 500 px box and dropping its mute button.
+
+## After #41 — the testimonials carousel waits too
+
+| Metric | Baseline | After #38 | After #41 |
+| --- | --- | --- | --- |
+| Performance score | 82 | 85 | 85 |
+| LCP | 4.84 s | 4.29 s | 4.29 s |
+| Transfer before `load` | 36.94 MiB | 18.27 MiB | **10.02 MiB** |
+| Transfer, whole run | 36.95 MiB | 19.69 MiB | **11.75 MiB** |
+| Speed Index | 2.29 s | 2.28 s | 2.12 s |
+| CLS | 0 | 0 | 0 |
+
+The three testimonial files are 0.6, 9.0 and 3.3 MB, and `START_INDEX` lands on
+the 9.0 MB one — which is why one section accounted for most of what the gate
+lost here.
+
+What is left before `load` is now almost entirely one file:
+
+| | starts | transferred |
+| --- | --- | --- |
+| `belt-benefits-section-video-scrub.webm` | 51 ms | **9.52 MiB** |
+| the three.js chunk | 163 ms | 0.27 MiB |
+| `hero-section.mp4` | 147 ms | 1.41 MiB — *after* the load event at 120 ms, so outside the gate |
+
+So the transfer gate is one ticket away from budget: [#42](https://github.com/yegoshua/invitus/issues/42)
+takes the scrub off the load path, and [#39](https://github.com/yegoshua/invitus/issues/39)
+takes the three.js chunk. Note that this run captured the scrub **once**, not
+twice — the second copy is a `fetch(...).blob()` from an effect and lands at
+different points in different traces, which is another reason #42 should assert
+the request count in a network trace rather than infer it from the total.
+
+Behaviour, again checked in headless Chrome rather than by the budget: zero
+requests for any testimonial at load; three once the section is approached, of
+which only the selected one plays; the Next arrow moves playback with the
+selection; the mute control still mutes all three, as it did before; playback
+pauses on the way past and resumes — on the same card, not from the start — on
+the way back.
