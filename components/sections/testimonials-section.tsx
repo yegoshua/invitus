@@ -10,6 +10,7 @@ import {
 import { motion } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useVideoGate } from "@/hooks/use-video-gate";
 import { testimonials } from "@/content/testimonials";
 
 // Start centered on the middle card, whatever the number of testimonials
@@ -28,6 +29,14 @@ export function TestimonialsSection() {
   const [isMuted, setIsMuted] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  // The gate watches the section rather than any one card: the carousel keeps
+  // deciding which video plays, and this only decides whether any of them
+  // exist yet. `preload="metadata"` was already here and was already right —
+  // what defeated it was the effect below calling play() at mount, which
+  // pulled the whole selected file down while the visitor was still on the
+  // hero.
+  const { ref: sectionRef, shouldLoad, isInView } = useVideoGate<HTMLElement>();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1280);
@@ -72,19 +81,24 @@ export function TestimonialsSection() {
     () => START_INDEX
   );
 
-  // Manage video playback - only play the selected video
+  // Manage video playback - only play the selected video, and only while the
+  // section is on screen
   useEffect(() => {
+    if (!shouldLoad) return;
+
     videoRefs.current.forEach((video, index) => {
       if (video) {
-        if (index === selectedIndex) {
+        if (index === selectedIndex && isInView) {
           video.play().catch(() => {});
         } else {
           video.pause();
-          video.currentTime = 0;
+          // Rewinding only the ones that are not selected: scrolling past the
+          // section and back should resume the story, not restart it.
+          if (index !== selectedIndex) video.currentTime = 0;
         }
       }
     });
-  }, [selectedIndex]);
+  }, [selectedIndex, shouldLoad, isInView]);
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
@@ -96,7 +110,7 @@ export function TestimonialsSection() {
   };
 
   return (
-    <section className="bg-black pt-20 lg:pt-45 overflow-hidden">
+    <section ref={sectionRef} className="bg-black pt-20 lg:pt-45 overflow-hidden">
       <div className="container-main">
         {/* Heading */}
         <motion.div
@@ -140,7 +154,7 @@ export function TestimonialsSection() {
                       ref={(el) => {
                         videoRefs.current[index] = el;
                       }}
-                      src={testimonial.video}
+                      src={shouldLoad ? testimonial.video : undefined}
                       className="absolute inset-0 w-full h-full object-cover"
                       loop
                       muted={isMuted}
@@ -148,8 +162,9 @@ export function TestimonialsSection() {
                       preload="metadata"
                     />
 
-                    {/* Mute button - only on selected */}
-                    {isSelected && (
+                    {/* Mute button - only on the selected card, and only when
+                        there is something to mute */}
+                    {isSelected && shouldLoad && (
                       <button
                         onClick={toggleMute}
                         className="absolute bottom-6 right-6 z-20 cursor-pointer"
