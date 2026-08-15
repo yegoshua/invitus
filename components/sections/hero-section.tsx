@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CTAButton } from "@/components/ui/cta-button";
 import { blobUrl } from "@/lib/blob";
-import { readHeroVideoConditions, shouldLoadHeroVideo } from "@/lib/hero-video";
+import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 
 // Re-encoded from the 19 MB original: 1920x1080 H.264, CRF 30, chroma zeroed
 // (it renders greyscaled anyway, so colour was pure cost) and +faststart —
@@ -25,7 +25,7 @@ export function HeroSection() {
   const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
-    if (!shouldLoadHeroVideo(readHeroVideoConditions())) return;
+    if (!shouldLoadDecorativeVideo(readVideoConditions())) return;
 
     // Nothing about the video may compete with the page arriving, so it is not
     // requested until everything else has landed.

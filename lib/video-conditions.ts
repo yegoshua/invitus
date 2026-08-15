@@ -1,17 +1,23 @@
 /**
- * The hero video is decoration: it renders greyscaled at 30% opacity under a
- * 60% black overlay, over a poster that already carries that exact treatment.
- * Skipping it costs the visitor nothing they can name, so the answer to "is
- * this a good moment for 1.4 MB of video?" is allowed to be no.
+ * Video on this site is decoration before it is anything else. The hero renders
+ * greyscaled at 30% opacity under a 60% black overlay, over a poster that
+ * already carries that exact treatment; the sections below the fold are motion
+ * behind a message the text already carries. Skipping any of them costs the
+ * visitor nothing they can name, so the answer to "is this a good moment for a
+ * few megabytes of video?" is allowed to be no.
+ *
+ * The rule lives here, in one place, because the three below-the-fold videos
+ * that #34 found each downloading on page load were three separate mistakes
+ * made precisely because it lived nowhere.
  *
  * Kept as a pure function so the three ways of saying no are testable without
  * a browser.
  */
 
-/** Effective connection types on which 1.4 MB is not a decoration budget. */
+/** Effective connection types on which a video is not a decoration budget. */
 const SLOW_CONNECTIONS = new Set(["slow-2g", "2g", "3g"]);
 
-export type HeroVideoConditions = {
+export type VideoConditions = {
   /** `navigator.connection.saveData` — the visitor asked for less data. */
   saveData?: boolean;
   /** `navigator.connection.effectiveType`; absent when the browser has no Network Information API. */
@@ -20,11 +26,11 @@ export type HeroVideoConditions = {
   prefersReducedMotion: boolean;
 };
 
-export function shouldLoadHeroVideo({
+export function shouldLoadDecorativeVideo({
   saveData,
   effectiveType,
   prefersReducedMotion,
-}: HeroVideoConditions): boolean {
+}: VideoConditions): boolean {
   if (prefersReducedMotion) return false;
   if (saveData) return false;
   // Unknown means unknown: only the values we know to be slow are slow.
@@ -35,7 +41,7 @@ export function shouldLoadHeroVideo({
 type NetworkInformation = { saveData?: boolean; effectiveType?: string };
 
 /** Reads the three signals off the current browser. Call inside an effect. */
-export function readHeroVideoConditions(): HeroVideoConditions {
+export function readVideoConditions(): VideoConditions {
   const connection = (navigator as Navigator & { connection?: NetworkInformation })
     .connection;
   return {
