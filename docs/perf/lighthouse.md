@@ -16,6 +16,9 @@ pnpm perf:lighthouse --runs 1            # one run instead of the median of thre
 pnpm perf:lighthouse --url /shop/belts   # a different page
 pnpm perf:lighthouse --label before       # names the saved report
 pnpm perf:lighthouse --port 4319         # if 4318 is taken
+pnpm perf:lighthouse --origin https://invitus.com.ua
+                                         # measure a real deployment: no build,
+                                         # no local server, just the CDN
 ```
 
 Reports are written to `perf/reports/<label>.html` and `.json` (git-ignored).
@@ -293,3 +296,36 @@ it. The LCP gate is still the open one, and #37's finding stands: with all media
 removed LCP still simulated at 3.95 s, so what remains is main-thread work under
 the 4× CPU multiplier rather than bytes. #43 is where that gets confronted
 against a real deployment instead of a simulation.
+
+
+## The catalog — #60
+
+The homepage was #34's whole scope, and the catalog turned out to be worse. Measured on `/shop/belts`, mobile, clean profile, median of 3:
+
+| | before | after |
+| --- | --- | --- |
+| Performance score | 77 | **84** |
+| LCP, simulated | 6.53 s | **4.59 s** |
+| LCP, observed in the trace | 0.94 s | **0.37 s** |
+| Resource load delay | 367 ms | **28 ms** |
+| Element render delay | 539 ms | **318 ms** |
+| Speed Index | 0.96 s | 0.90 s |
+| CLS | 0 | 0 |
+| Whole-run transfer | 0.87 MiB | 0.87 MiB |
+
+Nothing about this was bytes: the page is under a megabyte and the LCP image
+transferred in 8 ms. It was 367 ms of nobody asking for it — `loading="lazy"` on
+the element that decides the metric — plus 539 ms of it being transparent behind
+two stacked entrance animations, `FadeUp` wrapping a `ProductCard` that was
+already fading itself.
+
+All three of Lighthouse's LCP-discovery checks now pass. `fetchpriority=high`
+had to be set by hand: `priority` on next/image buys eager loading and a preload
+hint but does not emit the attribute Lighthouse looks for. It goes to **one**
+card, the top-left, which is the LCP element in both the one-column and the
+four-column layout; the rest of the first row gets `priority` without it, because
+a page that prioritises everything has prioritised nothing.
+
+The simulated figure is still over the 2.5 s gate and, as on the homepage, that
+is the 4× CPU multiplier rather than the page: production scored 97 on a
+homepage this harness put at 86. Confirm on the deployment with `--origin`.
