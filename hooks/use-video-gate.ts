@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import {
   readVideoConditions,
@@ -9,8 +15,9 @@ import {
 
 /**
  * The rule for every below-the-fold video on the site: nothing is requested
- * until the visitor is on their way to it, nothing plays once it has left the
- * screen, and a visitor who asked for less data or less motion gets neither.
+ * before the page has finished arriving, nothing is requested until the visitor
+ * is on their way to it, nothing plays once it has left the screen, and a
+ * visitor who asked for less data or less motion gets none of it at all.
  *
  * This is the hook underneath `<LazyVideo>`. Reach for it directly only when a
  * section needs the gate but not the playback — a carousel that decides for
@@ -26,6 +33,12 @@ import {
  */
 const DEFAULT_LOAD_MARGIN = "150% 0px";
 
+function subscribeToWindowLoad(onChange: () => void): () => void {
+  if (document.readyState === "complete") return () => {};
+  window.addEventListener("load", onChange, { once: true });
+  return () => window.removeEventListener("load", onChange);
+}
+
 export type VideoGate<T extends HTMLElement> = {
   /** Attach to the element whose approach should open the gate. */
   ref: RefObject<T | null>;
@@ -35,9 +48,26 @@ export type VideoGate<T extends HTMLElement> = {
   isInView: boolean;
 };
 
+export type VideoGateOptions = {
+  /** Overrides how far ahead of the viewport loading begins. */
+  loadMargin?: string;
+  /**
+   * Set when the section does not work without its video — the belt scrub, whose
+   * 700vh of card animation is driven off the video's own duration and would
+   * otherwise be seven screens of nothing.
+   *
+   * Such a video is still deferred, exactly as any other; it is only exempt from
+   * being *skipped*, because `save-data` and `prefers-reduced-motion` are asks
+   * for less, not asks for a broken section. Do not reach for this to keep a
+   * decorative video alive — that is the case the skipping exists for.
+   */
+  essential?: boolean;
+};
+
 export function useVideoGate<T extends HTMLElement = HTMLVideoElement>({
   loadMargin = DEFAULT_LOAD_MARGIN,
-}: { loadMargin?: string } = {}): VideoGate<T> {
+  essential = false,
+}: VideoGateOptions = {}): VideoGate<T> {
   const ref = useRef<T | null>(null);
   const [nearViewport, setNearViewport] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -47,7 +77,20 @@ export function useVideoGate<T extends HTMLElement = HTMLVideoElement>({
   // requesting the video during the page load this whole hook exists to
   // protect. The gate can only ever open later.
   const hydrated = useIsHydrated();
-  const allowed = hydrated && shouldLoadDecorativeVideo(readVideoConditions());
+  // Nothing here may compete with the page arriving. Without this a section
+  // close enough to the fold to fall inside the load margin at rest — the belt
+  // scrub sits about two screens down — would be requested during the page load
+  // regardless of the observer, which is the whole cost this hook exists to
+  // remove. The hero has followed the same rule since #37.
+  const pageLoaded = useSyncExternalStore(
+    subscribeToWindowLoad,
+    () => document.readyState === "complete",
+    () => false,
+  );
+  const allowed =
+    hydrated &&
+    pageLoaded &&
+    (essential || shouldLoadDecorativeVideo(readVideoConditions()));
   // A browser without IntersectionObserver gets the video the ordinary way
   // rather than never — the gate is an optimisation, not a feature.
   const canObserve = hydrated && typeof IntersectionObserver !== "undefined";

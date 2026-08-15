@@ -1,11 +1,23 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useVideoGate } from "@/hooks/use-video-gate";
 import { beltFeatures as features } from "@/content/why-belt-features";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// Stays in the repo's public assets rather than on Blob: unlike the hero, this
+// is not recut content. Its playback is bound to the card timings below, so it
+// changes only when this file changes.
+const SCRUB_SRC = "/assets/belt-benefits-section-video-scrub.webm";
+
+// Two screens of warning rather than the usual one and a half. The section sits
+// about two screens down, so the fetch starts within a moment of the page
+// finishing — which is what "ready on arrival" costs for a 9.6 MB file that
+// nothing is allowed to re-encode.
+const SCRUB_LOAD_MARGIN = "200% 0px";
 
 // Seconds, relative to belt-benefits-section-video-scrub.webm (~14.17s).
 // Each tuple is [fullyVisibleStart, fullyVisibleEnd]; gaps between cards are
@@ -24,17 +36,66 @@ const EFFECTIVE_DURATION_S = 9;
 
 export function WhySection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // `essential`, because the 700vh of card animation below is driven off this
+  // video's duration: skipped, the section is seven screens of a single card.
+  // Deferred is fine; absent is not.
+  const { ref: videoRef, shouldLoad } = useVideoGate<HTMLVideoElement>({
+    loadMargin: SCRUB_LOAD_MARGIN,
+    essential: true,
+  });
+  const [sourceAttached, setSourceAttached] = useState(false);
+
+  // The file is fetched into a blob and handed straight to the element, which
+  // is also what stops the browser dropping decoded segments mid-scrub. It used
+  // to be a *second* download on top of an eager `preload="auto"`, and the swap
+  // between the two is what the old `currentTime + 0.01` was repairing. Fetching
+  // it once and never attaching the plain URL removes the second download and
+  // the swap together.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !shouldLoad) return;
+
+    let cancelled = false;
+    let objectUrl: string | undefined;
+
+    const attach = (src: string) => {
+      if (cancelled) return;
+      video.src = src;
+      setSourceAttached(true);
+      // iOS plays VP9 only after a user gesture has touched this element, and
+      // there is nothing to touch until it has a source — so the listener is
+      // registered here rather than on mount.
+      const activate = () => {
+        video.play();
+        video.pause();
+      };
+      document.documentElement.addEventListener("touchstart", activate, {
+        once: true,
+      });
+    };
+
+    fetch(SCRUB_SRC)
+      .then((res) => res.blob())
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        attach(objectUrl);
+      })
+      // A failed fetch must not cost the visitor the section; the element can
+      // stream the file itself.
+      .catch(() => attach(SCRUB_SRC));
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [videoRef, shouldLoad]);
 
   useEffect(() => {
     const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video) return;
-
-    // iOS activation
-    const activate = () => { video.play(); video.pause(); };
-    document.documentElement.addEventListener("touchstart", activate, { once: true });
+    if (!container || !video || !sourceAttached) return;
 
     const setupTimeline = () => {
       const ctx = gsap.context(() => {
@@ -58,19 +119,6 @@ export function WhySection() {
           { currentTime: 0 },
           { currentTime: scrubEnd }
         );
-
-        // Blob the video source to prevent browser from dropping segments
-        const src = video.currentSrc || video.src;
-        if (typeof window !== "undefined") {
-          fetch(src)
-            .then((res) => res.blob())
-            .then((blob) => {
-              const blobURL = URL.createObjectURL(blob);
-              const t = video.currentTime;
-              video.src = blobURL;
-              video.currentTime = t + 0.01;
-            });
-        }
 
         // ── Card animations ──────────────────────────────────────────
         const duration = scrubEnd;
@@ -175,7 +223,7 @@ export function WhySection() {
     return () => {
       ctx?.revert();
     };
-  }, []);
+  }, [videoRef, sourceAttached]);
 
   return (
     <div className="bg-black p-2 sm:p-3 lg:p-4">
@@ -214,12 +262,15 @@ export function WhySection() {
                     bake that measures identical in the file does not land
                     identical on screen. Safari still needs a real fix; a
                     mismatched box for everyone is not it. */}
+                {/* No `src` and `preload="none"`: the source is a blob URL
+                    attached by the effect above once the visitor is on their
+                    way here. An eager preload alongside that fetch is what used
+                    to download this 9.6 MB file twice. */}
                 <video
                   ref={videoRef}
-                  src="/assets/belt-benefits-section-video-scrub.webm"
                   muted
                   playsInline
-                  preload="auto"
+                  preload="none"
                   className="w-full max-w-[816px] max-h-full object-contain"
                 />
               </div>
