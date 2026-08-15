@@ -58,19 +58,52 @@ type GtagFn = (
   params?: Record<string, unknown>
 ) => void;
 
+interface GAWindow {
+  gtag?: GtagFn;
+  dataLayer?: unknown[];
+}
+
+/**
+ * The official gtag() snippet, re-declared here.
+ *
+ * Pushes `arguments` and not an array on purpose: gtag.js recognises a queued
+ * command by that shape, and a plain `["event", …]` is ignored.
+ */
+function queueCommand(this: void): void {
+  // eslint-disable-next-line prefer-rest-params
+  (window as unknown as { dataLayer: unknown[] }).dataLayer.push(arguments);
+}
+
+/**
+ * Never reached in the normal case — the inline stub in <GoogleAnalytics>
+ * defines window.gtag during HTML parse. It is the safety net for the failure
+ * that actually happened: when window.gtag did not exist yet this function
+ * silently returned, and an event fired from a first-commit mount effect was
+ * gone for good. Queueing directly means the worst case is a late-delivered
+ * event, never a lost one.
+ */
 export function trackEvent<E extends GAEventName>(
   name: E,
   params: GAEventMap[E]
 ): void {
   const payload = { currency: CURRENCY, ...params };
-  const gtag =
-    typeof window === "undefined"
-      ? undefined
-      : (window as unknown as { gtag?: GtagFn }).gtag;
 
-  if (gtag) {
-    gtag("event", name, payload);
-  } else if (process.env.NODE_ENV !== "production") {
+  if (typeof window === "undefined") return;
+  const w = window as unknown as GAWindow;
+
+  if (w.gtag) {
+    w.gtag("event", name, payload);
+    return;
+  }
+
+  if (w.dataLayer) {
+    (queueCommand as unknown as GtagFn)("event", name, payload);
+    return;
+  }
+
+  // GA is not on this build at all (dev/localhost) — log so wiring stays
+  // verifiable locally.
+  if (process.env.NODE_ENV !== "production") {
     console.debug("[ga4]", name, payload);
   }
 }
