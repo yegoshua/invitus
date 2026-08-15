@@ -7,6 +7,9 @@
  *   pnpm perf:lighthouse --skip-build measure the existing .next build
  *   pnpm perf:lighthouse --runs 1     one run instead of the median of three
  *   pnpm perf:lighthouse --label baseline-main  name the saved report
+ *   pnpm perf:lighthouse --origin https://invitus.com.ua
+ *                                     measure a real deployment instead of a
+ *                                     local build — no build, no local server
  *
  * Chrome is launched by chrome-launcher into a throwaway user-data-dir with
  * extensions disabled, so the numbers describe the site and nothing else.
@@ -48,20 +51,28 @@ try {
 }
 
 const port = args.port ?? 4318;
-const url = `http://localhost:${port}${args.url ?? budget.url ?? "/"}`;
+const path = args.url ?? budget.url ?? "/";
+// A deployment measures the CDN, TLS and the real TTFB; a local build measures
+// none of them and is therefore optimistic. `docs/perf/lighthouse.md` says to
+// iterate locally and confirm remotely, and #43 requires the remote half.
+const url = args.origin ? `${args.origin}${path}` : `http://localhost:${port}${path}`;
 
 let server;
 let chrome;
 
 try {
-  if (!args.skipBuild) {
+  if (!args.skipBuild && !args.origin) {
     console.log("→ building for production");
     const build = spawnSync("pnpm", ["build"], { cwd: ROOT, stdio: "inherit" });
     if (build.status !== 0) throw new Error("production build failed");
   }
 
-  console.log(`→ serving on port ${port}`);
-  server = await startServer(port);
+  if (args.origin) {
+    console.log(`→ measuring the deployment at ${args.origin} (nothing built or served locally)`);
+  } else {
+    console.log(`→ serving on port ${port}`);
+    server = await startServer(port);
+  }
 
   chrome = await chromeLauncher.launch({ chromeFlags: CHROME_FLAGS });
 
@@ -219,6 +230,7 @@ function parseArgs(argv) {
     else if (argv[i] === "--url") args.url = argv[++i];
     else if (argv[i] === "--label") args.label = argv[++i];
     else if (argv[i] === "--runs") args.runs = Number(argv[++i]);
+    else if (argv[i] === "--origin") args.origin = argv[++i].replace(/\/$/, "");
     else throw new Error(`unknown argument: ${argv[i]}`);
   }
   return args;
