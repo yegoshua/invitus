@@ -89,6 +89,35 @@ test("an unordered list nests items under one list node", () => {
   });
 });
 
+// Sub-lists are ordinary in a how-to article, and mdast nests them inside the
+// parent's list-item. Strapi refuses that — "Inline node must be Text or Link"
+// — and wants the nested list as a sibling of the item instead, verified
+// against a real Strapi 5.34. So the converter hoists it.
+test("a nested list is hoisted to sit beside its parent item, not inside it", () => {
+  const blocks = markdownToBlocks("- перший\n  - вкладений\n- другий");
+
+  const list = blocks[0] as BlocksList;
+  assert.deepEqual(
+    list.children.map((child) => child.type),
+    ["list-item", "list", "list-item"]
+  );
+
+  const nested = list.children[1] as BlocksList;
+  assert.equal(nested.format, "unordered");
+  assert.deepEqual(nested.children[0], {
+    type: "list-item",
+    children: [{ type: "text", text: "вкладений" }],
+  });
+});
+
+test("a nested list keeps its own format, so an ordered sub-list stays ordered", () => {
+  const blocks = markdownToBlocks("- крок\n  1. спершу\n  2. потім");
+
+  const nested = (blocks[0] as BlocksList).children[1] as BlocksList;
+  assert.equal(nested.format, "ordered");
+  assert.equal(nested.children.length, 2);
+});
+
 test("an ordered list is the same node with a different format", () => {
   const blocks = markdownToBlocks("1. Перший\n2. Другий");
 

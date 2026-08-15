@@ -43,10 +43,16 @@ export interface BlocksListItem {
   children: BlocksInline[];
 }
 
+/**
+ * A nested list is a sibling of the item it belongs under, not a child of it:
+ * Strapi answers "Inline node must be Text or Link" to a list placed inside a
+ * `list-item`, and accepts one placed beside it. Markdown nests the other way
+ * round, so the converter hoists.
+ */
 export interface BlocksList {
   type: "list";
   format: "ordered" | "unordered";
-  children: BlocksListItem[];
+  children: (BlocksListItem | BlocksList)[];
 }
 
 /**

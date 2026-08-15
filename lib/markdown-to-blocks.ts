@@ -20,6 +20,7 @@ import { REQUIRED_MEDIA_FIELDS } from "./article-body.ts";
 import type {
   BlocksImageFile,
   BlocksInline,
+  BlocksList,
   BlocksListItem,
   BlocksNode,
   BlocksText,
@@ -133,11 +134,33 @@ function flattenToInline(nodes: MdNode[]): BlocksInline[] {
   return out;
 }
 
-function toListItems(nodes: MdNode[]): BlocksListItem[] {
-  return nodes.map((item) => ({
-    type: "list-item" as const,
-    children: flattenToInline(item.children ?? []),
-  }));
+function toList(node: MdNode): BlocksList {
+  return {
+    type: "list",
+    format: node.ordered ? "ordered" : "unordered",
+    children: toListChildren(node.children ?? []),
+  };
+}
+
+/**
+ * Markdown nests a sub-list inside the item it hangs off; Strapi wants it as a
+ * sibling of that item and refuses the nested form outright. So each item is
+ * split into its own inline content plus any lists it contained, hoisted to sit
+ * beside it.
+ */
+function toListChildren(items: MdNode[]): (BlocksListItem | BlocksList)[] {
+  const out: (BlocksListItem | BlocksList)[] = [];
+
+  for (const item of items) {
+    const children = item.children ?? [];
+    const nested = children.filter((child) => child.type === "list");
+    const own = children.filter((child) => child.type !== "list");
+
+    out.push({ type: "list-item", children: flattenToInline(own) });
+    out.push(...nested.map(toList));
+  }
+
+  return out;
 }
 
 function isImageOnly(node: MdNode): boolean {
@@ -212,11 +235,7 @@ export function markdownToBlocks(
         break;
 
       case "list":
-        blocks.push({
-          type: "list",
-          format: node.ordered ? "ordered" : "unordered",
-          children: toListItems(node.children ?? []),
-        });
+        blocks.push(toList(node));
         break;
 
       case "blockquote":
