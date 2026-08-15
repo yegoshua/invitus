@@ -16,7 +16,6 @@
 // generated rather than hand-checked.
 
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { REQUIRED_MEDIA_FIELDS } from "./article-body.ts";
 import type {
   BlocksImageFile,
   BlocksInline,
@@ -24,12 +23,37 @@ import type {
   BlocksListItem,
   BlocksNode,
   BlocksText,
-} from "./article-body.ts";
+} from "../lib/article-body.ts";
 
 /** Media entries the publish script has already uploaded, keyed by the src used in the Markdown. */
 export interface MarkdownToBlocksOptions {
   images?: Record<string, BlocksImageFile>;
 }
+
+/**
+ * Keys the Strapi validator requires on an image block's media entry — not the
+ * ones the renderer wants, the ones the API refuses the article without. An
+ * image built from `{ id, url }` comes back with eleven validation errors, one
+ * per missing field, verified against a real Strapi 5.34.
+ *
+ * This lives here rather than beside the type it mirrors because it is a
+ * publish-time contract: nothing that renders an article has any use for it.
+ */
+const REQUIRED_MEDIA_FIELDS: readonly string[] = [
+  "id",
+  "url",
+  "name",
+  "hash",
+  "ext",
+  "mime",
+  "size",
+  "width",
+  "height",
+  "formats",
+  "provider",
+  "createdAt",
+  "updatedAt",
+];
 
 /** Text modifiers accumulated while walking down through strong/emphasis/code. */
 type Modifiers = Pick<BlocksText, "bold" | "italic" | "code" | "strikethrough">;
@@ -242,10 +266,28 @@ export function markdownToBlocks(
         blocks.push({ type: "quote", children: flattenToInline(node.children ?? []) });
         break;
 
+      // The refusals below are deliberate, and they are the reason this
+      // converter is worth having: it has no quiet mode. A construct dropped
+      // in silence is discovered when someone reads the published article,
+      // which for bulk-generated posts is never. The messages say what to do
+      // instead, because the author is usually a prompt rather than a person.
+      case "thematicBreak":
+        fail(node, `A horizontal rule has no Blocks equivalent — delete it, or start a "## " section`);
+        break;
+
+      case "code":
+        fail(node, `A code block has no place in this blog's design — use \`inline code\` instead`);
+        break;
+
+      case "table":
+        fail(node, `Tables are not part of the blocks set — rewrite as a list`);
+        break;
+
+      case "html":
+        fail(node, `Raw HTML cannot be stored in a blocks field — use Markdown`);
+        break;
+
       default:
-        // thematicBreak, html, code fences and tables all land here. Strapi
-        // has no node for most of them, and the ones it has are not part of
-        // this design — refusing is louder than dropping.
         fail(node, `Unsupported block "${node.type}"`);
     }
   }

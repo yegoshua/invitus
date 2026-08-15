@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { markdownToBlocks } from "./markdown-to-blocks.ts";
+import { markdownToBlocks } from "./markdown-to-blocks.mts";
 import type {
   BlocksImage,
   BlocksInline,
@@ -10,7 +10,7 @@ import type {
   BlocksList,
   BlocksQuote,
   BlocksText,
-} from "./article-body.ts";
+} from "../lib/article-body.ts";
 
 /** Narrows away the link case, which most assertions here are not about. */
 function texts(children: BlocksInline[]): BlocksText[] {
@@ -271,6 +271,34 @@ test("an image on its own line is a block, not an inline child of a paragraph", 
   assert.deepEqual(
     blocks.map((block) => block.type),
     ["paragraph", "image", "paragraph"]
+  );
+});
+
+// ── refusals ─────────────────────────────────────────────────────────────────
+// A construct with no Blocks equivalent stops the publish rather than being
+// dropped quietly. `---` and fenced code are both routine model output, so the
+// messages have to say what to write instead — the author is usually a prompt.
+
+test("a horizontal rule is refused with an alternative, not silently dropped", () => {
+  assert.throws(() => markdownToBlocks("Текст\n\n---\n\nЩе"), /horizontal rule/);
+});
+
+test("a fenced code block is refused", () => {
+  assert.throws(() => markdownToBlocks("```\nconst x = 1;\n```"), /code block/);
+});
+
+test("raw HTML is refused rather than stored as text", () => {
+  assert.throws(() => markdownToBlocks("<div>привіт</div>"), /HTML/);
+});
+
+test("an image sharing a line with text names the file and says to move it", () => {
+  assert.throws(
+    () => markdownToBlocks("Дивись ![](buckle.jpg) тут"),
+    (error: Error) => {
+      assert.match(error.message, /buckle\.jpg/);
+      assert.match(error.message, /own line/);
+      return true;
+    }
   );
 });
 

@@ -11,7 +11,7 @@
     "backfill:placement": "node --env-file=.env.local scripts/backfill-strapi-placement.mts",
     "models:compress": "node --env-file=.env.local scripts/compress-models.mts",
     "perf:lighthouse": "node scripts/perf/lighthouse.mjs",
-    "test": "node --test \"scripts/perf/**/*.test.mjs\" \"lib/**/*.test.ts\"",
+    "test": "node --test \"scripts/perf/**/*.test.mjs\" \"scripts/*.test.mts\" \"lib/**/*.test.ts\"",
     "test:perf": "node --test \"scripts/perf/*.test.mjs\""
   },
   "dependencies": {

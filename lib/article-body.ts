@@ -94,22 +94,6 @@ export interface BlocksImageFile {
   [key: string]: unknown;
 }
 
-/** Keys the Strapi validator requires on an image block's media entry. */
-export const REQUIRED_MEDIA_FIELDS: readonly string[] = [
-  "id",
-  "url",
-  "name",
-  "hash",
-  "ext",
-  "mime",
-  "size",
-  "width",
-  "height",
-  "formats",
-  "provider",
-  "createdAt",
-  "updatedAt",
-];
 
 export interface BlocksImage {
   type: "image";
