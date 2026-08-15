@@ -123,3 +123,38 @@ still 3.95 s. So what is left is main-thread work under the 4× CPU multiplier,
 not bytes: the same scripts that put TTI at 7 s in that run. Deferring the rest
 of the media (#38, #41, #42) will collapse the transfer gate; the LCP gate
 needs the script work — #39 gets three.js off this page.
+
+## After #38 — the motivation video waits for the viewport
+
+| Metric | Baseline | After #37 | After #38 |
+| --- | --- | --- | --- |
+| Performance score | 82 | 85 | 85 |
+| LCP | 4.84 s | 4.29 s | 4.29 s |
+| Transfer before `load` | 36.94 MiB | 20.61 MiB | **18.27 MiB** |
+| Transfer, whole run | 36.95 MiB | 22.03 MiB | **19.69 MiB** |
+| Speed Index | 2.29 s | 2.28 s | 2.28 s |
+| CLS | 0 | 0 | 0 |
+| TBT | 18 ms | — | 20 ms |
+
+The gate and the whole run both fell by the same 2.34 MiB, which is the reading
+this doc asks for: the bytes did not move a few milliseconds past the load
+event, they did not travel at all. Lighthouse never scrolls, so the section is
+never approached and the video is never requested — which is exactly the
+behaviour a visitor who bounces off the hero gets.
+
+The file itself is 2.90 MiB; the 2.34 MiB is what the earlier trace had managed
+to transfer before it ended, so that is the honest figure for what this change
+removes from the measurement rather than the file's full weight.
+
+LCP and Speed Index are unchanged, as expected — [#37](https://github.com/yegoshua/invitus/issues/37)
+already established that what remains of LCP here is simulated main-thread work
+rather than bytes. The transfer gate is still over budget by 15.27 MiB, all of
+it the belt scrub video downloading twice: [#42](https://github.com/yegoshua/invitus/issues/42).
+
+Behaviour that the budget cannot see was checked separately, in headless Chrome
+driven by puppeteer (the agent browser panes run the page as a hidden tab, where
+`IntersectionObserver` never delivers): zero requests for the video at load;
+exactly one once the section is approached, buffered to `readyState 4` and
+playing before it is on screen; paused after scrolling past and playing again on
+the way back; and under `prefers-reduced-motion: reduce` no request at all, with
+the section keeping its 500 px box and dropping its mute button.
