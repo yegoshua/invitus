@@ -195,3 +195,49 @@ which only the selected one plays; the Next arrow moves playback with the
 selection; the mute control still mutes all three, as it did before; playback
 pauses on the way past and resumes — on the same card, not from the start — on
 the way back.
+
+## After #42 — the belt scrub loads once, and after the page
+
+| Metric | Baseline | After #41 | After #42 |
+| --- | --- | --- | --- |
+| Performance score | 82 | 85 | 85 |
+| LCP | 4.84 s | 4.29 s | 4.28 s |
+| Transfer before `load` | 36.94 MiB | 10.02 MiB | **0.50 MiB** ✔ |
+| Transfer, whole run | 36.95 MiB | 11.75 MiB | 11.75 MiB |
+| Speed Index | 2.29 s | 2.12 s | 2.10 s |
+| CLS | 0 | 0 | 0 |
+| TBT | 18 ms | — | 10 ms |
+
+**The transfer gate is met**: 0.50 MiB against a 3 MiB budget, down from 36.94.
+
+The whole-run figure did not move, and that is the honest reading rather than an
+oversight. #42 forbids touching the scrub's bytes, so the 9.52 MiB file still
+arrives — it now starts at 130 ms, after the load event at 88 ms, instead of at
+51 ms before it. The trace confirms it as **one request** where it used to be
+two: the element carried `preload="auto"` *and* an effect fetched the same file
+into a blob, and both pulled all of it.
+
+Worth stating plainly, because the gate does not: on a mobile viewport the
+section sits about two screens down and the load margin is two screens, so the
+scrub begins downloading shortly after `load` even for a visitor who never
+scrolls to it. That is deliberate — a 9.6 MB file needs the head start to be
+ready on arrival, and #34 put both re-encoding it and replacing it with an image
+sequence out of scope. The remaining lever is the asset, not the timing.
+
+Behaviour, checked in headless Chrome against a build of the previous branch as
+well as this one, so "unchanged" means compared rather than assumed:
+
+- 0 requests for the scrub at `load`, exactly 1 in total (before: 1 at load, 2 in
+  total)
+- `duration` reads 14.167 s and the timeline sets up, so the section is driven as
+  before
+- `currentTime` at five scroll positions through the pinned section, and at two
+  on the way back, is **identical to the previous branch to the centisecond**
+  (0.82 → 5.11 → 7.83 → 8.96 → 9.00, back 7.83 → 0.82)
+- card opacities at those same positions are identical too, including the
+  forward/back asymmetry the existing `onEnter`/`onLeaveBack` snap produces —
+  pre-existing, and #42 leaves the GSAP logic alone
+
+There is no longer a blob *swap* to preserve scrub position across: the file is
+fetched once and the blob URL is the only source the element ever has. The old
+`currentTime + 0.01` nudge existed to repair that swap and is gone with it.
