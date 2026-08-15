@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ProductMedia } from "@/components/ui/product-media";
-import { warmModelViewer } from "@/components/models/model-viewer";
+import {
+  useWarmModelViewerWhenIdle,
+  warmModelViewer,
+} from "@/components/models/model-viewer";
 import { formatPrice } from "@/lib/format";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
@@ -16,6 +19,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index = 0, listName }: ProductCardProps) {
+  // For the visitor who never hovers — a phone, where the first contact with a
+  // card is the tap itself. Owned by the card rather than by each grid, so a
+  // new listing surface cannot forget it. Only the first card on a page
+  // actually schedules anything.
+  useWarmModelViewerWhenIdle();
+
   const formattedPrice = formatPrice(product.price);
 
   return (

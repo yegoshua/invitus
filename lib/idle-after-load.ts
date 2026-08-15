@@ -34,15 +34,17 @@ export function scheduleIdleAfterLoad(
   // on the chance that they might.
   if (saveData) return () => {};
 
-  let cancelled = false;
+  // Settled covers both endings — run, and cancelled — because from here they
+  // are the same thing: nothing further happens.
+  let settled = false;
   let cancelIdle: (() => void) | undefined;
   let unsubscribeFromLoad: (() => void) | undefined;
 
   const queue = () => {
-    if (cancelled) return;
+    if (settled) return;
     cancelIdle = whenIdle(() => {
-      if (cancelled) return;
-      cancelled = true;
+      if (settled) return;
+      settled = true;
       task();
     });
   };
@@ -54,7 +56,7 @@ export function scheduleIdleAfterLoad(
   }
 
   return () => {
-    cancelled = true;
+    settled = true;
     unsubscribeFromLoad?.();
     cancelIdle?.();
   };

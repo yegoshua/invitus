@@ -1,7 +1,6 @@
 "use client";
 
 import { ProductCard } from "@/components/ui/product-card";
-import { useWarmModelViewerWhenIdle } from "@/components/models/model-viewer";
 import type { Product } from "@/types";
 
 interface ProductScrollGridProps {
@@ -9,10 +8,6 @@ interface ProductScrollGridProps {
 }
 
 export function ProductScrollGrid({ products }: ProductScrollGridProps) {
-  // For the visitor who never hovers — a phone, where the first contact with a
-  // card is the tap itself.
-  useWarmModelViewerWhenIdle();
-
   return (
     <>
       {/* Mobile: horizontal scroll, escapes container to show right overflow */}

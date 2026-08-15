@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { ArnoldLoader } from "@/components/ui/arnold-loader";
 import { scheduleIdleAfterLoad } from "@/lib/idle-after-load";
+import { readSaveData } from "@/lib/network-conditions";
 
 /**
  * The seam between the product page and three.js.
@@ -53,26 +54,43 @@ let warming = false;
 export function warmModelViewer(): void {
   if (warming) return;
   warming = true;
-  void importModelLoader();
+  importModelLoader().catch(() => {
+    // A blip, or a hover against a deploy whose chunks have rotated. Releasing
+    // the latch is the point: left set, one failed fetch would kill warming for
+    // the rest of the session and every later hover would land cold. Swallowed
+    // rather than reported because nothing is broken — `next/dynamic` issues
+    // its own import when the viewer actually renders.
+    warming = false;
+  });
 }
+
+// Whichever card mounts first schedules on behalf of the page, and releases the
+// claim when it unmounts so the next page can schedule again. A page of twenty
+// cards should register one load listener, not twenty.
+let idleOwner: symbol | null = null;
 
 /**
  * The fallback for visitors who never hover — a touch device where the first
  * contact with a card is already the tap, or anyone who scrolls and reads
  * before deciding.
  *
- * Call once per page that lists products. The rules it schedules under are in
- * `lib/idle-after-load.ts`, tested there: strictly after the `load` event, in
- * idle time, and not at all under `save-data`.
+ * `ProductCard` calls this, so every surface that lists products gets it by
+ * construction. It used to be called by each grid, which meant a new listing
+ * surface silently got no fallback and nothing failed to tell anyone.
+ *
+ * The rules it schedules under are in `lib/idle-after-load.ts`, tested there:
+ * strictly after the `load` event, in idle time, and not at all under
+ * `save-data`.
  */
 export function useWarmModelViewerWhenIdle(): void {
   useEffect(() => {
-    const connection = (
-      navigator as Navigator & { connection?: { saveData?: boolean } }
-    ).connection;
+    if (idleOwner) return;
 
-    return scheduleIdleAfterLoad(warmModelViewer, {
-      saveData: Boolean(connection?.saveData),
+    const claim = Symbol("model-viewer idle warm");
+    idleOwner = claim;
+
+    const cancel = scheduleIdleAfterLoad(warmModelViewer, {
+      saveData: readSaveData(),
       hasLoaded: () => document.readyState === "complete",
       onLoad: (run) => {
         window.addEventListener("load", run, { once: true });
@@ -89,5 +107,10 @@ export function useWarmModelViewerWhenIdle(): void {
         return () => cancelIdleCallback(handle);
       },
     });
+
+    return () => {
+      cancel();
+      if (idleOwner === claim) idleOwner = null;
+    };
   }, []);
 }

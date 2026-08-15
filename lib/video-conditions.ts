@@ -14,6 +14,8 @@
  * a browser.
  */
 
+import { readNetworkInformation } from "./network-conditions.ts";
+
 /** Effective connection types on which a video is not a decoration budget. */
 const SLOW_CONNECTIONS = new Set(["slow-2g", "2g", "3g"]);
 
@@ -38,15 +40,12 @@ export function shouldLoadDecorativeVideo({
   return true;
 }
 
-type NetworkInformation = { saveData?: boolean; effectiveType?: string };
-
 /** Reads the three signals off the current browser. Call inside an effect. */
 export function readVideoConditions(): VideoConditions {
-  const connection = (navigator as Navigator & { connection?: NetworkInformation })
-    .connection;
+  const connection = readNetworkInformation();
   return {
-    saveData: connection?.saveData,
-    effectiveType: connection?.effectiveType,
+    saveData: connection.saveData,
+    effectiveType: connection.effectiveType,
     prefersReducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
       .matches,
   };
