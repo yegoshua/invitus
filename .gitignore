@@ -42,3 +42,9 @@ next-env.d.ts
 
 # lighthouse reports (see perf/budget.json)
 /perf/reports/
+
+# browser tool output
+/.playwright-mcp/
+
+# per-user Claude Code permissions (launch.json is shared)
+/.claude/settings.local.json
