@@ -1,6 +1,10 @@
 // Domain types — public interface of the data layer.
 // The Strapi adapter (lib/api.ts) returns these. UI never imports Strapi schema.
 
+// Type-only, so it is erased: lib/article-body.ts ships a function too, and this
+// module is imported by client components that have no use for it.
+import type { BlocksNode } from "@/lib/article-body";
+
 export interface ProductImage {
   url: string;
   alt: string;
@@ -87,6 +91,16 @@ export interface ArticleSummary {
     width?: number;
     height?: number;
   };
+}
+
+/**
+ * A whole article, as the article page needs it. The body is the Strapi Blocks
+ * document — `components/blog/article-body.tsx` is the only thing that reads it.
+ */
+export interface Article extends ArticleSummary {
+  body: BlocksNode[];
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export interface FilterTag {

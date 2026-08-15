@@ -35,7 +35,7 @@
 // as lib/promo.ts.
 import { readingTimeMinutes, type BlocksNode } from "./article-body.ts";
 import { getStrapiMedia, getStrapiURL } from "./strapi.ts";
-import type { ArticleSummary } from "../types/index.ts";
+import type { Article, ArticleSummary } from "../types/index.ts";
 
 /** Cache tag busted by the Strapi webhook at app/api/revalidate. */
 export const STRAPI_ARTICLES_TAG = "strapi-articles";
@@ -65,6 +65,13 @@ const FAILURE_BACKOFF_MS = 60_000;
 // only so a runaway Strapi cannot hand us an unbounded page.
 const QUERY =
   "/api/articles?populate=cover&sort=publishedAt:desc&pagination[limit]=100";
+
+function bySlugQuery(slug: string): string {
+  return (
+    `/api/articles?filters[slug][$eq]=${encodeURIComponent(slug)}` +
+    "&populate=cover&pagination[limit]=1"
+  );
+}
 
 let skipUntil = 0;
 let lastGood: ArticleSummary[] | null = null;
@@ -97,7 +104,7 @@ export function getArticles(): Promise<ArticleSummary[]> {
 
 async function fetchArticles(): Promise<ArticleSummary[]> {
   try {
-    const json = await getWithRetries<{ data: RawArticle[] }>();
+    const json = await getWithRetries<{ data: RawArticle[] }>(QUERY);
     lastGood = indexArticles(json.data ?? []);
     return lastGood;
   } catch (error) {
@@ -116,6 +123,53 @@ async function fetchArticles(): Promise<ArticleSummary[]> {
   }
 }
 
+/**
+ * One published article, body and all, or `null` if there is no such article.
+ *
+ * The two failure modes are kept strictly apart, and that separation is the
+ * whole job here. `null` means Strapi answered and had nothing under this slug
+ * — unknown, unpublished or deleted — and the page turns that into a 404. A
+ * Strapi that cannot be reached throws instead: a 404 rendered out of an outage
+ * is cached and served long after the article is back, which is the listing's
+ * empty-page trap wearing a different status code.
+ *
+ * No `lastGood` here, unlike the list. It would only ever help the second fetch
+ * of the same slug inside one process, which Next's own request cache already
+ * covers; the honest answer for a page whose content cannot be read is to not
+ * render it. The already-rendered reader is protected by ISR, not by us.
+ */
+export async function getArticle(slug: string): Promise<Article | null> {
+  if (Date.now() < skipUntil) {
+    // Shares the list's back-off deliberately: it records "Strapi is down", not
+    // "that one query failed", and re-paying the retry budget per article page
+    // during an outage helps nobody.
+    throw new ArticlesUnavailableError("backing off after a recent failure");
+  }
+
+  try {
+    const json = await getWithRetries<{ data: RawArticle[] }>(bySlugQuery(slug));
+    const raw = json.data?.[0];
+    if (!raw) return null;
+
+    const [summary] = indexArticles([raw]);
+    // Only reachable when the cover has gone missing, which indexArticles drops
+    // rather than render. Same call as the listing makes, for the same reason.
+    if (!summary) return null;
+
+    return {
+      ...summary,
+      body: raw.body ?? [],
+      seoTitle: raw.seoTitle ?? undefined,
+      seoDescription: raw.seoDescription ?? undefined,
+    };
+  } catch (error) {
+    skipUntil = Date.now() + FAILURE_BACKOFF_MS;
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error(`[articles] Strapi unavailable (${reason}), refusing to render "${slug}"`);
+    throw new ArticlesUnavailableError(reason);
+  }
+}
+
 /** Thrown rather than degrading to an empty list. See the note at the top. */
 export class ArticlesUnavailableError extends Error {
   constructor(reason: string) {
@@ -124,7 +178,7 @@ export class ArticlesUnavailableError extends Error {
   }
 }
 
-async function getWithRetries<T>(): Promise<T> {
+async function getWithRetries<T>(query: string): Promise<T> {
   const token = process.env.STRAPI_API_TOKEN;
   if (!token) {
     // Not retryable and not a Strapi problem: Strapi answers 403 anonymously
@@ -132,7 +186,7 @@ async function getWithRetries<T>(): Promise<T> {
     throw new NonRetryableError("STRAPI_API_TOKEN is not set (server-only)");
   }
 
-  const url = getStrapiURL(QUERY);
+  const url = getStrapiURL(query);
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= ATTEMPT_TIMEOUTS_MS.length; attempt++) {
@@ -179,6 +233,8 @@ interface RawArticle {
   category: string;
   publishedAt: string;
   body: BlocksNode[] | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   cover: {
     url: string;
     alternativeText: string | null;
