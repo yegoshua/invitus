@@ -81,10 +81,18 @@ export default async function ArticlePage({ params }: PageProps) {
         <div className="container-main flex flex-col gap-6 lg:gap-8">
           {/* Both ends of one line rather than a "Блог / 5 хв." breadcrumb: the
               origin sits at the left margin and the cost of reading at the
-              right, which is the same metadata line the cards use. Neither is
-              coral — on a page with no banner the only accent is the text. */}
+              right, which is the same metadata line the cards use.
+
+              One deliberate departure from node 1303:8259, which paints both
+              labels at 48% white: "Блог" keeps the coral. It is the only way
+              back to the listing, and two identical labels at opposite ends of
+              a line give a reader nothing to tell the link from the caption —
+              a distinction the static design never has to make. */}
           <div className="flex items-center justify-between gap-3 text-xs leading-4 font-bold uppercase tracking-[0.03em] text-white/48">
-            <Link href="/blog" className="transition-colors hover:text-white">
+            <Link
+              href="/blog"
+              className="text-coral transition-colors hover:text-coral-dark"
+            >
               Блог
             </Link>
             <span className="whitespace-nowrap">
