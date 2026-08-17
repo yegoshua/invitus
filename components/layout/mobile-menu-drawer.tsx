@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import CloseIcon from "@/public/assets/icons/Close.svg";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMenuStore } from "@/stores/menu";
-import { navLinks, socialLinks } from "@/content/navigation";
+import { blogLink, navLinks, socialLinks } from "@/content/navigation";
 
 export function MobileMenuDrawer() {
   const isOpen = useMenuStore((state) => state.isOpen);
@@ -64,6 +64,23 @@ export function MobileMenuDrawer() {
                       {link.label}
                     </Link>
                   ))}
+                </nav>
+              </div>
+
+              <div className="flex-1">
+                {/* Its own group rather than a fifth entry under "Продукти" —
+                    the blog is not one. */}
+                <h3 className="text-sm font-heading font-medium text-neutral-500 uppercase tracking-wider mb-6">
+                  Читати
+                </h3>
+                <nav className="flex flex-col gap-8">
+                  <Link
+                    href={blogLink.href}
+                    className="font-heading text-2xl font-bold text-black hover:text-neutral-600 transition-colors"
+                    onClick={closeMenu}
+                  >
+                    {blogLink.label}
+                  </Link>
                 </nav>
               </div>
 

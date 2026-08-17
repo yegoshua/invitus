@@ -1,6 +1,10 @@
 // Domain types — public interface of the data layer.
 // The Strapi adapter (lib/api.ts) returns these. UI never imports Strapi schema.
 
+// Type-only, so it is erased: lib/article-body.ts ships a function too, and this
+// module is imported by client components that have no use for it.
+import type { BlocksNode } from "@/lib/article-body";
+
 export interface ProductImage {
   url: string;
   alt: string;
@@ -60,6 +64,43 @@ export interface Product {
   attributes?: ProductAttribute[];
 
   featured?: boolean;
+}
+
+// Blog
+
+/**
+ * An article as the listing shows it: everything the card needs and nothing
+ * else. The body stays in the loader — it is what `readingTimeMinutes` is
+ * computed from, and shipping a dozen full articles to render a dozen cards
+ * would be paying for the whole blog to show its index.
+ */
+export interface ArticleSummary {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  /** One of the Article type's enumeration values, e.g. "ЕКІПІРУВАННЯ". */
+  category: string;
+  /** Strapi's publish timestamp — the sort key; there is no separate date field. */
+  publishedAt: string;
+  /** Derived from the body, never stored. See lib/article-body.ts. */
+  readingTimeMinutes: number;
+  cover: {
+    url: string;
+    alt: string;
+    width?: number;
+    height?: number;
+  };
+}
+
+/**
+ * A whole article, as the article page needs it. The body is the Strapi Blocks
+ * document — `components/blog/article-body.tsx` is the only thing that reads it.
+ */
+export interface Article extends ArticleSummary {
+  body: BlocksNode[];
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export interface FilterTag {

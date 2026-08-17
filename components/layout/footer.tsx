@@ -2,11 +2,15 @@ import Link from "next/link";
 import VisaIcon from "@/public/assets/icons/visa-icon.svg";
 import MasterCardIcon from "@/public/assets/icons/master-card-icon.svg";
 
-const categoryLinks = [
+// The four categories plus the blog: this row is the footer's main navigation,
+// not a category list, which is why the blog belongs in it rather than beside
+// the legal links.
+const primaryLinks = [
   { href: "/shop/belts", label: "Атлетичні пояси" },
   { href: "/shop/wrist-wraps", label: "Кистьові бинти" },
   { href: "/shop/straps", label: "Лямки-вісімки" },
   { href: "/shop/knee-sleeves", label: "Наколінники" },
+  { href: "/blog", label: "Блог" },
 ];
 
 const socialLinks = [
@@ -30,7 +34,7 @@ export function Footer() {
         <div className="flex flex-col lg:flex-row justify-between gap-8 lg:gap-0 mb-8 lg:mb-10">
           {/* Category Links */}
           <nav className="flex flex-wrap gap-x-6 gap-y-3 lg:gap-10 max-w-[280px] lg:max-w-none">
-            {categoryLinks.map((link) => (
+            {primaryLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

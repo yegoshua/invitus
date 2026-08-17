@@ -21,6 +21,7 @@ import {
   clearStrapiExtrasBackoff,
 } from "@/lib/product-extras";
 import { STRAPI_PROMO_TAG, clearPromoCodesBackoff } from "@/lib/promo-codes";
+import { STRAPI_ARTICLES_TAG, clearArticlesBackoff } from "@/lib/articles";
 
 /**
  * Compare digests rather than the raw strings: timingSafeEqual throws on a
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
   // another — but the tag invalidation below is what actually does the work.
   clearStrapiExtrasBackoff();
   clearPromoCodesBackoff();
+  clearArticlesBackoff();
 
   // "max" keeps serving the existing render until the new one is ready, rather
   // than making the next visitor wait for a fresh Strapi fetch.
@@ -71,8 +73,12 @@ export async function POST(request: Request) {
   // and switching off a leaked code has to take effect on the next checkout —
   // waiting out a 24h window is not an option for a kill switch.
   revalidateTag(STRAPI_PROMO_TAG, "max");
+  // Same story for articles, and here the window is the *only* other way the
+  // blog ever refreshes: publishing an article in the admin has to reach the
+  // site in seconds, not on tomorrow's revalidate.
+  revalidateTag(STRAPI_ARTICLES_TAG, "max");
 
-  const tags = [STRAPI_EXTRAS_TAG, STRAPI_PROMO_TAG];
+  const tags = [STRAPI_EXTRAS_TAG, STRAPI_PROMO_TAG, STRAPI_ARTICLES_TAG];
 
   console.log(
     `[revalidate] ${payload?.event ?? "unknown event"} on ${

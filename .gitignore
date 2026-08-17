@@ -48,3 +48,9 @@ next-env.d.ts
 
 # per-user Claude Code permissions (launch.json is shared)
 /.claude/settings.local.json
+
+# article images — the .md is the source of truth for text; binaries live in Strapi
+/content/articles/*.jpg
+/content/articles/*.jpeg
+/content/articles/*.png
+/content/articles/*.webp
