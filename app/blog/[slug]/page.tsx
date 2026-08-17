@@ -79,20 +79,24 @@ export default async function ArticlePage({ params }: PageProps) {
             plain black with its meta row, which is the design's way of saying
             you have arrived at the text rather than at another section. */}
         <div className="container-main flex flex-col gap-6 lg:gap-8">
-          <div className="flex items-center gap-3 font-heading text-xs lg:text-sm font-bold uppercase tracking-wider text-neutral-500">
-            <Link href="/blog" className="text-coral hover:text-coral-dark transition-colors">
+          {/* Both ends of one line rather than a "Блог / 5 хв." breadcrumb: the
+              origin sits at the left margin and the cost of reading at the
+              right, which is the same metadata line the cards use. Neither is
+              coral — on a page with no banner the only accent is the text. */}
+          <div className="flex items-center justify-between gap-3 text-xs leading-4 font-bold uppercase tracking-[0.03em] text-white/48">
+            <Link href="/blog" className="transition-colors hover:text-white">
               Блог
             </Link>
-            <span aria-hidden>/</span>
-            <span>{article.readingTimeMinutes} хв. читання</span>
+            <span className="whitespace-nowrap">
+              {article.readingTimeMinutes} хв. читання
+            </span>
           </div>
 
-          {/* The banner's headline scale, kept even though there is no banner:
-              the article opens where /blog's red panel would be, and a title
-              a size smaller there reads as a subheading of nothing. */}
-          <h1 className="font-heading text-[32px] lg:text-[48px] leading-tight font-bold text-white">
-            {article.title}
-          </h1>
+          {/* H2's scale, not H1's, even though this is the page's h1: the
+              article opens where /blog's red panel would be, and the design
+              sets the title at 40/52 there. font-bold because preflight resets
+              heading weight and Druk ships only a 700 face. */}
+          <h1 className="text-h2 font-bold text-white">{article.title}</h1>
 
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[24px] lg:rounded-section bg-surface">
             <Image
