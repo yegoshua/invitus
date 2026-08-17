@@ -23,7 +23,10 @@
 // answers 403 anonymously, and it should stay that way: a public collection of
 // promo codes is a public list of discounts.
 
-import { getStrapiURL } from "./strapi";
+import {
+  requiredStrapiAuthHeaders,
+  strapiGetWithRetries,
+} from "./strapi-fetch";
 import {
   evaluatePromoCode,
   indexPromoCodes,
@@ -48,7 +51,6 @@ export const STRAPI_PROMO_TAG = "strapi-promo-codes";
 // lands quickly or is not going to land at all. Worst case ~29s and the ordinary
 // cold case succeeds outright, against 38s of guaranteed failure before.
 const ATTEMPT_TIMEOUTS_MS = [20_000, 8_000];
-const RETRY_DELAY_MS = 1_000;
 const REVALIDATE_S = 86_400;
 const FAILURE_BACKOFF_MS = 60_000;
 
@@ -113,7 +115,16 @@ async function fetchPromoCodes(): Promise<Map<string, PromoCode> | null> {
   try {
     // Sorted oldest-first by the query, which is what makes indexPromoCodes'
     // duplicate rule ("the first wins") mean the same thing on every server.
-    const json = await getWithRetries<{ data: RawPromoCode[] }>();
+    const json = await strapiGetWithRetries<{ data: RawPromoCode[] }>({
+      query: QUERY,
+      tag: STRAPI_PROMO_TAG,
+      timeouts: ATTEMPT_TIMEOUTS_MS,
+      revalidate: REVALIDATE_S,
+      logPrefix: "[promo]",
+      // Strapi answers 403 anonymously, so without the token every code on the
+      // site is refused — not a Strapi problem and not worth retrying.
+      headers: requiredStrapiAuthHeaders(),
+    });
 
     lastGood = indexPromoCodes(json.data ?? []);
     return lastGood;
@@ -128,47 +139,3 @@ async function fetchPromoCodes(): Promise<Map<string, PromoCode> | null> {
     return lastGood;
   }
 }
-
-async function getWithRetries<T>(): Promise<T> {
-  const token = process.env.STRAPI_API_TOKEN;
-  if (!token) {
-    // Not retryable and not a Strapi problem: Strapi answers 403 anonymously,
-    // so without the token every code on the site is refused.
-    throw new NonRetryableError("STRAPI_API_TOKEN is not set (server-only)");
-  }
-
-  const url = getStrapiURL(QUERY);
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= ATTEMPT_TIMEOUTS_MS.length; attempt++) {
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(ATTEMPT_TIMEOUTS_MS[attempt - 1]),
-        next: { revalidate: REVALIDATE_S, tags: [STRAPI_PROMO_TAG] },
-      });
-
-      if (response.status >= 400 && response.status < 500) {
-        throw new NonRetryableError(`Strapi responded ${response.status}`);
-      }
-      if (!response.ok) throw new Error(`Strapi responded ${response.status}`);
-
-      return (await response.json()) as T;
-    } catch (error) {
-      if (error instanceof NonRetryableError) throw error;
-      lastError = error;
-      if (attempt < ATTEMPT_TIMEOUTS_MS.length) {
-        const reason = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[promo] Strapi attempt ${attempt}/${ATTEMPT_TIMEOUTS_MS.length} ` +
-            `failed (${reason}), retrying`
-        );
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      }
-    }
-  }
-
-  throw lastError;
-}
-
-class NonRetryableError extends Error {}
