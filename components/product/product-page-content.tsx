@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
+import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
@@ -22,9 +24,19 @@ const PRODUCT_BG_FALLBACK = "/assets/img/product_bg.png";
 export function ProductPageContent({ product }: ProductPageContentProps) {
   // The whole size is held, not just its value: the cart needs the label to
   // show what the product page showed, and the order needs the KeyCRM value.
+  //
+  // The pre-selection skips whatever KeyCRM has none of: landing on a sold-out
+  // first size would put a size nobody can buy under the cursor and leave the
+  // button dead on arrival, which reads as the page being broken.
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(
-    product.sizes?.[0] ?? null
+    product.sizes?.find((s) => s.inStock) ?? null
   );
+  // Sold out only when the product has sizes and none of them is left; a
+  // product with no offers at all is not a stock question and stays buyable.
+  const soldOut = Boolean(product.sizes?.length) && !selectedSize;
+  // Set when the canvas has lost its WebGL context past recovering. The page
+  // then shows the product photo instead of an empty box.
+  const [modelUnavailable, setModelUnavailable] = useState(false);
   const addItem = useAddToCart();
   const openCart = useOpenCart();
 
@@ -50,9 +62,21 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   //
   // Without a model we now show the product's own photo instead: a Strapi
   // outage degrades to "real photo, no 3D" rather than "wrong belt".
-  const show3dModel = Boolean(product.model3dUrl);
+  const show3dModel = Boolean(product.model3dUrl) && !modelUnavailable;
+
+  // Both layouts are in the tree at once — Tailwind hides one, it does not skip
+  // it — so an unguarded viewer mounts twice and the hidden copy quietly holds a
+  // second WebGL context and a second copy of the model. Only the layout that is
+  // actually on screen gets one, and neither gets one before hydration: mounting
+  // the wrong one for a frame and tearing it straight down is what makes r3f
+  // fire its deferred `forceContextLoss()` into the surviving canvas.
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
+  const isHydrated = useIsHydrated();
+  const mobile3d = show3dModel && isHydrated && !isDesktop;
+  const desktop3d = show3dModel && isHydrated && isDesktop;
 
   const handleAddToCart = () => {
+    if (soldOut) return;
     addItem(product, selectedSize?.value, selectedSize?.label);
     openCart();
   };
@@ -78,9 +102,10 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           {/* Hero media: 3D model (belts) or product photo */}
           <div className="py-[60px] sm:py-0 rounded-t-[28px] overflow-hidden">
             <div className="relative h-[200px] sm:h-[340px] md:h-[420px]">
-              {show3dModel ? (
+              {mobile3d ? (
                 <ModelViewer
                   modelUrl={product.model3dUrl}
+                  onGaveUp={() => setModelUnavailable(true)}
                 />
               ) : (
                 <ProductMedia
@@ -130,9 +155,10 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         <CTAButton
           width="fill"
           onClick={handleAddToCart}
-          icon={<Plus className="w-5 h-5" />}
+          disabled={soldOut}
+          icon={soldOut ? null : <Plus className="w-5 h-5" />}
         >
-          Додати в кошик
+          {soldOut ? "Немає в наявності" : "Додати в кошик"}
         </CTAButton>
       </div>
 
@@ -152,9 +178,10 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         </div>
 
         {/* Hero media: 3D model (belts) or product photo */}
-        {show3dModel ? (
+        {desktop3d ? (
           <ModelViewer
             modelUrl={product.model3dUrl}
+            onGaveUp={() => setModelUnavailable(true)}
           />
         ) : (
           <div className="absolute inset-0 z-10 flex items-center justify-center pb-40">
@@ -207,8 +234,13 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                     howToMeasure={product.howToMeasure}
                     careInstructions={product.careInstructions}
                   />
-                  <CTAButton width="fill" onClick={handleAddToCart}>
-                    Додати в кошик
+                  <CTAButton
+                    width="fill"
+                    onClick={handleAddToCart}
+                    disabled={soldOut}
+                    icon={soldOut ? null : undefined}
+                  >
+                    {soldOut ? "Немає в наявності" : "Додати в кошик"}
                   </CTAButton>
                 </motion.div>
               </div>
