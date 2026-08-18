@@ -10,6 +10,11 @@ interface SizeSelectorProps {
   onSelect: (size: ProductSize) => void;
 }
 
+/**
+ * The sizes a product is made in. A size KeyCRM has none of stays on screen —
+ * struck through and unclickable — because a missing chip reads as "we do not
+ * make that size" rather than "it is out this week".
+ */
 export function SizeSelector({
   sizes,
   selectedSize,
@@ -24,6 +29,8 @@ export function SizeSelector({
           key={size.value}
           onClick={() => onSelect(size)}
           isActive={selectedSize === size.value}
+          disabled={!size.inStock}
+          title={size.inStock ? undefined : "Немає в наявності"}
         >
           {size.label}
         </ChipButton>

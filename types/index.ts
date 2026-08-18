@@ -35,6 +35,13 @@ export interface ProductSize {
   value: string;
   /** What the customer sees, e.g. "65-80 см". Falls back to `value`. */
   label: string;
+  /**
+   * Whether KeyCRM still has any of this size, reserve already subtracted.
+   * A sold-out size stays in the list — the customer is told the size exists
+   * and is out, not left guessing whether it is made at all — but nothing may
+   * select it, and lib/orders.ts re-checks the same figure before charging.
+   */
+  inStock: boolean;
 }
 
 export interface Product {

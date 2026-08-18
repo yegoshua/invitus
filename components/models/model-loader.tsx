@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useCallback, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArnoldLoader } from "@/components/ui/arnold-loader";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
@@ -41,7 +41,21 @@ function CameraController() {
 interface ModelLoaderProps {
   modelUrl?: string;
   fallbackModelUrl?: string;
+  /**
+   * Called when the canvas has lost its WebGL context more times than it is
+   * worth retrying. The product page uses it to fall back to the photo — a
+   * still picture of the belt beats an empty box where the belt should be.
+   */
+  onGaveUp?: () => void;
 }
+
+/**
+ * How many times a lost context is worth rebuilding. Two, because the loss we
+ * actually see comes from a mount/unmount race and clears on the retry; a
+ * context that dies twice in a row is a machine that cannot keep this canvas,
+ * and retrying forever would just spin.
+ */
+const MAX_CONTEXT_RECOVERIES = 2;
 
 // Loading overlay with progress
 function LoadingOverlay({ modelUrl }: { modelUrl?: string }) {
@@ -103,10 +117,38 @@ function LoadingOverlay({ modelUrl }: { modelUrl?: string }) {
 }
 
 // Main component with Canvas and loading
-export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
+export function ModelLoader({
+  modelUrl,
+  fallbackModelUrl,
+  onGaveUp,
+}: ModelLoaderProps) {
   // WebGL has no server-side equivalent, so the canvas cannot be part of the
   // server render — show the loader until hydration has happened.
   const isClient = useIsHydrated();
+
+  // Bumped to rebuild the canvas after a lost context. It is a `key`, so React
+  // throws the old <canvas> away and mounts a new one: an element whose context
+  // has been lost can never be given a working one again, so reusing it would
+  // rebuild the renderer around a corpse.
+  const [generation, setGeneration] = useState(0);
+
+  const handleContextLost = useCallback(
+    (event: Event) => {
+      // Without preventDefault the browser will not even attempt to restore,
+      // and — more to the point here — three.js stops rendering either way, so
+      // the canvas stays blank until something rebuilds it. That something is
+      // the generation bump below.
+      event.preventDefault();
+      setGeneration((n) => {
+        if (n >= MAX_CONTEXT_RECOVERIES) {
+          onGaveUp?.();
+          return n;
+        }
+        return n + 1;
+      });
+    },
+    [onGaveUp]
+  );
 
   if (!isClient) {
     return (
@@ -120,7 +162,15 @@ export function ModelLoader({ modelUrl, fallbackModelUrl }: ModelLoaderProps) {
 
   return (
     <div className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing">
-      <Canvas camera={{ position: [0, 0.5, 3], fov: 45 }}>
+      <Canvas
+        key={generation}
+        camera={{ position: [0, 0.5, 3], fov: 45 }}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener("webglcontextlost", handleContextLost, {
+            once: true,
+          });
+        }}
+      >
         <CameraController />
         <ambientLight intensity={0.1} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />

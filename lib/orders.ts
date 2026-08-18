@@ -12,6 +12,7 @@
 
 import { fetchKeyCrm, postKeyCrm, putKeyCrm } from "./keycrm";
 import type { KeyCrmOffer, KeyCrmProduct } from "./keycrm-schema";
+import { availableStock } from "./offer-stock";
 import { readOfferVariant, VARIANT_PROPERTY_NAMES } from "./variant-property";
 import { orderTotals, type OrderTotals } from "./order-totals";
 import { checkPromoCode } from "./promo-codes";
@@ -180,6 +181,20 @@ async function priceLine(item: OrderDraftItem): Promise<PricedLine> {
     if (!match) {
       throw new OrderPricingError(
         `Розмір «${item.size ?? "—"}» для «${product.name}» недоступний`
+      );
+    }
+
+    // Stock is re-read here, from the uncached offers, because the page that
+    // offered this size was rendered up to a minute ago and the cart may be
+    // days old. The same arithmetic the size selector used (lib/offer-stock.ts)
+    // decides it, so a size cannot be buyable on screen and refused here for
+    // any reason other than the stock genuinely having moved in between.
+    const available = availableStock(match);
+    if (available < item.quantity) {
+      throw new OrderPricingError(
+        available === 0
+          ? `Розмір «${item.size ?? "—"}» для «${product.name}» закінчився`
+          : `Розміру «${item.size ?? "—"}» для «${product.name}» залишилось ${available} шт.`
       );
     }
 

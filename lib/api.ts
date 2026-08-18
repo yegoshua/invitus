@@ -19,6 +19,7 @@
 import { fetchKeyCrm, fetchKeyCrmAll } from "./keycrm";
 import { slugify } from "./slugify";
 import { HIDDEN_CATEGORY_IDS } from "./hidden-categories";
+import { availableStock } from "./offer-stock";
 import { readOfferVariant, VARIANT_PROPERTY_NAMES } from "./variant-property";
 import {
   getStrapiExtras,
@@ -104,16 +105,29 @@ function toProduct(
   // KeyCRM owns which sizes exist; Strapi only supplies nicer wording for them,
   // keyed by the offer SKU. An offer Strapi says nothing about keeps KeyCRM's
   // own value as its label, so a belt added today is merely plainer, not broken.
+  //
+  // Availability is per size value, not per offer: KeyCRM can carry the same
+  // size on more than one offer, and a size is buyable while any of them still
+  // has stock. Reserve counts as gone — quantity alone would keep offering a
+  // belt that is already promised to someone else.
   const sizes: ProductSize[] = [];
-  const seenSizeValues = new Set<string>();
+  const sizeByValue = new Map<string, ProductSize>();
   for (const offer of activeOffers) {
     const value = readOfferVariant(offer)?.value;
-    if (!value || seenSizeValues.has(value)) continue;
-    seenSizeValues.add(value);
-    sizes.push({
+    if (!value) continue;
+    const inStock = availableStock(offer) > 0;
+    const existing = sizeByValue.get(value);
+    if (existing) {
+      existing.inStock ||= inStock;
+      continue;
+    }
+    const size: ProductSize = {
       value,
       label: (offer.sku && extras?.sizeLabelsBySku?.[offer.sku]) || value,
-    });
+      inStock,
+    };
+    sizeByValue.set(value, size);
+    sizes.push(size);
   }
   sizes.sort((a, b) => compareSizes(a.value, b.value));
 
@@ -136,7 +150,7 @@ function toProduct(
         name:
           readOfferVariant(o)?.value ??
           o.properties.map((prop) => prop.value).join(" / "),
-        stock: Math.max(0, o.quantity),
+        stock: availableStock(o),
         sku: o.sku ?? undefined,
         priceModifier: o.price - p.min_price || undefined,
       }))
