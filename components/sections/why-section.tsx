@@ -1,12 +1,20 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, type CSSProperties } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useVideoGate } from "@/hooks/use-video-gate";
 import { beltFeatures as features } from "@/content/why-belt-features";
+import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// Mobile browser chrome collapsing on scroll fires a resize, and a resize makes
+// ScrollTrigger recompute every start/end below — mid-scroll, which reads on
+// screen as the cards re-snapping to a position the finger never asked for.
+// The section's own geometry is pinned to a stable height (see SCRUB_SCREENS),
+// so there is nothing for that refresh to correct.
+ScrollTrigger.config({ ignoreMobileResize: true });
 
 // Stays in the repo's public assets rather than on Blob: unlike the hero, this
 // is not recut content. Its playback is bound to the card timings below, so it
@@ -34,9 +42,22 @@ const CARD_TIMINGS: Array<[number, number]> = [
 // to breathe before the section releases.
 const EFFECTIVE_DURATION_S = 9;
 
+// The scroll runway, in screens. It used to be written straight into the
+// container as `700vh`, which is what made the page lurch on mobile: measured
+// at 375x752 → 375x852, 100px of browser chrome bought 800px of jump. The rule
+// that fixes it, and the reasoning, are in `lib/stable-viewport.ts`.
+const SCRUB_SCREENS = 7;
+
 export function WhySection() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const screenHeight = useStableScreenHeight();
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // The runway only ever changes on a width change (see the hook), and when it
+  // does every trigger below is measured against the old one.
+  useEffect(() => {
+    ScrollTrigger.refresh();
+  }, [screenHeight]);
 
   // `essential`, because the 700vh of card animation below is driven off this
   // video's duration: skipped, the section is seven screens of a single card.
@@ -230,9 +251,12 @@ export function WhySection() {
       <div
         ref={containerRef}
         className="relative bg-coral rounded-section"
-        style={{ height: "700vh" }}
+        style={{
+          "--scrub-screen": screenHeight,
+          height: `calc(var(--scrub-screen) * ${SCRUB_SCREENS})`,
+        } as CSSProperties}
       >
-        <div className="sticky top-0 h-screen overflow-hidden">
+        <div className="sticky top-0 h-[var(--scrub-screen)] overflow-hidden">
           {/* pt clears the fixed header (64px on mobile) — the section is
               pinned, so the heading would otherwise sit under it. */}
           <div className="container-main relative z-10 h-full flex flex-col pt-20 pb-6 lg:py-30">
