@@ -8,7 +8,7 @@ import { formatPrice } from "@/lib/format";
 
 interface CheckoutSuccessProps {
   order: {
-    customer: { fullName: string; phone: string; email: string | null };
+    customer: { fullName: string; phone: string; email: string };
     delivery: {
       city: { name: string };
       branch: { name: string };

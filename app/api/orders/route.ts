@@ -21,7 +21,9 @@ const orderRequestSchema = z.object({
   customer: z.object({
     fullName: z.string().trim().min(2).max(200),
     phone: z.string().trim().min(5).max(32),
-    email: z.string().trim().email().max(320).nullish(),
+    // Required, same as the checkout form (lib/checkout-schema.ts). The browser
+    // is no more the authority on this than it is on prices.
+    email: z.string().trim().min(1).email().max(320),
   }),
   delivery: z.object({
     cityRef: z.string().trim().min(1).max(64),
@@ -163,9 +165,9 @@ export async function POST(req: Request) {
         total: Math.round(line.lineTotal * 100),
         ...(line.sku ? { code: line.sku } : {}),
       })),
-      customerEmails: parsed.customer.email
-        ? [parsed.customer.email]
-        : undefined,
+      // Always present now, and this is what it is for: Monobank sends the
+      // receipt only to an invoice that carries an address.
+      customerEmails: [parsed.customer.email],
       redirectUrl: `${base}/payment-result`,
       webHookUrl: `${base}/api/monobank/webhook`,
       validity: 60 * 60,
