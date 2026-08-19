@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
 import { CTAButton } from "@/components/ui/cta-button";
 import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
+import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
 // Re-encoded from the 19 MB original: 1920x1080 H.264, CRF 30, chroma zeroed
 // (it renders greyscaled anyway, so colour was pure cost) and +faststart —
@@ -23,6 +24,11 @@ const HERO_POSTER_URL = "/assets/hero-poster.webp";
 export function HeroSection() {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
+  // `100svh` is already the stable unit in a browser that only hides its
+  // chrome. It is not stable in an in-app browser, which resizes its web view
+  // outright — and there the hero is the first of several viewport-sized boxes
+  // that would all move at once. Pinned, it is the same box either way.
+  const screenHeight = useStableScreenHeight();
 
   useEffect(() => {
     if (!shouldLoadDecorativeVideo(readVideoConditions())) return;
@@ -51,7 +57,10 @@ export function HeroSection() {
 
   return (
     <div className="bg-black p-2 pt-0 sm:p-3 lg:p-4">
-      <section className="relative h-[calc(100svh-16px)] sm:h-[calc(100svh-24px)] lg:h-[calc(100svh-32px)] flex items-end bg-[#1a1a1a] overflow-hidden rounded-section">
+      <section
+        style={{ "--screen": screenHeight } as CSSProperties}
+        className="relative h-[calc(var(--screen)-16px)] sm:h-[calc(var(--screen)-24px)] lg:h-[calc(var(--screen)-32px)] flex items-end bg-[#1a1a1a] overflow-hidden rounded-section"
+      >
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- the treatment
