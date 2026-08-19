@@ -41,7 +41,7 @@ export interface OrderDraftItem {
 }
 
 export interface OrderDraft {
-  customer: { fullName: string; phone: string; email?: string | null };
+  customer: { fullName: string; phone: string; email: string };
   delivery: {
     cityRef: string;
     cityName: string;
@@ -268,7 +268,7 @@ export async function createKeyCrmOrder(
     buyer: {
       full_name: draft.customer.fullName,
       phone: draft.customer.phone,
-      ...(draft.customer.email ? { email: draft.customer.email } : {}),
+      email: draft.customer.email,
     },
     shipping: {
       delivery_service_id: NOVA_POSHTA_DELIVERY_SERVICE_ID,
