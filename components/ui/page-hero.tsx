@@ -10,9 +10,10 @@ import { motion } from "framer-motion";
 // point to stop: the geometry below is a design spec, and a spec that lives in
 // four files drifts in four directions.
 //
-// Note that CatalogSkeleton reproduces this footprint independently, since a
-// skeleton has to occupy the space before this renders. Changing the vertical
-// rhythm here means changing it there too.
+// CatalogSkeleton used to reproduce this footprint independently, back when the
+// shop hero sat inside the catalogue's Suspense boundary. It no longer does
+// (#79) — the hero renders above the boundary, so the skeleton covers the grid
+// alone and the two are free to drift.
 
 type Props = {
   /** Rendered inside the h1. A node, so a caller can emphasise part of it. */
