@@ -1,5 +1,5 @@
 import { FadeUp } from "@/components/ui/fade-up";
-import type { CategoryIntro as CategoryIntroContent } from "@/content/category-copy";
+import type { CategoryIntroCopy } from "@/content/category-copy";
 
 // The prose block under a category's product grid. It exists for two readers at
 // once: a visitor deciding which of four near-identical-looking belts is theirs,
@@ -10,7 +10,7 @@ import type { CategoryIntro as CategoryIntroContent } from "@/content/category-c
 // for, and copy above them would push the catalog below the fold.
 
 interface Props {
-  intro: CategoryIntroContent;
+  intro: CategoryIntroCopy;
 }
 
 export function CategoryIntro({ intro }: Props) {
