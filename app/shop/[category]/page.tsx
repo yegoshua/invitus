@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/ui/page-hero";
 import { CatalogGrid } from "@/components/sections/catalog-grid";
+import { CategoryIntro } from "@/components/sections/category-intro";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
 import { CartDrawer } from "@/components/layout/cart-drawer";
@@ -18,6 +19,7 @@ import {
   getProducts,
 } from "@/lib/api";
 import { ALL_FILTER_SLUG } from "@/lib/filter";
+import { resolveCategoryCopy } from "@/lib/category-copy";
 import { breadcrumbSchema } from "@/lib/structured-data";
 import type { Category } from "@/types";
 
@@ -55,9 +57,11 @@ export async function generateMetadata({
       };
     }
 
+    const copy = resolveCategoryCopy(categorySlug, category.name);
+
     return {
-      title: `${category.name} | INVITUS`,
-      description: `Купуйте ${category.name.toLowerCase()} від INVITUS. Українська якість для пауерліфтингу та важкої атлетики.`,
+      title: `${copy.h1} | INVITUS`,
+      description: copy.metaDescription,
       // Query-less on purpose: ?filter= narrows the same catalog rather than
       // producing a new page, so every filtered view points the index back at
       // the bare category URL.
@@ -79,12 +83,7 @@ async function CatalogContent({
 }) {
   const products = await getProducts({ category: category.slug, filter });
 
-  return (
-    <>
-      <PageHero title={`${category.name} (${products.length})`} />
-      <CatalogGrid products={products} />
-    </>
-  );
+  return <CatalogGrid products={products} />;
 }
 
 export default async function ShopCategoryPage({
@@ -105,6 +104,8 @@ export default async function ShopCategoryPage({
     notFound();
   }
 
+  const copy = resolveCategoryCopy(categorySlug, category.name);
+
   return (
     <>
       <JsonLd
@@ -115,9 +116,14 @@ export default async function ShopCategoryPage({
       />
       <Header />
       <main>
+        {/* Outside the Suspense boundary: the heading no longer carries the
+            product count, so it no longer waits on the products fetch. The h1
+            now ships in the streamed shell instead of arriving with the grid. */}
+        <PageHero title={copy.h1} />
         <Suspense fallback={<CatalogSkeleton />}>
           <CatalogContent category={category} filter={activeFilter} />
         </Suspense>
+        {copy.intro && <CategoryIntro intro={copy.intro} />}
         <FAQSection />
         <BenefitsGrid />
       </main>
