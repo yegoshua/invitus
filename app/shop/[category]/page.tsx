@@ -111,7 +111,10 @@ export default async function ShopCategoryPage({
       <JsonLd
         data={breadcrumbSchema([
           { name: "Головна", path: "/" },
-          { name: category.name, path: `/shop/${category.slug}` },
+          // The h1, not category.name: with copy in play those two differ,
+          // and a breadcrumb leaf naming something the page never says is
+          // markup contradicting the rendered page.
+          { name: copy.h1, path: `/shop/${category.slug}` },
         ])}
       />
       <Header />

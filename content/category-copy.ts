@@ -12,7 +12,7 @@
 // a description of how the gear is built; "IPF approved" is a claim to a status
 // we do not hold.
 
-export interface CategoryIntro {
+export interface CategoryIntroCopy {
   heading: string;
   paragraphs: string[];
 }
@@ -21,10 +21,14 @@ export interface CategoryCopy {
   /** The <h1>. Carries the search term, unlike the short nav label. */
   h1: string;
   metaDescription: string;
-  intro: CategoryIntro;
+  intro: CategoryIntroCopy;
 }
 
-export const categoryCopy: Record<string, CategoryCopy> = {
+// `| undefined` is load-bearing, not decoration: tsconfig has no
+// noUncheckedIndexedAccess, so without it a lookup on a slug nobody has
+// written copy for is typed as a hit, and the guard in lib/category-copy.ts
+// that this whole file's partiality depends on becomes invisible to tsc.
+export const categoryCopy: Record<string, CategoryCopy | undefined> = {
   belts: {
     h1: "Атлетичні пояси для пауерліфтингу",
     metaDescription:
