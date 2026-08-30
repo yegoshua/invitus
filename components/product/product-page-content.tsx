@@ -129,13 +129,14 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                 {formattedPrice}
               </p>
             </div>
-            <div className="mt-6">
-              <SizeSelector
-                sizes={product.sizes}
-                selectedSize={selectedSize?.value ?? null}
-                onSelect={setSelectedSize}
-              />
-            </div>
+            {/* No wrapper: an empty one would leave its own gap behind on a
+                product whose selector renders nothing. The selector carries the
+                spacing itself. */}
+            <SizeSelector
+              sizes={product.sizes}
+              selectedSize={selectedSize?.value ?? null}
+              onSelect={setSelectedSize}
+            />
           </div>
         </div>
 
