@@ -100,6 +100,8 @@ export interface StrapiProduct {
   shortDescription: string | null;
   howToMeasure: string | null;
   careInstructions: string | null;
+  /** Long text; absent until the field is added to the Strapi content type. */
+  designStory?: string | null;
   featured: boolean;
   order: number;
   seoTitle: string | null;

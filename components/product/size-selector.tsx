@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { ChipButton } from "@/components/ui/chip-button";
-import { sizeIsAChoice } from "@/lib/size-display";
+import { useScrollHint } from "@/hooks/use-scroll-hint";
+import { sizeDisplayText, sizeIsAChoice } from "@/lib/size-display";
 import type { ProductSize } from "@/types";
 
 interface SizeSelectorProps {
@@ -28,10 +30,16 @@ export function SizeSelector({
   selectedSize,
   onSelect,
 }: SizeSelectorProps) {
+  // On a phone the chips run off the right edge; the row creeps along once so
+  // the cut-off chip reads as "more this way" and not as the end of the list.
+  // On desktop the row wraps, nothing overflows, and the hook does nothing.
+  const rowRef = useRef<HTMLDivElement>(null);
+  useScrollHint(rowRef);
+
   if (!sizeIsAChoice(sizes)) return null;
 
   return (
-    <div className="flex gap-3 overflow-x-auto mt-6 lg:mt-10 pb-1 scrollbar-hide px-5 lg:px-0 lg:flex-wrap lg:gap-4">
+    <div ref={rowRef} className="flex gap-3 overflow-x-auto mt-6 lg:mt-10 pb-1 scrollbar-hide px-5 lg:px-0 lg:flex-wrap lg:gap-4">
       {sizes.map((size) => (
         <ChipButton
           key={size.value}
@@ -40,7 +48,7 @@ export function SizeSelector({
           disabled={!size.inStock}
           title={size.inStock ? undefined : "Немає в наявності"}
         >
-          {size.label}
+          {sizeDisplayText(size.value, size.label)}
         </ChipButton>
       ))}
     </div>

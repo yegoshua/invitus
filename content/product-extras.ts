@@ -41,8 +41,17 @@ export interface ProductExtras {
   bgImage?: ProductImage;
   /** Gallery rendered below the product; overrides KeyCRM attachments when present. */
   galleryImages?: ProductImage[];
+  /**
+   * Marketing copy for the product. KeyCRM has a description field too, but it
+   * is empty on every belt, and a manager editing it there would be editing the
+   * wrong system — the description is presentation, so Strapi wins when it has
+   * one and KeyCRM's is only the fallback.
+   */
+  description?: string;
   howToMeasure?: string;
   careInstructions?: string;
+  /** The story behind the design, shown as its own panel under the photos. */
+  designStory?: string;
   /**
    * Emergency fallback for the homepage sections only.
    *

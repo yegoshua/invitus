@@ -34,12 +34,7 @@
 // deliberately long: the fewer times we touch Strapi, the fewer chances a blip
 // there has to become a visible bug here.
 
-import { getStrapiMedia } from "./strapi";
-import {
-  strapiAuthHeaders,
-  strapiGetWithRetries,
-  StrapiNotFoundError,
-} from "./strapi-fetch";
+import { getStrapiURL, getStrapiMedia } from "./strapi";
 import { slugify } from "./slugify";
 import type {
   StrapiHomepage,
@@ -82,7 +77,7 @@ export const STRAPI_EXTRAS_TAG = "strapi-extras";
 // the wake-up, so the retry is usually the fast case.
 const ATTEMPT_TIMEOUT_MS = 12_000;
 const MAX_ATTEMPTS = 3;
-const ATTEMPT_TIMEOUTS_MS = Array<number>(MAX_ATTEMPTS).fill(ATTEMPT_TIMEOUT_MS);
+const RETRY_DELAY_MS = 1_000;
 
 // Safety net for a missed webhook, not the freshness mechanism. See the note
 // at the top of this file.
@@ -172,8 +167,10 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
             }
           : undefined,
         galleryImages: galleryImages.length ? galleryImages : undefined,
+        description: p.description ?? undefined,
         howToMeasure: p.howToMeasure ?? undefined,
         careInstructions: p.careInstructions ?? undefined,
+        designStory: p.designStory ?? undefined,
         featured: p.featured || undefined,
         // Strapi's integer field defaults to 0, and 0 is a position like any
         // other; only a genuinely absent value means "no opinion, sort last".
@@ -230,13 +227,10 @@ const HOMEPAGE_QUERY =
  * the fallback render.
  */
 async function fetchWithRetries(): Promise<StrapiResponse<StrapiProduct[]>> {
-  return strapiGetWithRetries<StrapiResponse<StrapiProduct[]>>({
-    query: PRODUCTS_QUERY,
-    tag: STRAPI_EXTRAS_TAG,
-    timeouts: ATTEMPT_TIMEOUTS_MS,
-    revalidate: REVALIDATE_S,
-    logPrefix: "[extras]",
-  });
+  return getWithRetries<StrapiResponse<StrapiProduct[]>>(
+    PRODUCTS_QUERY,
+    "extras"
+  );
 }
 
 /**
@@ -256,29 +250,24 @@ async function fetchHomepage(): Promise<HomepageLists> {
   if (Date.now() < homepageSkipUntil) return lastGood?.homepage ?? EMPTY_HOMEPAGE;
 
   try {
-    const json = await strapiGetWithRetries<
-      StrapiResponse<StrapiHomepage | null>
-    >({
-      query: HOMEPAGE_QUERY,
-      tag: STRAPI_EXTRAS_TAG,
-      timeouts: ATTEMPT_TIMEOUTS_MS,
-      revalidate: REVALIDATE_S,
-      logPrefix: "[homepage]",
+    const json = await getWithRetries<StrapiResponse<StrapiHomepage | null>>(
+      HOMEPAGE_QUERY,
+      "homepage",
       // Products are readable anonymously; the `Homepage` single type is not —
       // its find permission is granted to the API token, and an unauthenticated
       // read gets a 403 that would leave the homepage on the `featured`
       // fallback forever. Only this query carries the token: putting the
       // products query behind a second auth surface would add a way for
       // something that works today to start failing, and buy nothing.
-      headers: strapiAuthHeaders(),
-    });
+      strapiAuthHeaders()
+    );
     return {
       showcase: toProductRefs(json.data?.showcase) ?? [],
       shopCta: toProductRefs(json.data?.shopCta) ?? [],
     };
   } catch (error) {
     homepageSkipUntil = Date.now() + FAILURE_BACKOFF_MS;
-    if (!(error instanceof StrapiNotFoundError)) {
+    if (!(error instanceof NotFoundError)) {
       const reason = error instanceof Error ? error.message : String(error);
       console.warn(
         `Strapi homepage fetch failed (${reason}), ` +
@@ -288,6 +277,58 @@ async function fetchHomepage(): Promise<HomepageLists> {
     return lastGood?.homepage ?? EMPTY_HOMEPAGE;
   }
 }
+
+/** Server-only module, so the token never reaches the client bundle. */
+function strapiAuthHeaders(): Record<string, string> {
+  const token = process.env.STRAPI_API_TOKEN;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function getWithRetries<T>(
+  query: string,
+  label: string,
+  headers: Record<string, string> = {}
+): Promise<T> {
+  const url = getStrapiURL(query);
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
+        next: { revalidate: REVALIDATE_S, tags: [STRAPI_EXTRAS_TAG] },
+      });
+
+      if (response.status === 404) {
+        throw new NotFoundError(`Strapi responded 404`);
+      }
+      if (response.status >= 400 && response.status < 500) {
+        throw new NonRetryableError(`Strapi responded ${response.status}`);
+      }
+      if (!response.ok) throw new Error(`Strapi responded ${response.status}`);
+
+      return (await response.json()) as T;
+    } catch (error) {
+      if (error instanceof NonRetryableError) throw error;
+      lastError = error;
+      if (attempt < MAX_ATTEMPTS) {
+        const reason = error instanceof Error ? error.message : String(error);
+        console.warn(
+          `Strapi ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed (${reason}), retrying`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+class NonRetryableError extends Error {}
+/** A 4xx that carries meaning: the single type has no saved entry yet. */
+class NotFoundError extends NonRetryableError {}
 
 /**
  * Strapi relation entries → unresolved pointers. Returns undefined for an empty
