@@ -1,7 +1,7 @@
 "use client";
 
 import { ChipButton } from "@/components/ui/chip-button";
-import { sizeIsAChoice } from "@/lib/size-display";
+import { sizeDisplayText, sizeIsAChoice } from "@/lib/size-display";
 import type { ProductSize } from "@/types";
 
 interface SizeSelectorProps {
@@ -40,7 +40,7 @@ export function SizeSelector({
           disabled={!size.inStock}
           title={size.inStock ? undefined : "Немає в наявності"}
         >
-          {size.label}
+          {sizeDisplayText(size.value, size.label)}
         </ChipButton>
       ))}
     </div>

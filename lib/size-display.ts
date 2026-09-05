@@ -31,10 +31,25 @@ export function sizeIsAChoice(sizes?: ProductSize[]): sizes is ProductSize[] {
 }
 
 /**
+ * The text a size is drawn as: "S · 65-80 см".
+ *
+ * A belt is stocked by letter but fits by waist, and the customer needs both —
+ * the range to pick by, the letter to recognise the belt they already own or
+ * to say to a manager. When Strapi has no wording for a size the label is the
+ * value itself, and printing "S · S" would look like a bug, so it collapses to
+ * the one string.
+ */
+export function sizeDisplayText(value: string, label: string): string {
+  return label === value ? value : `${value} · ${label}`;
+}
+
+/**
  * What to print for a cart line's size, or null when the size is not a choice
- * and should be left off the screen entirely.
+ * and should be left off the screen entirely. Same text as the product page
+ * chip, so the cart names the size the customer just clicked.
  */
 export function cartSizeLabel(item: CartItem): string | null {
   if (!sizeIsAChoice(item.product.sizes)) return null;
-  return item.sizeLabel ?? item.size ?? null;
+  if (!item.size) return null;
+  return sizeDisplayText(item.size, item.sizeLabel ?? item.size);
 }
