@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useState, useEffect } from "react";
+import { Suspense, useCallback, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArnoldLoader } from "@/components/ui/arnold-loader";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
@@ -56,6 +56,25 @@ interface ModelLoaderProps {
  * and retrying forever would just spin.
  */
 const MAX_CONTEXT_RECOVERIES = 2;
+
+/**
+ * `THREE.WebGLRenderer: Context Lost.` in the dev console is expected, and is
+ * this code working rather than failing. Measured, repeatedly: development
+ * loses the context exactly once per page load and recovers it; a production
+ * build never loses it at all.
+ *
+ * The cause is not ours to remove. React StrictMode mounts the viewer,
+ * unmounts it and mounts it again, reusing the same <canvas> element;
+ * @react-three/fiber's `unmountComponentAtNode` schedules
+ * `gl.forceContextLoss()` on an uncancellable 500 ms timer, so the first
+ * mount's teardown fires into the second mount's live context. The recovery
+ * below is what makes that survivable — and it is worth keeping regardless,
+ * because a real browser takes contexts away too, on sleep or a driver reset.
+ *
+ * Before treating the message as a regression, run `pnpm check:webgl`: it
+ * reports whether the page ends up with a live canvas or a dead one, which is
+ * the only difference that reaches a customer.
+ */
 
 // Loading overlay with progress
 function LoadingOverlay({ modelUrl }: { modelUrl?: string }) {
@@ -131,6 +150,12 @@ export function ModelLoader({
   // has been lost can never be given a working one again, so reusing it would
   // rebuild the renderer around a corpse.
   const [generation, setGeneration] = useState(0);
+  // The count lives in a ref as well as in state because the decision — retry
+  // or give up — has to be made in the event handler. Made inside the state
+  // updater it would be a side effect in a function React deliberately calls
+  // twice in development, which is how `onGaveUp` and the note below both used
+  // to fire twice for a single lost context.
+  const recoveries = useRef(0);
 
   const handleContextLost = useCallback(
     (event: Event) => {
@@ -139,13 +164,28 @@ export function ModelLoader({
       // the canvas stays blank until something rebuilds it. That something is
       // the generation bump below.
       event.preventDefault();
-      setGeneration((n) => {
-        if (n >= MAX_CONTEXT_RECOVERIES) {
-          onGaveUp?.();
-          return n;
-        }
-        return n + 1;
-      });
+
+      if (recoveries.current >= MAX_CONTEXT_RECOVERIES) {
+        onGaveUp?.();
+        return;
+      }
+      recoveries.current += 1;
+
+      // three.js has already printed `WebGLRenderer: Context Lost.` by now, and
+      // in development that line is this code working, not failing. Say so next
+      // to it: the message has been read as a returning bug more than once, and
+      // the console is where somebody is looking when they read it.
+      if (process.env.NODE_ENV !== "production") {
+        console.info(
+          "[3D] Context lost and rebuilt — expected in dev, harmless. " +
+            "StrictMode remounts the viewer and @react-three/fiber tears the " +
+            "old renderer down 500 ms later, into the canvas the new one is " +
+            "using. A production build never does it. " +
+            "Proof either way: pnpm check:webgl"
+        );
+      }
+
+      setGeneration(recoveries.current);
     },
     [onGaveUp]
   );
