@@ -21,9 +21,12 @@ interface ArticleCardProps {
 export function ArticleCard({ article, aboveTheFold = false }: ArticleCardProps) {
   return (
     <article className="group">
-      <Link href={`/blog/${article.slug}`} className="block">
-        <div className="bg-surface rounded-[24px] lg:rounded-[32px] overflow-hidden h-full flex flex-col">
-          <div className="relative aspect-[16/10] overflow-hidden">
+      <Link href={`/blog/${article.slug}`} className="block h-full">
+        {/* The cover is inset by the card's own padding rather than bleeding to
+            its edges — the one structural difference from ProductCard, which
+            this card was otherwise cloned from. */}
+        <div className="bg-surface rounded-[32px] p-5 h-full flex flex-col gap-5">
+          <div className="relative h-[220px] w-full rounded-[24px] overflow-hidden shrink-0">
             <Image
               src={article.cover.url}
               alt={article.cover.alt}
@@ -39,27 +42,36 @@ export function ArticleCard({ article, aboveTheFold = false }: ArticleCardProps)
             />
           </div>
 
-          <div className="px-5 lg:px-6 pt-4 pb-5 lg:pt-5 lg:pb-6 flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center rounded-full bg-coral px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider text-white">
-                {article.category}
-              </span>
-              <span className="text-sm text-neutral-400">
+          <div className="flex flex-col gap-4">
+            {/* Category and reading time sit at opposite ends of the row, which
+                is what makes the reading time read as metadata about the card
+                rather than as a second label next to the first. */}
+            <div className="flex items-center justify-between gap-3 text-xs leading-4 uppercase tracking-[0.03em]">
+              <span className="font-bold text-coral">{article.category}</span>
+              <span className="font-semibold text-white/48 whitespace-nowrap">
                 {article.readingTimeMinutes} хв. читання
               </span>
             </div>
 
-            {/* h2 for the document outline — the h1 is the page's banner. The
-                font is set back to the body face on purpose: the base layer
-                gives every h2 the Druk heading face, and a card title in Druk
-                is a different card language from the product grid's. */}
-            <h2 className="font-sans text-lg lg:text-xl leading-tight tracking-[0.01em] font-medium text-white">
-              {article.title}
-            </h2>
+            <div className="flex flex-col gap-2">
+              {/* h2 for the document outline — the h1 is the page's banner. The
+                  base layer already gives it the Druk face, which is what the
+                  design asks for; only the size is brought down from text-h2 to
+                  the 16/24 the card uses. */}
+              {/* font-bold explicitly: preflight resets heading weight to
+                  inherit, and Druk ships only a 700 face — so without this the
+                  browser is asked for a 400 that does not exist. */}
+              <h2 className="text-body-2 font-bold tracking-[0.03em] text-white line-clamp-2">
+                {article.title}
+              </h2>
 
-            <p className="text-sm lg:text-base leading-snug text-neutral-400 line-clamp-3">
-              {article.excerpt}
-            </p>
+              {/* Clamped so every card in a row ends at the same place: the
+                  cover is a fixed height and the title is capped at two lines,
+                  so this is the only part left that could stagger them. */}
+              <p className="font-sans text-body-2 font-medium tracking-[0.01em] text-white/48 line-clamp-3">
+                {article.excerpt}
+              </p>
+            </div>
           </div>
         </div>
       </Link>

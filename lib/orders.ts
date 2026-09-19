@@ -41,7 +41,7 @@ export interface OrderDraftItem {
 }
 
 export interface OrderDraft {
-  customer: { fullName: string; phone: string; email?: string | null };
+  customer: { fullName: string; phone: string; email: string };
   delivery: {
     cityRef: string;
     cityName: string;
@@ -268,7 +268,7 @@ export async function createKeyCrmOrder(
     buyer: {
       full_name: draft.customer.fullName,
       phone: draft.customer.phone,
-      ...(draft.customer.email ? { email: draft.customer.email } : {}),
+      email: draft.customer.email,
     },
     shipping: {
       delivery_service_id: NOVA_POSHTA_DELIVERY_SERVICE_ID,
@@ -344,4 +344,26 @@ export async function markKeyCrmOrderPaid(
     status: "paid",
     description,
   });
+}
+
+/**
+ * Move an order to a different status. Used by the Telegram buttons, so it is
+ * a manager pressing a key on a phone — not part of the payment path.
+ *
+ * Returns the status the order was on before, so the message can be edited to
+ * say what actually changed (and stay honest when nothing did).
+ */
+export async function setKeyCrmOrderStatus(
+  orderId: number,
+  statusId: number
+): Promise<{ previousStatusId: number | null }> {
+  const before = await fetchKeyCrm<{ status_id?: number }>(`/order/${orderId}`, {
+    revalidate: 0,
+  });
+  const previousStatusId = before.status_id ?? null;
+
+  if (previousStatusId === statusId) return { previousStatusId };
+
+  await putKeyCrm(`/order/${orderId}`, { status_id: statusId });
+  return { previousStatusId };
 }

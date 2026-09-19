@@ -12,6 +12,7 @@
 // being passed in); `currency` is injected here so call sites never repeat it.
 
 import type { CartItem, Product } from "@/types";
+import { trackMetaEvent } from "./meta-pixel.ts";
 
 const CURRENCY = "UAH";
 
@@ -89,6 +90,8 @@ export function trackEvent<E extends GAEventName>(
   const payload = { currency: CURRENCY, ...params };
 
   if (typeof window === "undefined") return;
+  trackMetaEvent(name, payload);
+
   const w = window as unknown as GAWindow;
 
   if (w.gtag) {

@@ -81,7 +81,7 @@ export function CustomerInfoFields() {
         }}
       </LabeledField>
 
-      <LabeledField name="email" label="Email (необов'язково)">
+      <LabeledField name="email" label="Email">
         {({ id, hintId, error }) => (
           <IconInput
             id={id}

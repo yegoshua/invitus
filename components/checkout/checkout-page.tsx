@@ -68,16 +68,20 @@ export function CheckoutPage() {
 
     // PII: upgrade Clarity identity from anon UUID to customer email so post-payment
     // sessions are grouped with checkout sessions in the dashboard.
-    if (data.email && typeof window !== "undefined" && (window as { clarity?: unknown }).clarity) {
+    if (typeof window !== "undefined" && (window as { clarity?: unknown }).clarity) {
       Clarity.identify(data.email, undefined, undefined, data.fullName);
     }
 
+    // Built once: the success screen and the request body were drifting apart
+    // one edit at a time.
+    const customer = {
+      fullName: data.fullName,
+      phone: data.phone,
+      email: data.email,
+    };
+
     const order: SubmittedOrder = {
-      customer: {
-        fullName: data.fullName,
-        phone: data.phone,
-        email: data.email && data.email.length > 0 ? data.email : null,
-      },
+      customer,
       delivery: {
         city: { name: data.cityName },
         branch: { name: data.branchName },
@@ -102,11 +106,7 @@ export function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer: {
-            fullName: data.fullName,
-            phone: data.phone,
-            email: data.email || null,
-          },
+          customer,
           delivery: {
             cityRef: data.cityRef,
             cityName: data.cityName,

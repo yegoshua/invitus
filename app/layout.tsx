@@ -3,6 +3,7 @@ import { Golos_Text } from "next/font/google";
 import { Providers } from "./providers";
 import { ClarityAnalytics } from "@/components/analytics/clarity";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL } from "@/lib/site";
 import { organizationSchema } from "@/lib/structured-data";
@@ -68,6 +69,7 @@ export default function RootLayout({
         <JsonLd data={organizationSchema()} />
         <ClarityAnalytics />
         <GoogleAnalytics />
+        <MetaPixel />
       </body>
     </html>
   );

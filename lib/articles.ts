@@ -34,7 +34,11 @@
 // literally. tsconfig has `allowImportingTsExtensions` for exactly this — same
 // as lib/promo.ts.
 import { readingTimeMinutes, type BlocksNode } from "./article-body.ts";
-import { getStrapiMedia, getStrapiURL } from "./strapi.ts";
+import { getStrapiMedia } from "./strapi.ts";
+import {
+  requiredStrapiAuthHeaders,
+  strapiGetWithRetries,
+} from "./strapi-fetch.ts";
 import type { Article, ArticleSummary } from "../types/index.ts";
 
 /** Cache tag busted by the Strapi webhook at app/api/revalidate. */
@@ -183,49 +187,24 @@ export class ArticlesUnavailableError extends Error {
   }
 }
 
+/**
+ * The shared Strapi GET, with this module's budget bound to it. Both reads —
+ * the list and one slug — go through here, so a page cannot end up on a budget
+ * the note above ATTEMPT_TIMEOUTS_MS does not describe.
+ */
 async function getWithRetries<T>(query: string): Promise<T> {
-  const token = process.env.STRAPI_API_TOKEN;
-  if (!token) {
-    // Not retryable and not a Strapi problem: Strapi answers 403 anonymously
-    // for articles, so without the token the blog cannot be read at all.
-    throw new NonRetryableError("STRAPI_API_TOKEN is not set (server-only)");
-  }
-
-  const url = getStrapiURL(query);
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= ATTEMPT_TIMEOUTS_MS.length; attempt++) {
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(ATTEMPT_TIMEOUTS_MS[attempt - 1]),
-        next: { revalidate: REVALIDATE_S, tags: [STRAPI_ARTICLES_TAG] },
-      });
-
-      if (response.status >= 400 && response.status < 500) {
-        throw new NonRetryableError(`Strapi responded ${response.status}`);
-      }
-      if (!response.ok) throw new Error(`Strapi responded ${response.status}`);
-
-      return (await response.json()) as T;
-    } catch (error) {
-      if (error instanceof NonRetryableError) throw error;
-      lastError = error;
-      if (attempt < ATTEMPT_TIMEOUTS_MS.length) {
-        const reason = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[articles] Strapi attempt ${attempt}/${ATTEMPT_TIMEOUTS_MS.length} ` +
-            `failed (${reason}), retrying`
-        );
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      }
-    }
-  }
-
-  throw lastError;
+  return strapiGetWithRetries<T>({
+    query,
+    tag: STRAPI_ARTICLES_TAG,
+    timeouts: ATTEMPT_TIMEOUTS_MS,
+    retryDelay: RETRY_DELAY_MS,
+    revalidate: REVALIDATE_S,
+    logPrefix: "[articles]",
+    // Strapi answers 403 anonymously for articles, so without the token the
+    // blog cannot be read at all — a failure no retry can fix.
+    headers: requiredStrapiAuthHeaders(),
+  });
 }
-
-class NonRetryableError extends Error {}
 
 // ── mapping ──────────────────────────────────────────────────────────────────
 

@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { verifyWebhookSignature, type InvoiceStatusValue } from "@/lib/monobank";
 import { markKeyCrmOrderPaid } from "@/lib/orders";
+import { reportFailure } from "@/lib/alerts";
 
 interface WebhookPayload {
   invoiceId: string;
@@ -59,6 +60,13 @@ export async function POST(req: Request) {
     console.error(
       `[Monobank webhook] paid invoice ${payload.invoiceId} has no usable reference (${payload.reference}) — mark it by hand`
     );
+    await reportFailure({
+      scope: "monobank.reference",
+      title: "Оплата пройшла, але замовлення не визначено",
+      context: { Інвойс: payload.invoiceId, reference: payload.reference ?? "—" },
+      action: "Гроші прийшли. Знайди замовлення за інвойсом і познач оплату вручну.",
+      severity: "critical",
+    });
     // 200 on purpose: retries cannot fix a missing reference, and this needs a
     // human, not a redelivery loop.
     return NextResponse.json({ ok: true, ignored: "no order reference" });
@@ -77,6 +85,18 @@ export async function POST(req: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Monobank webhook] order ${orderId} update failed:`, msg);
+    // The one gap KeyCRM's own payment-status trigger cannot cover: no status
+    // changed, so nothing over there will fire. Monobank will redeliver and
+    // this may fix itself — the alert says so rather than demanding action.
+    await reportFailure({
+      scope: "monobank.markPaid",
+      title: "Оплата пройшла, а KeyCRM не оновився",
+      detail: msg,
+      context: { Замовлення: orderId, Інвойс: payload.invoiceId },
+      action:
+        "Monobank повторить спробу. Якщо за 10 хв статус не зміниться — познач оплату вручну.",
+      severity: "critical",
+    });
     // 500 so Monobank redelivers — the money arrived, the CRM just missed it.
     return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
   }

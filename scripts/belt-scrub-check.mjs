@@ -61,7 +61,9 @@ const info = await page.evaluate(async (mobile) => {
   const heading = [...document.querySelectorAll("h2")].find((h) =>
     h.textContent?.includes("це база")
   );
-  const container = heading?.closest("[style*='700vh']");
+  // The runway is `calc(var(--scrub-screen) * 7)` set inline; the variable
+  // name is the stable handle.
+  const container = heading?.closest("[style*='--scrub-screen']");
   const video = container?.querySelector("video");
   if (!container || !video) return { missing: true };
   const top = container.getBoundingClientRect().top + window.scrollY;
