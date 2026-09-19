@@ -6,6 +6,7 @@ import { CTAButton } from "@/components/ui/cta-button";
 import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
+import { HeroLookSwitcher, useHeroLook } from "./hero-look-switcher";
 
 // Re-encoded from the 70 MB camera original: 1920x1080 H.264, 60 -> 30 fps,
 // CRF 30, audio dropped, +faststart — 1.6 MB. Compression artefacts that would
@@ -25,6 +26,7 @@ const HERO_POSTER_URL = "/assets/hero-poster.webp";
 export function HeroSection() {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
+  const [look, setLook] = useHeroLook();
   // `100svh` is already the stable unit in a browser that only hides its
   // chrome. It is not stable in an in-app browser, which resizes its web view
   // outright — and there the hero is the first of several viewport-sized boxes
@@ -97,7 +99,8 @@ export function HeroSection() {
                 playsInline
                 aria-hidden="true"
                 onCanPlay={() => setVideoReady(true)}
-                className="absolute inset-0 w-full h-full object-cover opacity-50"
+                style={{ filter: `saturate(${look.saturation})`, opacity: look.opacity }}
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
           )}
@@ -134,6 +137,7 @@ export function HeroSection() {
           </div>
         </div>
       </section>
+      <HeroLookSwitcher look={look} onChange={setLook} />
     </div>
   );
 }
