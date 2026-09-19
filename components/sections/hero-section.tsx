@@ -6,7 +6,7 @@ import { CTAButton } from "@/components/ui/cta-button";
 import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
-import { HeroLookSwitcher, useHeroLook } from "./hero-look-switcher";
+import { HeroLookSwitcher, treatmentFilter, useHeroLook } from "./hero-look-switcher";
 
 // Re-encoded from the 70 MB camera original: 1920x1080 H.264, 60 -> 30 fps,
 // CRF 30, audio dropped, +faststart — 1.6 MB. Compression artefacts that would
@@ -99,13 +99,13 @@ export function HeroSection() {
                 playsInline
                 aria-hidden="true"
                 onCanPlay={() => setVideoReady(true)}
-                style={{ filter: `saturate(${look.saturation})`, opacity: look.opacity }}
+                style={{ filter: treatmentFilter(look.treatment), opacity: look.opacity }}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
           )}
           {/* Dark overlay */}
-          <div className="absolute inset-0 bg-[#1a1a1a]/60" />
+          <div className="absolute inset-0 bg-[#1a1a1a]" style={{ opacity: look.overlay }} />
         </div>
 
         {/* Content */}
