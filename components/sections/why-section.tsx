@@ -5,6 +5,10 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useVideoGate } from "@/hooks/use-video-gate";
 import { beltFeatures as features } from "@/content/why-belt-features";
+import {
+  pickBeltScrubSource,
+  readScrubPlayback,
+} from "@/lib/belt-scrub-source";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -16,15 +20,15 @@ gsap.registerPlugin(ScrollTrigger);
 // so there is nothing for that refresh to correct.
 ScrollTrigger.config({ ignoreMobileResize: true });
 
-// Stays in the repo's public assets rather than on Blob: unlike the hero, this
-// is not recut content. Its playback is bound to the card timings below, so it
-// changes only when this file changes.
-const SCRUB_SRC = "/assets/belt-benefits-section-video-scrub.webm";
+// The scrub stays in the repo's public assets rather than on Blob: unlike the
+// hero, this is not recut content. Its playback is bound to the card timings
+// below, so it changes only when this file changes. There are two encodings of
+// it and `lib/belt-scrub-source.ts` decides which one a browser gets.
 
 // Two screens of warning rather than the usual one and a half. The section sits
 // about two screens down, so the fetch starts within a moment of the page
 // finishing — which is what "ready on arrival" costs for a 9.6 MB file that
-// nothing is allowed to re-encode.
+// nothing is allowed to re-encode (3 MB on WebKit, which gets the HEVC).
 const SCRUB_LOAD_MARGIN = "200% 0px";
 
 // Seconds, relative to belt-benefits-section-video-scrub.webm (~14.17s).
@@ -84,6 +88,16 @@ export function WhySection() {
     const attach = (src: string) => {
       if (cancelled) return;
       video.src = src;
+      // `preload="none"` is honoured to the letter by WebKit: with nothing
+      // calling load() or play(), Safari never reads even the metadata of the
+      // source it was just handed, `loadedmetadata` never fires, the timeline
+      // below is never built and a transparent video with no decoded frame
+      // paints nothing at all — the belt is simply absent on every Mac and
+      // iPhone. Chromium and Firefox load it regardless, which is why this
+      // was invisible in Chrome. The bytes are already in memory (the blob
+      // above), so asking for them costs no download; and when the fetch has
+      // failed and this is the plain URL, streaming it is the whole point.
+      video.load();
       setSourceAttached(true);
       // iOS plays VP9 only after a user gesture has touched this element, and
       // there is nothing to touch until it has a source — so the listener is
@@ -97,7 +111,8 @@ export function WhySection() {
       });
     };
 
-    fetch(SCRUB_SRC)
+    const src = pickBeltScrubSource(readScrubPlayback(video));
+    fetch(src)
       .then((res) => res.blob())
       .then((blob) => {
         objectUrl = URL.createObjectURL(blob);
@@ -105,7 +120,7 @@ export function WhySection() {
       })
       // A failed fetch must not cost the visitor the section; the element can
       // stream the file itself.
-      .catch(() => attach(SCRUB_SRC));
+      .catch(() => attach(src));
 
     return () => {
       cancelled = true;
@@ -273,23 +288,25 @@ export function WhySection() {
               {/* Scroll-controlled belt. Takes whatever height the cards
                   leave; object-contain keeps it whole at any size. */}
               <div className="flex flex-1 min-h-0 w-full items-center justify-center lg:h-full">
-                {/* VP9/WebM carrying transparency in an alpha channel, so the
-                    belt sits directly on the section's coral.
+                {/* A transparent video, so the belt sits directly on the
+                    section's coral: VP9/WebM with an alpha channel, or on
+                    WebKit — which plays VP9 but drops its alpha, leaving the
+                    belt on a black rectangle on iOS — HEVC-with-alpha. The
+                    choice, and why it is made by engine rather than by
+                    `canPlayType`, is in `lib/belt-scrub-source.ts`.
 
-                    Do NOT swap this for an H.264 with the coral baked in.
-                    That was tried to fix Safari (which plays VP9 but ignores
-                    its alpha, leaving the belt on a black rectangle on iOS)
-                    and it broke every other browser instead: the baked coral
-                    renders as a visibly lighter rectangle against the CSS
-                    coral. Matching the two by eye is not enough — the browser
-                    colour-manages the tagged video before painting it, so a
-                    bake that measures identical in the file does not land
-                    identical on screen. Safari still needs a real fix; a
-                    mismatched box for everyone is not it. */}
+                    Do NOT replace either with an opaque video that has the
+                    coral baked in. That was tried for Safari and broke every
+                    other browser instead: the browser colour-manages the
+                    tagged video before painting it and paints the CSS coral
+                    as plain sRGB, so a bake that measures identical in the
+                    file lands as a visibly lighter rectangle on screen. */}
                 {/* No `src` and `preload="none"`: the source is a blob URL
                     attached by the effect above once the visitor is on their
                     way here. An eager preload alongside that fetch is what used
-                    to download this 9.6 MB file twice. */}
+                    to download this 9.6 MB file twice. The effect calls load()
+                    itself after attaching — WebKit will not otherwise touch a
+                    `preload="none"` source, blob or not. */}
                 <video
                   ref={videoRef}
                   muted

@@ -4,7 +4,9 @@
     {
       "name": "invitus-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 3000
     },
     {
@@ -18,6 +20,28 @@
         "3100"
       ],
       "port": 3100
+    },
+    {
+      "name": "invitus-hero-video-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "/Users/yegor-nextcode/Invitus/web/invitus-wt-hero-video",
+        "dev",
+        "-p",
+        "3200"
+      ],
+      "port": 3200
+    },
+    {
+      "name": "invitus-prod-3001",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "start",
+        "-p",
+        "3001"
+      ],
+      "port": 3001
     }
   ]
 }
