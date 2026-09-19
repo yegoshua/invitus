@@ -7,18 +7,20 @@ import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
-// Re-encoded from the 19 MB original: 1920x1080 H.264, CRF 30, chroma zeroed
-// (it renders greyscaled anyway, so colour was pure cost) and +faststart —
-// 1.4 MB. Compression artefacts that would be obvious in a clean video are
-// invisible at 30% opacity under a 60% black overlay, which is what makes the
-// re-encode free. Hosted on Blob, see lib/blob.ts.
-const HERO_VIDEO_URL = blobUrl("hero/hero-section.mp4");
+// Re-encoded from the 70 MB camera original: 1920x1080 H.264, 60 -> 30 fps,
+// CRF 30, chroma zeroed (it renders greyscaled anyway, so colour was pure
+// cost), audio dropped, +faststart — 1.4 MB. Compression artefacts that would
+// be obvious in a clean video are invisible at 30% opacity under a 60% black
+// overlay, which is what makes the re-encode free. Hosted on Blob, see
+// lib/blob.ts; a recut gets a new path rather than overwriting the old one, so
+// a deployment still serving the old poster keeps the video that matches it.
+const HERO_VIDEO_URL = blobUrl("hero/hero-belt.mp4");
 
 // The video's first frame with the greyscale and the 30% opacity over #1a1a1a
 // *baked in*, so the still and the first frame are the same picture and the
 // fade reads as the page coming to life rather than as a swap. It stays in
 // public/, served same-origin: it is the LCP element, and a DNS lookup plus a
-// TLS handshake on that path would cost far more than the 19 KB it saves.
+// TLS handshake on that path would cost far more than the 10 KB it saves.
 const HERO_POSTER_URL = "/assets/hero-poster.webp";
 
 export function HeroSection() {
@@ -64,7 +66,7 @@ export function HeroSection() {
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- the treatment
-              is already baked into a 19 KB file; the image optimiser would add
+              is already baked into a 10 KB file; the image optimiser would add
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
