@@ -5,7 +5,7 @@
 // prices it against KeyCRM, records the order, and only then asks Monobank for
 // an invoice for its own figure.
 
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { createInvoice } from "@/lib/monobank";
 import {
@@ -15,6 +15,8 @@ import {
   PromoRejectedError,
   type OrderDraft,
 } from "@/lib/orders";
+import { reportFailure } from "@/lib/alerts";
+import { notifyNewOrder } from "@/lib/order-notifications";
 import { SITE_URL } from "@/lib/site";
 
 const orderRequestSchema = z.object({
@@ -96,6 +98,18 @@ export async function POST(req: Request) {
     }
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[orders] pricing failed:", msg);
+    // The customer is looking at "не вдалося порахувати" right now. Nothing
+    // was recorded, so this leaves no trace anywhere else.
+    after(() =>
+      reportFailure({
+        scope: "orders.pricing",
+        title: "Не вдалося порахувати замовлення",
+        detail: msg,
+        context: { Телефон: parsed.customer.phone },
+        action: "Клієнт бачить помилку і піти оформити не може. Перевір KeyCRM.",
+        severity: "critical",
+      })
+    );
     return NextResponse.json(
       { error: "Не вдалося порахувати замовлення" },
       { status: 502 }
@@ -113,11 +127,45 @@ export async function POST(req: Request) {
       phone: parsed.customer.phone,
       total: priced.total,
     });
+    // A checkout that got all the way to the end and produced nothing. This is
+    // a lost sale with a known phone number — someone can still call back.
+    after(() =>
+      reportFailure({
+        scope: "orders.create",
+        title: "Замовлення не створилось у KeyCRM",
+        detail: msg,
+        context: {
+          Клієнт: parsed.customer.fullName,
+          Телефон: parsed.customer.phone,
+          Сума: priced.total,
+        },
+        action: "Втрачене замовлення — передзвони клієнту й оформи вручну.",
+        severity: "critical",
+      })
+    );
     return NextResponse.json(
       { error: "Не вдалося оформити замовлення. Спробуй ще раз." },
       { status: 502 }
     );
   }
+
+  // KeyCRM has no "order created" trigger, so the notification is ours to
+  // send. after() rather than a floating promise: the customer is not made to
+  // wait for Telegram, and the work is still guaranteed to run — a bare
+  // `void notify()` can be cut off when the function instance is reclaimed
+  // after the response, which is exactly when this fires.
+  const notification = {
+    orderId,
+    customer: parsed.customer,
+    delivery: parsed.delivery,
+    paymentMethod: parsed.paymentMethod,
+    lines: priced.lines,
+    subtotal: priced.subtotal,
+    discount: priced.discount,
+    total: priced.total,
+    promoCode: priced.promoCode,
+  };
+  after(() => notifyNewOrder(notification));
 
   // Nothing left to charge — a promo covered the goods in full. Acquiring is
   // skipped rather than attempted: Monobank rejects an invoice for 0, and by
@@ -192,6 +240,23 @@ export async function POST(req: Request) {
     // The order already exists in KeyCRM and stays there, unpaid — better a
     // visible unpaid order than a silent lost sale.
     console.error(`[orders] invoice failed for order ${orderId}:`, msg);
+    // The order is in KeyCRM and the customer cannot pay it. Left alone it
+    // looks like an ordinary unpaid order and ages quietly.
+    after(() =>
+      reportFailure({
+        scope: "orders.invoice",
+        title: "Замовлення створено, але оплату не вдалося запустити",
+        detail: msg,
+        context: {
+          Замовлення: orderId,
+          Клієнт: parsed.customer.fullName,
+          Телефон: parsed.customer.phone,
+          Сума: priced.total,
+        },
+        action: "Надішли клієнту посилання на оплату вручну.",
+        severity: "critical",
+      })
+    );
     return NextResponse.json(
       { error: "Не вдалося ініціювати оплату", orderId },
       { status: 502 }
