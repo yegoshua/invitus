@@ -1,32 +1,24 @@
 /**
  * Loading placeholder for the shop category page. Plain blocks that match the
- * exact sizes of PageHero + CatalogGrid / ProductCard (1 column on mobile,
- * 4 columns on desktop) so there is no layout shift once the products arrive.
+ * exact sizes of CatalogGrid / ProductCard (1 column on mobile, 4 columns on
+ * desktop) so there is no layout shift once the products arrive.
+ *
+ * It used to reproduce PageHero's footprint too, because the hero sat inside
+ * the same Suspense boundary — the h1 carried the product count and so had to
+ * wait for the products. The count is gone (#79) and the hero now renders above
+ * the boundary, so there is nothing to stand in for: this covers the grid only.
  */
 export function CatalogSkeleton() {
   return (
-    <>
-      {/* Hero placeholder — same footprint as PageHero */}
-      <div className="bg-black px-2 pb-4 sm:p-3 lg:p-4">
-        <div className="mt-16 animate-pulse rounded-[24px] bg-surface py-6 lg:mt-0 lg:rounded-section lg:pt-30 lg:pb-16">
-          <div className="container-main">
-            {/* reserves the h1 height so the block matches the real hero */}
-            <div className="h-8 lg:h-12" />
-          </div>
+    <section className="bg-black pb-16 lg:pb-24">
+      <div className="container-main">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <CatalogCardSkeleton key={i} />
+          ))}
         </div>
       </div>
-
-      {/* Grid placeholder — same layout as CatalogGrid */}
-      <section className="bg-black pb-16 lg:pb-24">
-        <div className="container-main">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-x-4 lg:gap-y-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <CatalogCardSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-    </>
+    </section>
   );
 }
 
