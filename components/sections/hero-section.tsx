@@ -6,27 +6,26 @@ import { CTAButton } from "@/components/ui/cta-button";
 import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
-import { HeroLookSwitcher, treatmentFilter, useHeroLook } from "./hero-look-switcher";
 
 // Re-encoded from the 70 MB camera original: 1920x1080 H.264, 60 -> 30 fps,
-// CRF 30, audio dropped, +faststart — 1.6 MB. Compression artefacts that would
-// be obvious in a clean video are invisible at 50% opacity under a 60% black
-// overlay, which is what makes the re-encode free. Hosted on Blob, see
+// CRF 23, chroma zeroed (it is shown greyscale, so colour would be pure cost),
+// audio dropped, +faststart — 4 MB. It is shown at full strength under only a
+// 20% overlay, so unlike the old 30%-under-60% treatment its artefacts are on
+// screen and the bitrate is spent accordingly. Hosted on Blob, see
 // lib/blob.ts; a recut gets a new path rather than overwriting the old one, so
 // a deployment still serving the old poster keeps the video that matches it.
-const HERO_VIDEO_URL = blobUrl("hero/hero-belt-color.mp4");
+const HERO_VIDEO_URL = blobUrl("hero/hero-belt-bw.mp4");
 
-// The video's first frame with the 50% opacity over #1a1a1a *baked in*, so
-// the still and the first frame are the same picture and the fade reads as the
-// page coming to life rather than as a swap. It stays in public/, served
-// same-origin: it is the LCP element, and a DNS lookup plus a TLS handshake on
-// that path would cost far more than the 20 KB it saves.
+// The video's first frame, so the still and the first frame are the same
+// picture and the fade reads as the page coming to life rather than as a
+// swap. It stays in public/, served same-origin: it is the LCP element, and a
+// DNS lookup plus a TLS handshake on that path would cost far more than the
+// 26 KB it saves.
 const HERO_POSTER_URL = "/assets/hero-poster.webp";
 
 export function HeroSection() {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
-  const [look, setLook] = useHeroLook();
   // `100svh` is already the stable unit in a browser that only hides its
   // chrome. It is not stable in an in-app browser, which resizes its web view
   // outright — and there the hero is the first of several viewport-sized boxes
@@ -66,8 +65,8 @@ export function HeroSection() {
       >
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
-          {/* eslint-disable-next-line @next/next/no-img-element -- the treatment
-              is already baked into a 20 KB file; the image optimiser would add
+          {/* eslint-disable-next-line @next/next/no-img-element -- the file is
+              already a 26 KB WebP; the image optimiser would add
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
@@ -80,32 +79,21 @@ export function HeroSection() {
             className="absolute inset-0 w-full h-full object-cover"
           />
           {videoSrc && (
-            // The video carries its treatment inside an opaque #1a1a1a layer
-            // and that whole layer is what fades in, so at rest the hero is
-            // 50% video over #1a1a1a and nothing else. Fading the bare video
-            // over the poster instead would leave the poster showing through
-            // its other 50% — a permanent still of frame one ghosted under the
-            // motion, and a background brighter than the design.
-            <div
-              className={`absolute inset-0 bg-[#1a1a1a] transition-opacity duration-1000 ${
+            <video
+              src={videoSrc}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-hidden="true"
+              onCanPlay={() => setVideoReady(true)}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
                 videoReady ? "opacity-100" : "opacity-0"
               }`}
-            >
-              <video
-                src={videoSrc}
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-hidden="true"
-                onCanPlay={() => setVideoReady(true)}
-                style={{ filter: treatmentFilter(look.treatment), opacity: look.opacity }}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            </div>
+            />
           )}
           {/* Dark overlay */}
-          <div className="absolute inset-0 bg-[#1a1a1a]" style={{ opacity: look.overlay }} />
+          <div className="absolute inset-0 bg-[#1a1a1a]/20" />
         </div>
 
         {/* Content */}
@@ -137,7 +125,6 @@ export function HeroSection() {
           </div>
         </div>
       </section>
-      <HeroLookSwitcher look={look} onChange={setLook} />
     </div>
   );
 }
