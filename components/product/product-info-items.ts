@@ -4,6 +4,8 @@ export interface ProductInfoItem {
   id: string;
   title: string;
   content: string;
+  /** Ends the panel with the «Розмірна сітка» link. Belts only — the chart is theirs. */
+  sizeChart?: boolean;
 }
 
 /**
@@ -12,7 +14,12 @@ export interface ProductInfoItem {
  */
 export function sizeGuideItem(product: Product): ProductInfoItem | null {
   return product.howToMeasure
-    ? { id: "measure", title: "Як визначити розмір?", content: product.howToMeasure }
+    ? {
+        id: "measure",
+        title: "Як визначити розмір?",
+        content: product.howToMeasure,
+        sizeChart: product.category === "belts",
+      }
     : null;
 }
 
