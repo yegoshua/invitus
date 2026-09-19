@@ -175,9 +175,12 @@ function toProduct(
     price: p.min_price,
     category: category ? categorySlug(category) : undefined,
 
-    description: p.description ?? undefined,
+    // Strapi first: KeyCRM's description is empty on every belt, and the copy
+    // is presentation, which Strapi owns. See ProductExtras.description.
+    description: extras?.description ?? p.description ?? undefined,
     howToMeasure: extras?.howToMeasure,
     careInstructions: extras?.careInstructions,
+    designStory: extras?.designStory,
 
     mainImage,
     heroImage,

@@ -11,6 +11,8 @@ import { formatPriceWithCurrency } from "@/lib/format";
 import type { Product, ProductSize } from "@/types";
 import { SizeSelector } from "./size-selector";
 import { ProductInfoAccordion } from "./product-info-accordion";
+import { productDetailItems, sizeGuideItem } from "./product-info-items";
+import { DispatchBadge } from "./dispatch-badge";
 import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
@@ -75,6 +77,18 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const mobile3d = show3dModel && isHydrated && !isDesktop;
   const desktop3d = show3dModel && isHydrated && isDesktop;
 
+  // Desktop keeps the size guide in the hero and pushes the rest under the
+  // photos (ProductDetailsSection); mobile stacks everything under the card.
+  // The mobile design also puts the design story last, after care, while the
+  // desktop rows go description → story → care, so the order is not shared.
+  const sizeGuide = sizeGuideItem(product);
+  const details = productDetailItems(product);
+  const mobileInfoItems = [
+    ...(sizeGuide ? [sizeGuide] : []),
+    ...details.filter((item) => item.id !== "story"),
+    ...details.filter((item) => item.id === "story"),
+  ];
+
   const handleAddToCart = () => {
     if (soldOut) return;
     addItem(product, selectedSize?.value, selectedSize?.label);
@@ -122,30 +136,30 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           {/* Name / price / sizes */}
           <div className="relative z-10 pt-2 pb-6 bg-gradient-to-t from-black/70 to-transparent">
             <div className="px-5">
-              <h1 className="font-heading text-h3 font-bold text-white">
+              {!soldOut && <DispatchBadge className="mb-3" />}
+              <h1 className="font-heading text-h2 font-bold text-white tracking-[0.01em]">
                 {product.name}
               </h1>
-              <p className="font-heading text-h3 font-bold text-white mt-4">
+              <p className="font-heading text-h2 font-bold text-white tracking-[0.01em] mt-4">
                 {formattedPrice}
               </p>
             </div>
-            <div className="mt-6">
-              <SizeSelector
-                sizes={product.sizes}
-                selectedSize={selectedSize?.value ?? null}
-                onSelect={setSelectedSize}
-              />
-            </div>
+            {/* No wrapper: an empty one would leave its own gap behind on a
+                product whose selector renders nothing. The selector carries the
+                spacing itself. */}
+            <SizeSelector
+              sizes={product.sizes}
+              selectedSize={selectedSize?.value ?? null}
+              onSelect={setSelectedSize}
+            />
           </div>
         </div>
 
         {/* Accordion below card */}
         <div className="mt-4 px-2 md:px-4">
           <ProductInfoAccordion
-            description={product.description}
-            howToMeasure={product.howToMeasure}
-            careInstructions={product.careInstructions}
-            itemClassName="bg-[#141414] backdrop-blur-none"
+            items={mobileInfoItems}
+            itemClassName="bg-surface backdrop-blur-none"
           />
         </div>
       </div>
@@ -209,6 +223,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   transition={{ duration: 0.6, delay: 0.2 }}
                   className="flex flex-col pointer-events-auto"
                 >
+                  {!soldOut && <DispatchBadge className="mb-2" />}
                   <h1 className="font-heading text-h2 font-bold text-white tracking-normal">
                     {product.name}
                   </h1>
@@ -229,11 +244,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   transition={{ duration: 0.6, delay: 0.4 }}
                   className="flex flex-col gap-4 w-[420px] pointer-events-auto"
                 >
-                  <ProductInfoAccordion
-                    description={product.description}
-                    howToMeasure={product.howToMeasure}
-                    careInstructions={product.careInstructions}
-                  />
+                  {sizeGuide && <ProductInfoAccordion items={[sizeGuide]} />}
                   <CTAButton
                     width="fill"
                     onClick={handleAddToCart}

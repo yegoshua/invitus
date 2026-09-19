@@ -56,6 +56,8 @@ export interface Product {
   shortDescription?: string;
   howToMeasure?: string;
   careInstructions?: string;
+  /** The story behind the design — the artwork, the name. Strapi-only. */
+  designStory?: string;
 
   mainImage?: ProductImage;
   heroImage?: ProductImage;

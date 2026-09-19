@@ -3,6 +3,7 @@
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
 import { formatPrice } from "@/lib/format";
+import { cartSizeLabel } from "@/lib/size-display";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { useAppliedPromo, usePromoStatus } from "@/hooks/use-promo";
 import { cn } from "@/lib/utils";
@@ -62,9 +63,9 @@ export function OrderSummary({
                   {formatPrice(item.product.price * item.quantity)} ₴
                 </p>
                 <div className="mt-4 space-y-1">
-                  {item.size && (
+                  {cartSizeLabel(item) && (
                     <p className="text-[15px] text-white/78">
-                      Розмір: {item.sizeLabel ?? item.size}
+                      Розмір: {cartSizeLabel(item)}
                     </p>
                   )}
                   {item.quantity > 1 && (
@@ -124,7 +125,8 @@ export function OrderSummary({
 
 /**
  * Compact mobile-top product summary (matches design mockup).
- * Shows only the first item's media + name + price + size.
+ * Shows only the first item's media + name + price + size (when the product is
+ * made in more than one — see lib/size-display.ts).
  */
 export function OrderSummaryMobileTop() {
   const items = useCartItems();
@@ -132,6 +134,8 @@ export function OrderSummaryMobileTop() {
 
   const first = items[0];
   const more = items.length - 1;
+  // Null for a one-size product; the "and N more" tail still has to survive it.
+  const firstSize = cartSizeLabel(first);
 
   return (
     <div className="lg:hidden mt-20 sm:mt-24 pl-6 pr-4 flex gap-4 items-start">
@@ -149,10 +153,16 @@ export function OrderSummaryMobileTop() {
         <p className="mt-2 font-sans font-medium text-base/6 text-white">
           {formatPrice(first.product.price * first.quantity)} ₴
         </p>
-        {first.size && (
+        {(firstSize || more > 0) && (
           <p className="mt-4 font-sans font-medium text-base/6 text-white/50">
-            {first.sizeLabel ?? first.size}
-            {more > 0 ? ` · та ще ${more} ${more === 1 ? "товар" : "товари"}` : ""}
+            {[
+              firstSize,
+              more > 0
+                ? `та ще ${more} ${more === 1 ? "товар" : "товари"}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
       </div>

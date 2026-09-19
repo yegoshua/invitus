@@ -4,6 +4,8 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ProductPageContent } from "@/components/product/product-page-content";
 import { ProductImagesSection } from "@/components/product/product-images-section";
+import { ProductDetailsSection } from "@/components/product/product-details-section";
+import { beltAttributes } from "@/content/belt-attributes";
 import { RelatedProducts } from "@/components/product/related-products";
 import { FAQSection } from "@/components/sections/faq-section";
 import { BenefitsGrid } from "@/components/sections/benefits-grid";
@@ -84,7 +86,13 @@ export default async function ProductPage({ params }: Props) {
       />
       <Header />
       <ProductPageContent product={product} />
-      <ProductImagesSection images={product.galleryImages || []} />
+      <ProductImagesSection
+        images={product.galleryImages || []}
+        // Belts only, for now: the other categories keep the plain photo grid
+        // until they get copy of their own.
+        attributes={product.category === "belts" ? beltAttributes : undefined}
+      />
+      <ProductDetailsSection product={product} />
       <RelatedProducts
         products={relatedProducts}
         categorySlug={category?.slug}

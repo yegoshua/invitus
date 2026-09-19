@@ -167,8 +167,10 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
             }
           : undefined,
         galleryImages: galleryImages.length ? galleryImages : undefined,
+        description: p.description ?? undefined,
         howToMeasure: p.howToMeasure ?? undefined,
         careInstructions: p.careInstructions ?? undefined,
+        designStory: p.designStory ?? undefined,
         featured: p.featured || undefined,
         // Strapi's integer field defaults to 0, and 0 is a position like any
         // other; only a genuinely absent value means "no opinion, sort last".
