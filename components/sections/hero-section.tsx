@@ -7,18 +7,23 @@ import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
-// Re-encoded from the 19 MB original: 1920x1080 H.264, CRF 30, chroma zeroed
-// (it renders greyscaled anyway, so colour was pure cost) and +faststart —
-// 1.4 MB. Compression artefacts that would be obvious in a clean video are
-// invisible at 30% opacity under a 60% black overlay, which is what makes the
-// re-encode free. Hosted on Blob, see lib/blob.ts.
-const HERO_VIDEO_URL = blobUrl("hero/hero-section.mp4");
+// The supplied clip, already delivered at 1280x720 and 1.7 MB, with only its
+// audio stripped and the moov atom moved to the front: the video stream is
+// copied, not re-encoded, because a second lossy pass over an already
+// compressed file costs quality and buys nothing here. It is shown greyscale
+// at full strength under a 20% overlay, and the greyscale is a CSS filter
+// rather than a zeroed chroma plane for the same reason. Hosted on Blob, see
+// lib/blob.ts; a recut gets a new path rather than overwriting the old one, so
+// a deployment still serving the old poster keeps the video that matches it.
+const HERO_VIDEO_URL = blobUrl("hero/hero-gym.mp4");
 
-// The video's first frame with the greyscale and the 30% opacity over #1a1a1a
-// *baked in*, so the still and the first frame are the same picture and the
-// fade reads as the page coming to life rather than as a swap. It stays in
-// public/, served same-origin: it is the LCP element, and a DNS lookup plus a
-// TLS handshake on that path would cost far more than the 19 KB it saves.
+// The video's first frame with the greyscale baked in, so the still and the
+// first frame are the same picture and the fade reads as the page coming to
+// life rather than as a swap. It stays in public/, served same-origin: it is
+// the LCP element, and a DNS lookup plus a TLS handshake on that path would
+// cost far more than the 49 KB it saves. It is heavier than the 26 KB of the
+// previous clip because this one is grainy, and grain is what WebP spends
+// bytes on; quality 50 is where it stops being worth more.
 const HERO_POSTER_URL = "/assets/hero-poster.webp";
 
 export function HeroSection() {
@@ -63,8 +68,8 @@ export function HeroSection() {
       >
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
-          {/* eslint-disable-next-line @next/next/no-img-element -- the treatment
-              is already baked into a 19 KB file; the image optimiser would add
+          {/* eslint-disable-next-line @next/next/no-img-element -- the file is
+              already a 49 KB WebP; the image optimiser would add
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
@@ -77,31 +82,21 @@ export function HeroSection() {
             className="absolute inset-0 w-full h-full object-cover"
           />
           {videoSrc && (
-            // The video carries its treatment inside an opaque #1a1a1a layer
-            // and that whole layer is what fades in, so at rest the hero is
-            // 30% video over #1a1a1a and nothing else. Fading the bare video
-            // over the poster instead would leave the poster showing through
-            // its 70% — a permanent still of frame one ghosted under the
-            // motion, and a background brighter than the design.
-            <div
-              className={`absolute inset-0 bg-[#1a1a1a] transition-opacity duration-1000 ${
+            <video
+              src={videoSrc}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-hidden="true"
+              onCanPlay={() => setVideoReady(true)}
+              className={`absolute inset-0 w-full h-full object-cover grayscale transition-opacity duration-1000 ${
                 videoReady ? "opacity-100" : "opacity-0"
               }`}
-            >
-              <video
-                src={videoSrc}
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-hidden="true"
-                onCanPlay={() => setVideoReady(true)}
-                className="absolute inset-0 w-full h-full object-cover grayscale opacity-30"
-              />
-            </div>
+            />
           )}
           {/* Dark overlay */}
-          <div className="absolute inset-0 bg-[#1a1a1a]/60" />
+          <div className="absolute inset-0 bg-[#1a1a1a]/20" />
         </div>
 
         {/* Content */}
