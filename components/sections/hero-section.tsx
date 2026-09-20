@@ -7,20 +7,23 @@ import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
-// Re-encoded from the 70 MB camera original: 1920x1080 H.264, 60 -> 30 fps,
-// CRF 23, chroma zeroed (it is shown greyscale, so colour would be pure cost),
-// audio dropped, +faststart — 4 MB. It is shown at full strength under only a
-// 20% overlay, so unlike the old 30%-under-60% treatment its artefacts are on
-// screen and the bitrate is spent accordingly. Hosted on Blob, see
+// The supplied clip, already delivered at 1280x720 and 1.7 MB, with only its
+// audio stripped and the moov atom moved to the front: the video stream is
+// copied, not re-encoded, because a second lossy pass over an already
+// compressed file costs quality and buys nothing here. It is shown greyscale
+// at full strength under a 20% overlay, and the greyscale is a CSS filter
+// rather than a zeroed chroma plane for the same reason. Hosted on Blob, see
 // lib/blob.ts; a recut gets a new path rather than overwriting the old one, so
 // a deployment still serving the old poster keeps the video that matches it.
-const HERO_VIDEO_URL = blobUrl("hero/hero-belt-bw.mp4");
+const HERO_VIDEO_URL = blobUrl("hero/hero-gym.mp4");
 
-// The video's first frame, so the still and the first frame are the same
-// picture and the fade reads as the page coming to life rather than as a
-// swap. It stays in public/, served same-origin: it is the LCP element, and a
-// DNS lookup plus a TLS handshake on that path would cost far more than the
-// 26 KB it saves.
+// The video's first frame with the greyscale baked in, so the still and the
+// first frame are the same picture and the fade reads as the page coming to
+// life rather than as a swap. It stays in public/, served same-origin: it is
+// the LCP element, and a DNS lookup plus a TLS handshake on that path would
+// cost far more than the 49 KB it saves. It is heavier than the 26 KB of the
+// previous clip because this one is grainy, and grain is what WebP spends
+// bytes on; quality 50 is where it stops being worth more.
 const HERO_POSTER_URL = "/assets/hero-poster.webp";
 
 export function HeroSection() {
@@ -66,7 +69,7 @@ export function HeroSection() {
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- the file is
-              already a 26 KB WebP; the image optimiser would add
+              already a 49 KB WebP; the image optimiser would add
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
@@ -87,7 +90,7 @@ export function HeroSection() {
               playsInline
               aria-hidden="true"
               onCanPlay={() => setVideoReady(true)}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+              className={`absolute inset-0 w-full h-full object-cover grayscale transition-opacity duration-1000 ${
                 videoReady ? "opacity-100" : "opacity-0"
               }`}
             />
