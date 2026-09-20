@@ -63,7 +63,7 @@ export function PaymentMethodRadio() {
                   onBlur={field.onBlur}
                 />
                 {option.value === "parts" && (
-                  <MonoPaw className="absolute -top-3 right-4 size-8" />
+                  <MonoPaw className="absolute -top-3 right-1 size-8" />
                 )}
               </div>
               {option.value === "parts" && field.value === "parts" && (
@@ -109,7 +109,7 @@ function PartsPicker({ total }: { total: number }) {
               />
             ))}
           </div>
-          <p className="text-sm leading-5 tracking-[0.01em] text-white/64 lg:text-[14px]">
+          <p className="text-xs/4 tracking-[0.02em] lg:text-sm/5 lg:tracking-[0.01em] text-white/64">
             Без комісії! Оплата рівними частинами до {Math.max(...PARTS_OPTIONS)}{" "}
             місяців. Перший внесок знімається під час оформлення, наступні —
             щомісяця. Підтвердження в додатку monobank.
@@ -138,10 +138,12 @@ function PartsOption({
   return (
     <label
       className={cn(
-        "flex-1 flex items-center justify-center h-12 lg:h-14 px-4",
+        // `flex-1` only in the desktop row: in the stacked mobile column it
+        // would set the basis to 0 and squash the chip to its text height.
+        "lg:flex-1 flex items-center justify-center h-12 lg:h-14 px-4",
         "bg-[var(--color-checkout-field)] rounded-[var(--radius-checkout-field)]",
-        "border-[1.5px] border-transparent",
-        "text-white text-[15px] lg:text-[17px] font-medium text-center cursor-pointer",
+        "border border-transparent",
+        "text-white text-sm/5 lg:text-base/6 font-medium tracking-[0.01em] text-center cursor-pointer",
         "transition-[border-color,background] duration-150 hover:bg-[#242424]",
         "focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-white",
         selected && "border-coral"
