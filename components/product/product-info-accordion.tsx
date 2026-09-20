@@ -8,6 +8,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import type { ProductInfoItem } from "./product-info-items";
+import { SizeChartDialog } from "./size-chart-dialog";
 
 interface ProductInfoAccordionProps {
   items: ProductInfoItem[];
@@ -67,6 +68,11 @@ export function ProductInfoAccordion({
             )}
           >
             {item.content}
+            {item.sizeChart && (
+              <span className="block mt-6">
+                <SizeChartDialog />
+              </span>
+            )}
           </AccordionContent>
         </AccordionItem>
       ))}

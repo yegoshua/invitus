@@ -12,8 +12,11 @@
     "models:compress": "node --env-file=.env.local scripts/compress-models.mts",
     "publish:article": "node --env-file=.env.local scripts/publish-article.mts",
     "perf:lighthouse": "node scripts/perf/lighthouse.mjs",
+    "check:webgl": "node scripts/webgl-context-check.mjs",
+    "check:scrub": "node scripts/belt-scrub-check.mjs",
     "test": "node --test \"scripts/perf/**/*.test.mjs\" \"scripts/*.test.mts\" \"lib/**/*.test.ts\"",
-    "test:perf": "node --test \"scripts/perf/*.test.mjs\""
+    "test:perf": "node --test \"scripts/perf/*.test.mjs\"",
+    "telegram:webhook": "node --experimental-strip-types scripts/set-telegram-webhook.mts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
