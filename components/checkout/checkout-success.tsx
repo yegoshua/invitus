@@ -13,7 +13,7 @@ interface CheckoutSuccessProps {
       city: { name: string };
       branch: { name: string };
     };
-    paymentMethod: "online" | "cod";
+    paymentMethod: "online" | "parts" | "cod";
     totals: { total: number };
   };
 }
@@ -48,7 +48,9 @@ export function CheckoutSuccess({ order }: CheckoutSuccessProps) {
             value={
               order.paymentMethod === "online"
                 ? "Онлайн"
-                : "Після отримання"
+                : order.paymentMethod === "parts"
+                  ? "Частинами monobank"
+                  : "Після отримання"
             }
           />
           <Row

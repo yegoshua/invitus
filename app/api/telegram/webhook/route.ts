@@ -20,8 +20,9 @@ import {
   editMessageText,
   escapeHtml,
 } from "@/lib/telegram";
-import { decodeCallback } from "@/lib/telegram-actions";
-import { setKeyCrmOrderStatus } from "@/lib/orders";
+import { decodeCallback, type OrderAction } from "@/lib/telegram-actions";
+import { partsOrderIdOf, setKeyCrmOrderStatus } from "@/lib/orders";
+import { confirmPartsOrder, rejectPartsOrder } from "@/lib/monobank-parts";
 import { reportFailure } from "@/lib/alerts";
 
 interface CallbackQuery {
@@ -46,6 +47,67 @@ function pressedBy(from: CallbackQuery["from"]): string {
   const name = [from?.first_name, from?.last_name].filter(Boolean).join(" ");
   if (name) return name;
   return from?.username ? `@${from.username}` : "хтось";
+}
+
+/**
+ * The Monobank side of two buttons, for an instalment order only.
+ *
+ * «ТТН створено» is the handover Monobank wants before /api/order/confirm —
+ * the parcel is on its way, so the plan is activated and the shop gets paid.
+ * «Скасувати» annuls the plan (/api/order/reject) so the customer's limit is
+ * freed. Both are best effort *after* the CRM status has changed: the manager
+ * pressed a CRM button, and Monobank refusing (a plan already confirmed, a
+ * customer who never approved) is reported in the message, not used to undo
+ * the status. Returns the line to append, or null for a non-instalment order.
+ */
+async function applyPartsAction(
+  orderId: number,
+  action: OrderAction
+): Promise<string | null> {
+  if (!action.parts) return null;
+  const confirm = action.parts === "confirm";
+
+  // Everything below the CRM write is best effort, the lookup included: a
+  // KeyCRM read that fails here must not escape to the outer handler, which
+  // would skip the message rewrite and leave the buttons up on an order whose
+  // status already changed.
+  let partsOrderId: string | null = null;
+  try {
+    partsOrderId = await partsOrderIdOf(orderId);
+  } catch (err) {
+    console.error(
+      `[telegram webhook] could not read order ${orderId} for a parts action:`,
+      err instanceof Error ? err.message : err
+    );
+    return "⚠️ monobank: не вдалося перевірити, чи це покупка частинами";
+  }
+  if (!partsOrderId) return null;
+
+  try {
+    const result = confirm
+      ? await confirmPartsOrder(partsOrderId)
+      : await rejectPartsOrder(partsOrderId);
+    const state = `${result.state}/${result.order_sub_state}`;
+    return confirm
+      ? `✅ monobank: покупку частинами активовано (${state})`
+      : `↩️ monobank: заявку на покупку частинами скасовано (${state})`;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[telegram webhook] parts ${action.parts} for order ${orderId} failed:`, msg);
+    await reportFailure({
+      scope: `parts.${action.parts}`,
+      title: confirm
+        ? "ТТН створено, але monobank не активував покупку частинами"
+        : "Замовлення скасовано, але monobank не скасував покупку частинами",
+      detail: msg,
+      context: { Замовлення: orderId, "Заявка mono": partsOrderId },
+      action: confirm
+        ? "Без підтвердження гроші не надійдуть. Підтверди видачу в кабінеті monobank вручну."
+        : "Скасуй заявку в кабінеті monobank вручну, інакше ліміт клієнта лишиться зайнятим.",
+      severity: "critical",
+    });
+    return `⚠️ monobank: не вдалося (${msg.slice(0, 120)})`;
+  }
 }
 
 function isKnownChat(chatId: number): boolean {
@@ -102,6 +164,11 @@ export async function POST(req: Request) {
       alreadyThere ? "Статус уже такий" : `Готово: ${action.done}`
     );
 
+    // A second press on the same status must not confirm the plan twice or
+    // reject one that was just confirmed; Monobank would refuse anyway, but an
+    // alert for a no-op is noise.
+    const partsLine = alreadyThere ? null : await applyPartsAction(orderId, action);
+
     // Rewrite the original message: record who did what and drop the buttons,
     // so the same order cannot be marked twice and the group can see at a
     // glance which orders are still untouched.
@@ -111,7 +178,7 @@ export async function POST(req: Request) {
       query.message!.message_id,
       `${escapeHtml(original)}\n\n— <b>${escapeHtml(who)}</b> ${escapeHtml(
         action.done
-      )}`
+      )}${partsLine ? `\n${escapeHtml(partsLine)}` : ""}`
     );
 
     return NextResponse.json({ ok: true, orderId, statusId: action.statusId });

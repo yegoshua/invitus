@@ -17,17 +17,31 @@ export interface OrderAction {
   done: string;
   /** Rendered on its own row and never mixed with the routine buttons. */
   destructive?: boolean;
+  /**
+   * What the press means to a Monobank instalment order, if anything. The
+   * dispatch is the handover the bank wants before it activates the plan and
+   * pays the shop; a cancellation frees the customer's limit. Kept in this
+   * row so a button cannot say one thing to the CRM and another to the bank.
+   */
+  parts?: "confirm" | "reject";
 }
 
 export const ORDER_ACTIONS: readonly OrderAction[] = [
   { key: "wip", label: "✅ Взяв у роботу", statusId: 2, done: "взяв у роботу" },
-  { key: "ttn", label: "📦 ТТН створено", statusId: 8, done: "створив ТТН" },
+  {
+    key: "ttn",
+    label: "📦 ТТН створено",
+    statusId: 8,
+    done: "створив ТТН",
+    parts: "confirm",
+  },
   {
     key: "cancel",
     label: "❌ Скасувати",
     statusId: 19,
     done: "скасував",
     destructive: true,
+    parts: "reject",
   },
 ];
 

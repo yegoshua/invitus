@@ -7,16 +7,30 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { FadeUp } from "@/components/ui/fade-up";
-import { faqItems } from "@/content/faq";
+import { faqItems, type FAQItem } from "@/content/faq";
+import { cn } from "@/lib/utils";
 
-export function FAQSection() {
+interface FAQSectionProps {
+  /** Defaults to the site FAQ; a page with questions of its own passes them. */
+  items?: FAQItem[];
+  title?: string;
+  className?: string;
+}
+
+export function FAQSection({
+  items = faqItems,
+  title = "Щось неясно? Розповідаємо як є",
+  className,
+}: FAQSectionProps) {
   return (
-    <section className="bg-black pt-20 lg:pt-45 lg:pb-4 pb-4 relative">
+    <section
+      className={cn("bg-black pt-20 lg:pt-45 lg:pb-4 pb-4 relative", className)}
+    >
       <div className="container-main">
         {/* Heading */}
         <FadeUp className="text-center mb-10 lg:mb-20">
           <h2 className="font-heading sm:text-center text-left text-h2 font-bold text-white">
-            Щось неясно? Розповідаємо як є
+            {title}
           </h2>
         </FadeUp>
       </div>
@@ -25,7 +39,7 @@ export function FAQSection() {
       <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1rem,5vw,2rem)]">
         <FadeUp delay={0.2}>
           <Accordion type="single" collapsible className="space-y-4">
-            {faqItems.map((item, index) => (
+            {items.map((item, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}

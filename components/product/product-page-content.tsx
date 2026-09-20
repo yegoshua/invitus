@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
+import { usePreferParts } from "@/hooks/use-payment-preference";
+import { fromMonthlyLabel } from "@/lib/installments";
 import { formatPriceWithCurrency } from "@/lib/format";
 import type { Product, ProductSize } from "@/types";
 import { SizeSelector } from "./size-selector";
@@ -16,6 +18,7 @@ import { DispatchBadge } from "./dispatch-badge";
 import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
+import { MonoPaw } from "@/components/ui/mono-paw";
 
 interface ProductPageContentProps {
   product: Product;
@@ -41,8 +44,12 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const [modelUnavailable, setModelUnavailable] = useState(false);
   const addItem = useAddToCart();
   const openCart = useOpenCart();
+  const preferParts = usePreferParts();
 
   const formattedPrice = formatPriceWithCurrency(product.price);
+  // «Від 513 ₴ / міс» — drawn only for a price that qualifies for Monobank
+  // instalments (lib/installments.ts), so a cheaper product has one button.
+  const partsLabel = fromMonthlyLabel(product.price);
 
   // GA4: one view_item per product opened.
   useEffect(() => {
@@ -94,6 +101,30 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
     addItem(product, selectedSize?.value, selectedSize?.label);
     openCart();
   };
+
+  // The same add, with the intent to pay in parts remembered: the drawer then
+  // opens on «до оплати сьогодні» and the checkout on the instalment radio.
+  const handleAddInParts = () => {
+    if (soldOut) return;
+    preferParts();
+    handleAddToCart();
+  };
+
+  // The paw peeks over the button's top-right corner, as in the design.
+  const partsButton = partsLabel && !soldOut && (
+    <div className="relative">
+      <CTAButton
+        variant="outline"
+        width="fill"
+        onClick={handleAddInParts}
+        icon={<Plus className="w-5 h-5 lg:w-6 lg:h-6" />}
+        aria-label={`${partsLabel} — додати в кошик з оплатою частинами`}
+      >
+        {partsLabel}
+      </CTAButton>
+      <MonoPaw className="absolute -top-4 -right-4 size-12 lg:-top-8 lg:-right-8 lg:size-16" />
+    </div>
+  );
 
   return (
     <>
@@ -165,7 +196,8 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       </div>
 
       {/* Fixed CTA — mobile only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col gap-4 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm">
+        {partsButton}
         <CTAButton
           width="fill"
           onClick={handleAddToCart}
@@ -245,6 +277,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   className="flex flex-col gap-4 w-[420px] pointer-events-auto"
                 >
                   {sizeGuide && <ProductInfoAccordion items={[sizeGuide]} />}
+                  {partsButton && <div className="mt-6">{partsButton}</div>}
                   <CTAButton
                     width="fill"
                     onClick={handleAddToCart}

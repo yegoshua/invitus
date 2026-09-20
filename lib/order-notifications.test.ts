@@ -5,6 +5,7 @@ import {
   formatKeyCrmStatusChange,
   formatNewOrder,
   formatOrderPaid,
+  formatPartsRefused,
   type NewOrderNotification,
 } from "./order-notifications.ts";
 
@@ -48,6 +49,20 @@ test("payment method and payment status are separate lines", () => {
   const online = formatNewOrder(draft({ paymentMethod: "online" }));
   assert.match(online, /Онлайн-оплата \(Monobank\)/);
   assert.match(online, /Не оплачено — очікує оплати/);
+});
+
+test("an instalment order names the plan and waits on the app, not on a payment link", () => {
+  const parts = formatNewOrder(draft({ paymentMethod: "parts", parts: 6 }));
+  assert.match(parts, /Покупка частинами monobank · 6 платежів/);
+  assert.match(parts, /очікує підтвердження в застосунку mono/);
+  assert.doesNotMatch(parts, /очікує оплати/);
+});
+
+test("a refusal from the bank is one message with the reason and the raw state", () => {
+  const text = formatPartsRefused(1041, "Ліміт <вичерпано>", "EXCEEDED_SUM_LIMIT");
+  assert.match(text, /замовлення №1041/);
+  assert.match(text, /Ліміт &lt;вичерпано&gt;/);
+  assert.match(text, /EXCEEDED_SUM_LIMIT/);
 });
 
 test("a discounted order shows subtotal, code and the discount", () => {

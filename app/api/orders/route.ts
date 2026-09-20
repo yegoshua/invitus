@@ -8,7 +8,17 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { createInvoice } from "@/lib/monobank";
+import { createPartsOrder, isPartsConfigured } from "@/lib/monobank-parts";
 import {
+  isPartsCount,
+  PARTS_MIN_TOTAL,
+  partsAvailable,
+  partsPhone,
+  partsProducts,
+} from "@/lib/installments";
+import { formatPrice } from "@/lib/format";
+import {
+  attachPartsOrderId,
   createKeyCrmOrder,
   OrderPricingError,
   priceOrder,
@@ -33,7 +43,10 @@ const orderRequestSchema = z.object({
     branchRef: z.string().trim().min(1).max(64),
     branchName: z.string().trim().min(1).max(500),
   }),
-  paymentMethod: z.enum(["online", "cod"]),
+  paymentMethod: z.enum(["online", "parts", "cod"]),
+  // Instalment count. Loose here (an integer) and checked against the offered
+  // list below, so the refusal names the rule rather than being a bare 400.
+  parts: z.number().int().nullish(),
   // Only the code travels. The discount it is worth is decided server-side in
   // lib/promo.ts, for the same reason prices are.
   promoCode: z.string().trim().max(64).nullish(),
@@ -80,6 +93,33 @@ export async function POST(req: Request) {
     );
   }
 
+  // Instalments have two preconditions the browser cannot be trusted on: the
+  // count must be one we offer, and the phone must be one a Monobank account
+  // can sit behind. Both are cheap and are checked before any pricing so a
+  // bad request costs nothing. The total floor is checked after pricing.
+  const wantsParts = parsed.paymentMethod === "parts";
+  const phoneForParts = wantsParts ? partsPhone(parsed.customer.phone) : null;
+  if (wantsParts) {
+    if (!isPartsConfigured()) {
+      return NextResponse.json(
+        { error: "Покупка частинами тимчасово недоступна. Обери інший спосіб оплати." },
+        { status: 409 }
+      );
+    }
+    if (!isPartsCount(parsed.parts)) {
+      return NextResponse.json(
+        { error: "Некоректна кількість платежів" },
+        { status: 400 }
+      );
+    }
+    if (!phoneForParts) {
+      return NextResponse.json(
+        { error: "Покупка частинами доступна лише для українського номера monobank." },
+        { status: 409 }
+      );
+    }
+  }
+
   // 1. Price it ourselves.
   let priced;
   try {
@@ -113,6 +153,18 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "Не вдалося порахувати замовлення" },
       { status: 502 }
+    );
+  }
+
+  // The floor is on the charged total — a promo that takes a 4 200 ₴ cart to
+  // 3 900 ₴ takes the option with it. The checkout hides the radio for the same
+  // figure, so this only fires on a stale tab or a hand-made request.
+  if (wantsParts && !partsAvailable(priced.total)) {
+    return NextResponse.json(
+      {
+        error: `Покупка частинами доступна для замовлень від ${formatPrice(PARTS_MIN_TOTAL)} ₴. Обери інший спосіб оплати.`,
+      },
+      { status: 409 }
     );
   }
 
@@ -159,6 +211,7 @@ export async function POST(req: Request) {
     customer: parsed.customer,
     delivery: parsed.delivery,
     paymentMethod: parsed.paymentMethod,
+    parts: wantsParts ? parsed.parts : null,
     lines: priced.lines,
     subtotal: priced.subtotal,
     discount: priced.discount,
@@ -183,8 +236,93 @@ export async function POST(req: Request) {
     });
   }
 
-  // 3. Online: invoice for the server's total, referencing the order.
   const base = callbackBase(req);
+
+  // 3a. Instalments: ask Monobank to push the customer's app. There is no page
+  //     to redirect to — the answer comes back on the callback below, and the
+  //     browser polls /api/monobank/parts/status meanwhile.
+  if (wantsParts && phoneForParts && isPartsCount(parsed.parts)) {
+    try {
+      const { orderId: partsOrderId } = await createPartsOrder({
+        storeOrderId: String(orderId),
+        clientPhone: phoneForParts,
+        total: priced.total,
+        parts: parsed.parts,
+        // Lines that sum to `total` to the copeck — with a promo the catalogue
+        // prices no longer do, and the bank has both figures to compare.
+        products: partsProducts(priced.lines, priced.total),
+        // The shop's day, not the server's: Vercel runs in UTC and an order
+        // placed at 01:00 in Kyiv would carry yesterday's invoice date.
+        invoiceDate: new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Europe/Kyiv",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date()),
+        // Our order number rides in the callback URL: Monobank's payload
+        // carries only its own uuid, and its /api/order/data lookup is not
+        // something to depend on (the sandbox answers 400 to it). The
+        // callback cross-checks the uuid against the one recorded on the
+        // order, so the query alone cannot mark somebody else's order paid.
+        callbackUrl: `${base}/api/monobank/parts/callback?order=${orderId}`,
+      });
+
+      // Best effort: the buttons in Telegram need this id later, but a
+      // customer who is already looking at their phone must not be failed
+      // over a KeyCRM write that a manager can repeat by hand.
+      try {
+        await attachPartsOrderId(orderId, partsOrderId);
+      } catch (err) {
+        console.error(
+          `[orders] could not record parts order ${partsOrderId} on order ${orderId}:`,
+          err instanceof Error ? err.message : err
+        );
+      }
+
+      const res = NextResponse.json({
+        orderId,
+        total: priced.total,
+        discount: priced.discount,
+        partsOrderId,
+      });
+      // Same trick as the invoice id: the result page can recover it after a
+      // reload or a tab the customer closed while in the mono app.
+      res.cookies.set("invitus_last_parts_order", partsOrderId, {
+        maxAge: 60 * 60,
+        path: "/",
+        sameSite: "lax",
+      });
+      return res;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[orders] parts order failed for order ${orderId}:`, msg);
+      after(() =>
+        reportFailure({
+          scope: "orders.parts",
+          title: "Замовлення створено, але покупку частинами не вдалося запустити",
+          detail: msg,
+          context: {
+            Замовлення: orderId,
+            Клієнт: parsed.customer.fullName,
+            Телефон: parsed.customer.phone,
+            Сума: priced.total,
+          },
+          action: "Зв'яжись із клієнтом — запропонуй інший спосіб оплати або оформи ПЧ вручну.",
+          severity: "critical",
+        })
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Не вдалося запустити покупку частинами. Спробуй ще раз або обери інший спосіб оплати.",
+          orderId,
+        },
+        { status: 502 }
+      );
+    }
+  }
+
+  // 3b. Online: invoice for the server's total, referencing the order.
   try {
     const invoice = await createInvoice({
       amount: priced.totalCopecks,

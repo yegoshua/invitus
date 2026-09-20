@@ -48,7 +48,9 @@ export interface OrderDraft {
     branchRef: string;
     branchName: string;
   };
-  paymentMethod: "online" | "cod";
+  paymentMethod: "online" | "parts" | "cod";
+  /** Instalment count when the method is "parts"; ignored otherwise. */
+  parts?: number | null;
   /**
    * The promo code as the customer typed it — a string and nothing else. What
    * it is worth is decided here; a discount amount sent by the browser would be
@@ -247,7 +249,15 @@ export async function createKeyCrmOrder(
   const paymentMethodId =
     draft.paymentMethod === "online"
       ? requiredEnvId("KEYCRM_PAYMENT_METHOD_ID_ONLINE")
-      : requiredEnvId("KEYCRM_PAYMENT_METHOD_ID_COD");
+      : draft.paymentMethod === "parts"
+        ? requiredEnvId("KEYCRM_PAYMENT_METHOD_ID_PARTS")
+        : requiredEnvId("KEYCRM_PAYMENT_METHOD_ID_COD");
+  const paymentDescription =
+    draft.paymentMethod === "online"
+      ? "Онлайн-оплата (Monobank)"
+      : draft.paymentMethod === "parts"
+        ? `${PARTS_PAYMENT_TAG}${draft.parts ? ` · ${draft.parts} платежів` : ""}`
+        : "Накладений платіж";
 
   const order = await postKeyCrm<KeyCrmCreatedOrder>("/order", {
     source_id: requiredEnvId("KEYCRM_SOURCE_ID"),
@@ -306,15 +316,62 @@ export async function createKeyCrmOrder(
         payment_method_id: paymentMethodId,
         amount: priced.total,
         status: "not_paid",
-        description:
-          draft.paymentMethod === "online"
-            ? "Онлайн-оплата (Monobank)"
-            : "Накладений платіж",
+        description: paymentDescription,
       },
     ],
   });
 
   return order.id;
+}
+
+/** How an instalment payment row is labelled in KeyCRM. */
+export const PARTS_PAYMENT_TAG = "Покупка частинами monobank";
+
+const UUID_RE =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+async function firstPayment(orderId: number) {
+  const order = await fetchKeyCrm<{
+    payments?: Array<{ id: number; status: string; description?: string | null }>;
+  }>(`/order/${orderId}`, { params: { include: "payments" }, revalidate: 0 });
+  const payment = order.payments?.[0];
+  if (!payment) {
+    throw new Error(`Order ${orderId} has no payment row`);
+  }
+  return payment;
+}
+
+/**
+ * Remember which Monobank instalment order belongs to this KeyCRM order.
+ *
+ * KeyCRM has no field for it, so it rides in the payment row's description —
+ * «Покупка частинами monobank · 6 платежів · <uuid>» — which is also what a
+ * manager reads under the order, and is why the id is appended rather than
+ * replacing the words. `partsOrderIdOf` reads it back when a Telegram button
+ * needs to confirm or reject the plan, and the callback needs nothing: it
+ * carries the uuid and asks Monobank for our order number.
+ */
+export async function attachPartsOrderId(
+  orderId: number,
+  partsOrderId: string
+): Promise<void> {
+  const payment = await firstPayment(orderId);
+  const base = (payment.description ?? PARTS_PAYMENT_TAG).replace(UUID_RE, "").replace(/\s*·\s*$/, "");
+  await putKeyCrm(`/order/${orderId}/payment/${payment.id}`, {
+    description: `${base} · ${partsOrderId}`,
+  });
+}
+
+/**
+ * The Monobank order id recorded on an order's payment row, or null for an
+ * order that was never an instalment one — the Telegram buttons call this
+ * for every order and must stay silent for the rest.
+ */
+export async function partsOrderIdOf(orderId: number): Promise<string | null> {
+  const payment = await firstPayment(orderId);
+  const description = payment.description ?? "";
+  if (!description.includes(PARTS_PAYMENT_TAG)) return null;
+  return description.match(UUID_RE)?.[0] ?? null;
 }
 
 /**
@@ -330,14 +387,7 @@ export async function markKeyCrmOrderPaid(
   orderId: number,
   description: string
 ): Promise<void> {
-  const order = await fetchKeyCrm<{
-    payments?: Array<{ id: number; status: string }>;
-  }>(`/order/${orderId}`, { params: { include: "payments" }, revalidate: 0 });
-
-  const payment = order.payments?.[0];
-  if (!payment) {
-    throw new Error(`Order ${orderId} has no payment row to mark paid`);
-  }
+  const payment = await firstPayment(orderId);
   if (payment.status === "paid") return;
 
   await putKeyCrm(`/order/${orderId}/payment/${payment.id}`, {

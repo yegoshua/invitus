@@ -24,6 +24,7 @@ const legalLinks = [
     label: "Публічна оферта",
   },
   { href: "/refund", label: "Повернення товару" },
+  { href: "/installments", label: "Покупка частинами" },
 ];
 
 export function Footer() {

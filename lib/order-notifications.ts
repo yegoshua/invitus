@@ -24,7 +24,9 @@ export interface NewOrderNotification {
   orderId: number;
   customer: { fullName: string; phone: string; email: string };
   delivery: { cityName: string; branchName: string };
-  paymentMethod: "online" | "cod";
+  paymentMethod: "online" | "parts" | "cod";
+  /** Instalment count, when the method is "parts". */
+  parts?: number | null;
   lines: NotifiableLine[];
   subtotal: number;
   discount: number;
@@ -46,14 +48,24 @@ export function formatNewOrder(order: NewOrderNotification): string {
   // Method and status are two different facts and were being printed as one
   // string. A manager scanning the group needs "is the money in?" answerable
   // without parsing the rest of the line.
-  const isOnline = order.paymentMethod === "online";
-  const method = isOnline ? "Онлайн-оплата (Monobank)" : "Накладений платіж";
+  const method =
+    order.paymentMethod === "online"
+      ? "Онлайн-оплата (Monobank)"
+      : order.paymentMethod === "parts"
+        ? `Покупка частинами monobank${order.parts ? ` · ${order.parts} платежів` : ""}`
+        : "Накладений платіж";
   // Always unpaid at this point: the order is recorded before Monobank is even
   // asked for an invoice, so nothing here can be "paid" yet. The change to
-  // paid arrives later, from KeyCRM's payment-status trigger.
-  const paymentStatus = isOnline
-    ? "⏳ Не оплачено — очікує оплати"
-    : "⏳ Не оплачено — оплата при отриманні";
+  // paid arrives later, from KeyCRM's payment-status trigger. An instalment
+  // order is "paid" the moment the customer confirms in the app — the
+  // callback marks it — and the money itself follows the «ТТН створено»
+  // button, which is what tells Monobank to activate the plan.
+  const paymentStatus =
+    order.paymentMethod === "online"
+      ? "⏳ Не оплачено — очікує оплати"
+      : order.paymentMethod === "parts"
+        ? "⏳ Не оплачено — очікує підтвердження в застосунку mono"
+        : "⏳ Не оплачено — оплата при отриманні";
 
   const lines = order.lines.map((line) => {
     const size = line.size ? ` (${escapeHtml(line.size)})` : "";
@@ -165,6 +177,37 @@ export async function notifyNewOrder(
   const sent = await sendTelegramMessage(formatNewOrder(order), {
     keyboard: orderActionKeyboard(order.orderId),
   });
+  return sent !== null;
+}
+
+/**
+ * The bank said no to an instalment order. The KeyCRM order stays, unpaid, and
+ * the customer has been told on screen — this is so the group knows why an
+ * order is sitting there and whether a call is worth making.
+ */
+export function formatPartsRefused(
+  orderId: number,
+  reason: string,
+  subState: string | null
+): string {
+  const link = orderLink(orderId);
+  return [
+    `🚫 <b>monobank відхилив покупку частинами — замовлення №${orderId}</b>`,
+    escapeHtml(reason),
+    ...(subState ? [`<i>${escapeHtml(subState)}</i>`] : []),
+    "Клієнт бачить причину на сайті й може обрати інший спосіб оплати.",
+    ...(link ? ["", `<a href="${link}">Відкрити в KeyCRM</a>`] : []),
+  ].join("\n");
+}
+
+export async function notifyPartsRefused(
+  orderId: number,
+  reason: string,
+  subState: string | null
+): Promise<boolean> {
+  const sent = await sendTelegramMessage(
+    formatPartsRefused(orderId, reason, subState)
+  );
   return sent !== null;
 }
 

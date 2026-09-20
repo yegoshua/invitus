@@ -18,6 +18,8 @@ import {
   useUpdateCartQuantity,
 } from "@/hooks/use-cart";
 import { ProductMedia } from "@/components/ui/product-media";
+import { usePartsBreakdown } from "@/hooks/use-payment-preference";
+import { remainingLabel } from "@/lib/installments";
 import { formatPrice } from "@/lib/format";
 import { cartSizeLabel } from "@/lib/size-display";
 import type { CartItem } from "@/types";
@@ -30,6 +32,11 @@ export function CartDrawer() {
   const updateQuantity = useUpdateCartQuantity();
   const itemCount = useCartCount();
   const total = useCartTotal();
+  // Set when the customer came in through «Від … ₴ / міс» (or picked
+  // instalments on a previous checkout) and this cart still qualifies. The
+  // promo is not known here — it is checked on the checkout — so the drawer
+  // shows the split of the goods, and the checkout corrects it if a code lands.
+  const breakdown = usePartsBreakdown(total);
 
   const formattedTotal = formatPrice(total);
 
@@ -97,14 +104,35 @@ export function CartDrawer() {
             <div className="p-6 lg:p-8">
               {itemCount > 0 ? (
                 <>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="font-heading text-base font-bold text-black uppercase tracking-[0.05em]">
-                      До оплати:
-                    </span>
-                    <span className="font-heading text-base font-bold text-black">
-                      {formattedTotal} ₴
-                    </span>
-                  </div>
+                  {breakdown ? (
+                    <div className="flex flex-col gap-2 mb-6 px-0 lg:px-4">
+                      <div className="flex items-end justify-between">
+                        <span className="font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
+                          До оплати сьогодні:
+                        </span>
+                        <span className="font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
+                          {formatPrice(breakdown.monthly)} ₴
+                        </span>
+                      </div>
+                      <div className="flex items-end justify-between text-base leading-6 font-medium text-black">
+                        <span>Далі щомісяця</span>
+                        <span>{remainingLabel(breakdown)}</span>
+                      </div>
+                      <div className="flex items-end justify-between text-base leading-6 font-medium text-black">
+                        <span>Замовлення</span>
+                        <span>{formattedTotal} ₴</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="font-heading text-base font-bold text-black uppercase tracking-[0.05em]">
+                        До оплати:
+                      </span>
+                      <span className="font-heading text-base font-bold text-black">
+                        {formattedTotal} ₴
+                      </span>
+                    </div>
+                  )}
                   <CTAButton href="/checkout" width="fill" onClick={closeCart}>
                     До оплати
                   </CTAButton>
