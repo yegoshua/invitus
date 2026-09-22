@@ -147,9 +147,16 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Appended: the row already reads «Покупка частинами monobank · 6 платежів
+    // · <uuid>» from creation. Only when the creation-time write failed and
+    // the row carries nothing does the full tag go in.
+    const recorded = await partsOrderIdOf(orderId).catch(() => null);
     await markKeyCrmOrderPaid(
       orderId,
-      `${PARTS_PAYMENT_TAG} · ${partsOrderId} · підтверджено в застосунку`
+      recorded
+        ? "підтверджено в застосунку"
+        : `${PARTS_PAYMENT_TAG} · ${partsOrderId} · підтверджено в застосунку`,
+      { append: Boolean(recorded) }
     );
     console.log(`[parts callback] order ${orderId} marked paid`);
     return NextResponse.json({ ok: true });

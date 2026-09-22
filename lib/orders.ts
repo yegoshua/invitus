@@ -385,14 +385,24 @@ export async function partsOrderIdOf(orderId: number): Promise<string | null> {
  */
 export async function markKeyCrmOrderPaid(
   orderId: number,
-  description: string
+  description: string,
+  options: {
+    /**
+     * Add the note after what the row already says instead of replacing it.
+     * An instalment row carries the plan and the Monobank uuid, and a manager
+     * reading «підтверджено в застосунку» still wants to see «6 платежів».
+     */
+    append?: boolean;
+  } = {}
 ): Promise<void> {
   const payment = await firstPayment(orderId);
   if (payment.status === "paid") return;
 
+  const existing = payment.description?.trim();
   await putKeyCrm(`/order/${orderId}/payment/${payment.id}`, {
     status: "paid",
-    description,
+    description:
+      options.append && existing ? `${existing} · ${description}` : description,
   });
 }
 
