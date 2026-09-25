@@ -11,5 +11,5 @@ export async function GET(request: NextRequest) {
   if (process.env.NODE_ENV !== "development" || !Number.isInteger(devId) || devId <= 0) {
     return new NextResponse(null, { status: 404 });
   }
-  return startSession({ id: devId, firstName: "Dev" }, request.url);
+  return startSession({ id: devId, name: "Dev" }, request.url);
 }

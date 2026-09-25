@@ -18,3 +18,16 @@ export const sessionCookieOptions = {
   sameSite: "lax" as const,
   path: "/",
 };
+
+export const LOGIN_STATE_COOKIE = "invitus_admin_login";
+
+/** Client credentials from BotFather → bot → Login Widget. */
+export function telegramLoginClient(): { clientId: string; clientSecret: string } | null {
+  const clientId = process.env.TELEGRAM_LOGIN_CLIENT_ID;
+  const clientSecret = process.env.TELEGRAM_LOGIN_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    console.error("[auth] TELEGRAM_LOGIN_CLIENT_ID or TELEGRAM_LOGIN_CLIENT_SECRET is not set");
+    return null;
+  }
+  return { clientId, clientSecret };
+}
