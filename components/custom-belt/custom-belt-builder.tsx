@@ -19,8 +19,10 @@ import {
 } from "@/lib/belt-design";
 import { CUSTOM_BASE } from "@/lib/custom-base";
 import { cn } from "@/lib/utils";
+import type { ProductSize } from "@/types";
+import { CustomRequestForm, type UploadableArtwork } from "./custom-request-form";
 import { DesignEditor } from "./design-editor";
-import { drawBeltDesign, type DrawableArtwork } from "./draw-belt-design";
+import { drawBeltDesign } from "./draw-belt-design";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_ARTWORK_BYTES = 25 * 1024 * 1024;
@@ -48,7 +50,7 @@ const TOOL_CHIP = "shrink-0 px-4 py-3 text-sm lg:px-6 lg:py-4 lg:text-base";
 /** The size slider's range, in printed centimetres; it moves on a log scale. */
 const MAX_ARTWORK_WIDTH_CM = 400;
 
-interface Artwork extends DrawableArtwork {
+interface Artwork extends UploadableArtwork {
   image: HTMLImageElement;
   size: ArtworkSize;
   url: string;
@@ -79,7 +81,14 @@ function paintDesignCanvas(canvas: HTMLCanvasElement, artwork: Artwork, placemen
   });
 }
 
-export function CustomBeltBuilder({ modelUrl }: { modelUrl?: string }) {
+export function CustomBeltBuilder({
+  modelUrl,
+  sizes,
+}: {
+  modelUrl?: string;
+  /** The Custom base's size grid, for the request form. */
+  sizes: ProductSize[];
+}) {
   const [artwork, setArtwork] = useState<Artwork | null>(null);
   const [placement, setPlacement] = useState<Placement>({
     centerX: BELT_LENGTH_CM / 2,
@@ -131,7 +140,7 @@ export function CustomBeltBuilder({ modelUrl }: { modelUrl?: string }) {
       const image = await loadImage(url);
       const size = { width: image.naturalWidth, height: image.naturalHeight };
       setError(null);
-      setArtwork({ image, size, aspect: size.width / size.height, url });
+      setArtwork({ image, file, size, aspect: size.width / size.height, url });
       setPlacement((p) => fillStrip(size, p.background));
       setTab("design");
     } catch {
@@ -317,6 +326,7 @@ export function CustomBeltBuilder({ modelUrl }: { modelUrl?: string }) {
             )}
           </div>
         </div>
+        <CustomRequestForm artwork={artwork} placement={placement} sizes={sizes} />
       </div>
     </section>
   );

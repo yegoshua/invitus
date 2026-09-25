@@ -26,7 +26,7 @@ export default async function CustomBeltPage() {
       <Header />
       <main className="bg-black">
         <PageHero title="Свій дизайн пояса" />
-        <CustomBeltBuilder modelUrl={base?.model3dUrl} />
+        <CustomBeltBuilder modelUrl={base?.model3dUrl} sizes={base?.sizes ?? []} />
       </main>
       <Footer />
     </>

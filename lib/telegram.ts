@@ -85,12 +85,22 @@ export function escapeHtml(value: string): string {
 }
 
 /**
+ * Files are not sent from inside a request anyone is waiting on — only from
+ * `after()` — and a 25 MB Artwork does not reach Telegram in five seconds.
+ */
+const FILE_SEND_TIMEOUT_MS = 60_000;
+
+/**
  * One call to the Bot API. Returns the parsed `result` on success and null on
  * any failure, having logged it. Never throws.
+ *
+ * A plain object goes as JSON; FormData goes as multipart, which is the only
+ * way the Bot API accepts a file uploaded rather than fetched from a URL.
  */
 async function callTelegram<T>(
   method: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown> | FormData,
+  timeoutMs = SEND_TIMEOUT_MS
 ): Promise<T | null> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -98,12 +108,14 @@ async function callTelegram<T>(
     return null;
   }
 
+  const multipart = payload instanceof FormData;
   try {
     const res = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+      // No Content-Type for FormData: fetch writes it, boundary included.
+      headers: multipart ? undefined : { "Content-Type": "application/json" },
+      body: multipart ? payload : JSON.stringify(payload),
+      signal: AbortSignal.timeout(timeoutMs),
       cache: "no-store",
     });
 
@@ -153,6 +165,44 @@ export async function sendTelegramMessage(
     link_preview_options: { is_disabled: true },
     ...(options.keyboard ? { reply_markup: { inline_keyboard: options.keyboard } } : {}),
   });
+}
+
+/** Telegram caps a photo or document caption at 1024 characters. */
+const MAX_CAPTION_LENGTH = 1024;
+
+/**
+ * Send a file — `photo` is shown inline and recompressed by Telegram, a
+ * `document` arrives byte for byte. Same contract as sendTelegramMessage:
+ * the sent message or null, never a throw.
+ */
+export async function sendTelegramFile(
+  kind: "photo" | "document",
+  file: Blob,
+  fileName: string,
+  options: { target?: ChatTarget; caption?: string; replyTo?: number } = {}
+): Promise<SentMessage | null> {
+  const target = options.target ?? "orders";
+  const chatId = chatIdFor(target);
+  if (!chatId) {
+    console.warn(`[telegram] no chat configured for "${target}" — ${kind} skipped`);
+    return null;
+  }
+
+  const form = new FormData();
+  form.set("chat_id", chatId);
+  form.set(kind, file, fileName);
+  if (options.caption) {
+    form.set("caption", options.caption.slice(0, MAX_CAPTION_LENGTH));
+    form.set("parse_mode", "HTML");
+  }
+  if (options.replyTo) {
+    form.set("reply_parameters", JSON.stringify({ message_id: options.replyTo }));
+  }
+  return callTelegram<SentMessage>(
+    kind === "photo" ? "sendPhoto" : "sendDocument",
+    form,
+    FILE_SEND_TIMEOUT_MS
+  );
 }
 
 /**
