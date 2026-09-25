@@ -33,5 +33,6 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // admin/ is its own app with its own tsconfig and `@/` root (ADR 0001).
+  "exclude": ["node_modules", "admin"]
 }

@@ -1,0 +1,8 @@
+# The root .gitignore anchors these to the repo root (`/.next/`,
+# `/node_modules`), so they do not cover a second app. The Turbopack cache in
+# .next holds env values in plain text.
+/.next/
+/node_modules
+/.vercel
+*.tsbuildinfo
+next-env.d.ts
