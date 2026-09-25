@@ -1,17 +1,22 @@
 "use client";
 
-import { Suspense, useRef } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import * as THREE from "three";
 import { useModelProgressStore } from "@/stores/model-progress";
+import { usePrintedFace, type BeltPrint } from "./printed-face";
 
 interface DynamicModelProps {
   url: string;
   position?: [number, number, number];
   scale?: number;
+  /** Turn about the vertical axis, radians. */
+  rotationY?: number;
+  /** A Belt design to wear instead of the model's own printed face. */
+  print?: BeltPrint;
 }
 
 // Loading spinner component (3D ring)
@@ -55,7 +60,13 @@ function configureLoader(loader: GLTFLoader) {
 }
 
 // The actual model component that loads the GLB
-function Model({ url, position = [0, 0, 0], scale = 2.5 }: DynamicModelProps) {
+function Model({
+  url,
+  position = [0, 0, 0],
+  scale = 2.5,
+  rotationY = 0.3,
+  print,
+}: DynamicModelProps) {
   // `useLoader` rather than drei's `useGLTF` for one reason: it forwards an
   // onProgress callback to the loader, and `useGLTF` does not. Everything else
   // — the suspense cache keyed by url, the decoders — is the same.
@@ -67,22 +78,28 @@ function Model({ url, position = [0, 0, 0], scale = 2.5 }: DynamicModelProps) {
       .report(url, event.loaded, event.lengthComputable ? event.total : 0);
   });
 
+  // Cloned once per loaded scene, not once per render: a print repaints on
+  // every drag, and a fresh clone each time would throw the painted material
+  // away with it.
+  const object = useMemo(() => scene.clone(), [scene]);
+  usePrintedFace(object, print);
+
   return (
     <primitive
-      object={scene.clone()}
+      object={object}
       position={position}
       scale={scale}
-      rotation={[0, 0.3, 0]}
+      rotation={[0, rotationY, 0]}
       dispose={null}
     />
   );
 }
 
 // Wrapper with Suspense for loading state
-export function DynamicModel({ url, position, scale }: DynamicModelProps) {
+export function DynamicModel(props: DynamicModelProps) {
   return (
     <Suspense fallback={<LoadingSpinner />}>
-      <Model url={url} position={position} scale={scale} />
+      <Model {...props} />
     </Suspense>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { DynamicModel, FallbackModel } from "./dynamic-model";
+import type { BeltPrint } from "./printed-face";
 import { useModelBytesProgress } from "@/stores/model-progress";
 
 function CameraController() {
@@ -47,6 +48,12 @@ interface ModelLoaderProps {
    * still picture of the belt beats an empty box where the belt should be.
    */
   onGaveUp?: () => void;
+  /** A Belt design to wear instead of the model's own printed face. */
+  print?: BeltPrint;
+  /** Turn about the vertical axis, radians. The product page's three-quarter view by default. */
+  rotationY?: number;
+  /** Slow turntable. On by default; a builder turns it off so the view stays put. */
+  autoRotate?: boolean;
 }
 
 /**
@@ -140,6 +147,9 @@ export function ModelLoader({
   modelUrl,
   fallbackModelUrl,
   onGaveUp,
+  print,
+  rotationY,
+  autoRotate = true,
 }: ModelLoaderProps) {
   // WebGL has no server-side equivalent, so the canvas cannot be part of the
   // server render — show the loader until hydration has happened.
@@ -220,7 +230,7 @@ export function ModelLoader({
           target={[0, 0, 0]}
           enablePan={false}
           enableZoom={false}
-          autoRotate
+          autoRotate={autoRotate}
           autoRotateSpeed={0.7}
           enableDamping
           dampingFactor={0.05}
@@ -229,7 +239,12 @@ export function ModelLoader({
         />
         <Suspense fallback={<FallbackModel position={[0, 0.1, 0]} />}>
           {modelToLoad ? (
-            <DynamicModel url={modelToLoad} position={[0, 0.1, 0]} />
+            <DynamicModel
+              url={modelToLoad}
+              position={[0, 0.1, 0]}
+              rotationY={rotationY}
+              print={print}
+            />
           ) : (
             <FallbackModel position={[0, 0.1, 0]} />
           )}
