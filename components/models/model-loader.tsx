@@ -12,7 +12,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { DynamicModel, FallbackModel } from "./dynamic-model";
-import type { BeltPrint } from "./printed-face";
+import type { CustomFace } from "./custom-face";
 import { useModelBytesProgress } from "@/stores/model-progress";
 
 function CameraController() {
@@ -48,8 +48,8 @@ interface ModelLoaderProps {
    * still picture of the belt beats an empty box where the belt should be.
    */
   onGaveUp?: () => void;
-  /** A Belt design to wear instead of the model's own printed face. */
-  print?: BeltPrint;
+  /** The Custom belt's face: where a Belt design goes, and the design to wear. */
+  customFace?: CustomFace;
   /** Turn about the vertical axis, radians. The product page's three-quarter view by default. */
   rotationY?: number;
   /** Slow turntable. On by default; a builder turns it off so the view stays put. */
@@ -147,7 +147,7 @@ export function ModelLoader({
   modelUrl,
   fallbackModelUrl,
   onGaveUp,
-  print,
+  customFace,
   rotationY,
   autoRotate = true,
 }: ModelLoaderProps) {
@@ -243,7 +243,7 @@ export function ModelLoader({
               url={modelToLoad}
               position={[0, 0.1, 0]}
               rotationY={rotationY}
-              print={print}
+              customFace={customFace}
             />
           ) : (
             <FallbackModel position={[0, 0.1, 0]} />

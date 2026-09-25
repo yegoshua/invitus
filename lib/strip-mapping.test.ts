@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { designToAtlas, findPrintStrip } from "./strip-mapping.ts";
+import { atlasToDesign, designToAtlas, findPrintStrip } from "./strip-mapping.ts";
 
 type Vec = [number, number];
 
@@ -84,5 +84,28 @@ describe("designToAtlas", () => {
     near(apply(m, 0, 0), [0.98357, 0.10112], 1e-4);
     // ≈ 1 : 10, the physical 10 × 100 cm.
     close(strip.length / strip.width, 9.83, 0.01);
+  });
+});
+
+describe("atlasToDesign", () => {
+  const apply = ([a, b, c, d, e, f]: readonly number[], x: number, y: number): Vec => [
+    a * x + c * y + e,
+    b * x + d * y + f,
+  ];
+
+  it("reads the strip back out of the atlas as a flat 1 : 10 design", () => {
+    // The inverse of designToAtlas: the model's own printed face becomes the
+    // example Belt design the 2D editor shows before anything is uploaded.
+    const mesh = { uv: [] as number[], index: [] as number[] };
+    addRect(mesh, [[0.1, 0.45], [0.9, 0.45], [0.9, 0.53], [0.1, 0.53]]);
+    const strip = findPrintStrip(mesh.uv, mesh.index)!;
+    const m = atlasToDesign(strip, { reverseLength: true, reverseWidth: true }, 1000, 2000, 200);
+    // Atlas pixel (900, 530) is the design's 0 cm, top edge; (100, 450) is its far corner.
+    const origin = apply(m, 900, 530);
+    close(origin[0], 0, 1e-6);
+    close(origin[1], 0, 1e-6);
+    const far = apply(m, 100, 450);
+    close(far[0], 2000, 1e-6);
+    close(far[1], 200, 1e-6);
   });
 });

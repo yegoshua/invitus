@@ -7,7 +7,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import * as THREE from "three";
 import { useModelProgressStore } from "@/stores/model-progress";
-import { usePrintedFace, type BeltPrint } from "./printed-face";
+import { useCustomFace, type CustomFace } from "./custom-face";
 
 interface DynamicModelProps {
   url: string;
@@ -15,8 +15,8 @@ interface DynamicModelProps {
   scale?: number;
   /** Turn about the vertical axis, radians. */
   rotationY?: number;
-  /** A Belt design to wear instead of the model's own printed face. */
-  print?: BeltPrint;
+  /** The Custom belt's face: where a Belt design goes, and the design to wear. */
+  customFace?: CustomFace;
 }
 
 // Loading spinner component (3D ring)
@@ -65,7 +65,7 @@ function Model({
   position = [0, 0, 0],
   scale = 2.5,
   rotationY = 0.3,
-  print,
+  customFace,
 }: DynamicModelProps) {
   // `useLoader` rather than drei's `useGLTF` for one reason: it forwards an
   // onProgress callback to the loader, and `useGLTF` does not. Everything else
@@ -78,11 +78,11 @@ function Model({
       .report(url, event.loaded, event.lengthComputable ? event.total : 0);
   });
 
-  // Cloned once per loaded scene, not once per render: a print repaints on
-  // every drag, and a fresh clone each time would throw the painted material
+  // Cloned once per loaded scene, not once per render: a Belt design repaints
+  // on every drag, and a fresh clone each time would throw the painted material
   // away with it.
   const object = useMemo(() => scene.clone(), [scene]);
-  usePrintedFace(object, print);
+  useCustomFace(object, customFace);
 
   return (
     <primitive

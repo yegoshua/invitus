@@ -472,14 +472,24 @@ export async function getRelatedProducts(product: Product): Promise<Product[]> {
   return picked.map((p) => toProduct(p, categoryById, extrasIndex));
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export function getProductBySlug(slug: string): Promise<Product | null> {
+  return findProduct((p) => slugify(p.name) === slug);
+}
+
+export function getProductById(keycrmId: number): Promise<Product | null> {
+  return findProduct((p) => p.id === keycrmId);
+}
+
+async function findProduct(
+  matches: (p: KeyCrmProduct) => boolean
+): Promise<Product | null> {
   const [products, categoryById, extrasIndex] = await Promise.all([
     fetchAllProducts(),
     fetchCategoryMap(),
     getStrapiExtras(),
   ]);
 
-  const match = products.find((p) => slugify(p.name) === slug);
+  const match = products.find(matches);
   if (!match) return null;
 
   const offers = match.has_offers ? await fetchOffers(match.id) : undefined;

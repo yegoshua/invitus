@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/ui/page-hero";
 import { CustomBeltBuilder } from "@/components/custom-belt/custom-belt-builder";
-import { getProductBySlug } from "@/lib/api";
+import { getProductById } from "@/lib/api";
 import { CUSTOM_BASE } from "@/lib/custom-base";
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default async function CustomBeltPage() {
   // The Custom base borrows the Dragon's model. A product that fails to load
   // leaves the builder on the placeholder shape rather than failing the page.
-  const base = await getProductBySlug(CUSTOM_BASE.productSlug).catch(() => null);
+  const base = await getProductById(CUSTOM_BASE.keycrmProductId).catch(() => null);
 
   return (
     <>

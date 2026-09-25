@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BELT_LENGTH_CM,
   BELT_WIDTH_CM,
@@ -10,12 +10,35 @@ import {
 } from "@/lib/belt-design";
 import { CUSTOM_BASE } from "@/lib/custom-base";
 import { cn } from "@/lib/utils";
-import { drawBeltDesign, drawPrintZones, type StripView } from "./draw-belt-design";
+import {
+  drawBeltDesign,
+  drawPrintZones,
+  type DrawableArtwork,
+  type StripView,
+} from "./draw-belt-design";
 
 interface Props {
-  artwork: HTMLImageElement | null;
+  artwork: DrawableArtwork | null;
   placement: Placement;
   onPlacementChange: (update: (p: Placement) => Placement) => void;
+  /**
+   * What the strip shows before an upload: the Custom base's own design, laid
+   * flat — so the editor and the 3D model show the same belt from the start.
+   */
+  example: HTMLCanvasElement | null;
+}
+
+/** The example fills the strip exactly; it is already 1 : 10. */
+const EXAMPLE_PLACEMENT: Placement = {
+  centerX: BELT_LENGTH_CM / 2,
+  centerY: BELT_WIDTH_CM / 2,
+  width: BELT_LENGTH_CM,
+  background: "#000000",
+};
+
+/** The brand coral, read from the theme so a canvas cannot drift from it. */
+function coral() {
+  return getComputedStyle(document.documentElement).getPropertyValue("--color-coral").trim() || "#E74223";
 }
 
 /** A canvas's CSS size, kept in step with its box. */
@@ -52,7 +75,7 @@ function prepare(canvas: HTMLCanvasElement, width: number, height: number) {
  * minimap of all 100 cm, and under it a close-up of the stretch the minimap's
  * frame marks, where the Artwork is dragged and pinched.
  */
-export function DesignEditor({ artwork, placement, onPlacementChange }: Props) {
+export function DesignEditor({ artwork, placement, onPlacementChange, example }: Props) {
   const miniRef = useRef<HTMLCanvasElement>(null);
   const zoomRef = useRef<HTMLCanvasElement>(null);
   const mini = useBoxSize(miniRef);
@@ -71,7 +94,14 @@ export function DesignEditor({ artwork, placement, onPlacementChange }: Props) {
     pxPerCm: zoom.height / BELT_WIDTH_CM,
   };
 
-  const aspect = artwork ? artwork.naturalWidth / artwork.naturalHeight : 1;
+  // Before an upload the strip shows the example, drawn exactly as a design
+  // would be, and nothing on it can be grabbed.
+  const shown = useMemo<DrawableArtwork | null>(
+    () =>
+      artwork ?? (example ? { image: example, aspect: BELT_LENGTH_CM / BELT_WIDTH_CM } : null),
+    [artwork, example],
+  );
+  const shownPlacement = artwork ? placement : EXAMPLE_PLACEMENT;
 
   // Minimap.
   useEffect(() => {
@@ -79,9 +109,9 @@ export function DesignEditor({ artwork, placement, onPlacementChange }: Props) {
     if (!canvas || mini.width === 0) return;
     const { ctx, dpr } = prepare(canvas, mini.width, mini.height);
     const view: StripView = { fromCm: 0, pxPerCm: (mini.width * dpr) / BELT_LENGTH_CM };
-    drawBeltDesign(ctx, artwork, aspect, placement, view);
-    drawPrintZones(ctx, CUSTOM_BASE.printZones, CUSTOM_BASE.stitchMarginCm, view, dpr);
-    ctx.strokeStyle = "#E74223";
+    drawBeltDesign(ctx, shown, shownPlacement, view);
+    drawPrintZones(ctx, CUSTOM_BASE, view, dpr);
+    ctx.strokeStyle = coral();
     ctx.lineWidth = 2 * dpr;
     ctx.setLineDash([]);
     ctx.strokeRect(
@@ -90,7 +120,7 @@ export function DesignEditor({ artwork, placement, onPlacementChange }: Props) {
       Math.min(windowCm, BELT_LENGTH_CM) * view.pxPerCm - 2 * dpr,
       canvas.height - 2 * dpr,
     );
-  }, [artwork, aspect, placement, mini, fromCm, windowCm]);
+  }, [shown, shownPlacement, mini, fromCm, windowCm]);
 
   // Close-up.
   useEffect(() => {
@@ -98,16 +128,16 @@ export function DesignEditor({ artwork, placement, onPlacementChange }: Props) {
     if (!canvas || zoom.width === 0) return;
     const { ctx, dpr } = prepare(canvas, zoom.width, zoom.height);
     const view: StripView = { fromCm, pxPerCm: zoomView.pxPerCm * dpr };
-    drawBeltDesign(ctx, artwork, aspect, placement, view);
-    drawPrintZones(ctx, CUSTOM_BASE.printZones, CUSTOM_BASE.stitchMarginCm, view, dpr);
-    if (!artwork) {
+    drawBeltDesign(ctx, shown, shownPlacement, view);
+    drawPrintZones(ctx, CUSTOM_BASE, view, dpr);
+    if (!shown) {
       ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
       ctx.font = `500 ${14 * dpr}px var(--font-sans, sans-serif)`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("Тут з'явиться твоє зображення", canvas.width / 2, canvas.height / 2);
     }
-  }, [artwork, aspect, placement, zoom, fromCm, zoomView.pxPerCm]);
+  }, [shown, shownPlacement, zoom, fromCm, zoomView.pxPerCm]);
 
   // Pointers on the close-up, in centimetres of the strip.
   const pointers = useRef(new Map<number, { x: number; y: number }>());

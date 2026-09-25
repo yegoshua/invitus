@@ -30,9 +30,8 @@ export interface Placement {
   background: string;
 }
 
-/** «Заповнити смугу»: cover the whole strip, cropping whatever overhangs. */
-export function fillStrip(art: ArtworkSize, background: string): Placement {
-  const cmPerPx = Math.max(BELT_LENGTH_CM / art.width, BELT_WIDTH_CM / art.height);
+/** The Artwork centred on the strip at `cmPerPx` centimetres per Artwork pixel. */
+function centredAt(art: ArtworkSize, cmPerPx: number, background: string): Placement {
   return {
     centerX: BELT_LENGTH_CM / 2,
     centerY: BELT_WIDTH_CM / 2,
@@ -41,15 +40,22 @@ export function fillStrip(art: ArtworkSize, background: string): Placement {
   };
 }
 
+/** «Заповнити смугу»: cover the whole strip, cropping whatever overhangs. */
+export function fillStrip(art: ArtworkSize, background: string): Placement {
+  return centredAt(
+    art,
+    Math.max(BELT_LENGTH_CM / art.width, BELT_WIDTH_CM / art.height),
+    background,
+  );
+}
+
 /** «Вмістити»: the whole Artwork on the strip, the rest in the background colour. */
 export function fitInStrip(art: ArtworkSize, background: string): Placement {
-  const cmPerPx = Math.min(BELT_LENGTH_CM / art.width, BELT_WIDTH_CM / art.height);
-  return {
-    centerX: BELT_LENGTH_CM / 2,
-    centerY: BELT_WIDTH_CM / 2,
-    width: art.width * cmPerPx,
+  return centredAt(
+    art,
+    Math.min(BELT_LENGTH_CM / art.width, BELT_WIDTH_CM / art.height),
     background,
-  };
+  );
 }
 
 /**

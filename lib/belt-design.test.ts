@@ -20,6 +20,10 @@ describe("fillStrip", () => {
     assert.equal(p.background, "#111111");
   });
 
+  it("stretches a portrait Artwork along the strip too, cropping top and bottom", () => {
+    assert.equal(fillStrip({ width: 1000, height: 2000 }, "#000").width, 100);
+  });
+
   it("covers the width, not the length, when the Artwork is wider than 10:1", () => {
     // 30:1 — a 10 cm tall strip makes it 300 cm long; 200 cm hang off the ends.
     assert.equal(fillStrip({ width: 3000, height: 100 }, "#000").width, 300);
@@ -32,6 +36,10 @@ describe("fitInStrip", () => {
     assert.equal(p.width, 10);
     assert.equal(p.centerX, 50);
     assert.equal(p.centerY, 5);
+  });
+
+  it("fits a portrait Artwork by its height: 1 : 2 is 5 cm wide", () => {
+    assert.equal(fitInStrip({ width: 1000, height: 2000 }, "#000").width, 5);
   });
 
   it("runs a 30:1 Artwork end to end", () => {
@@ -57,6 +65,11 @@ describe("printQuality", () => {
   it("counts exactly 100 DPI as enough", () => {
     // 1000 px over 25.4 cm is 10 inches.
     assert.equal(printQuality({ width: 1000, height: 100 }, at(25.4)).verdict, "ok");
+  });
+
+  it("warns just below it", () => {
+    // 1000 px over 25.5 cm ≈ 99.6 DPI.
+    assert.equal(printQuality({ width: 1000, height: 100 }, at(25.5)).verdict, "low");
   });
 });
 

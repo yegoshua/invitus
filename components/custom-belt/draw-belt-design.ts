@@ -5,6 +5,18 @@ import {
   type PrintZone,
 } from "@/lib/belt-design";
 
+/** What a Custom base contributes to drawing its Print zones. */
+export interface ZoneLayout {
+  printZones: readonly PrintZone[];
+  stitchMarginCm: number;
+}
+
+/** An image ready to draw on the strip, with its width-to-height ratio. */
+export interface DrawableArtwork {
+  image: CanvasImageSource;
+  aspect: number;
+}
+
 /** A window onto the strip: which centimetres of it a canvas shows, at what density. */
 export interface StripView {
   /** cm along the strip at the canvas's left edge. */
@@ -13,19 +25,23 @@ export interface StripView {
   pxPerCm: number;
 }
 
+/** Canvas x of a point `cm` along the strip. */
+function toPx(view: StripView, cm: number) {
+  return (cm - view.fromCm) * view.pxPerCm;
+}
+
 /**
  * The Belt design itself — background colour, then the Artwork. Exactly what
  * goes to the 3D model, and so nothing else may be drawn by this function.
  */
 export function drawBeltDesign(
   ctx: CanvasRenderingContext2D,
-  artwork: CanvasImageSource | null,
-  artworkAspect: number,
+  artwork: DrawableArtwork | null,
   placement: Placement,
   view: StripView,
 ) {
   const { width, height } = ctx.canvas;
-  const x = (cm: number) => (cm - view.fromCm) * view.pxPerCm;
+  const x = (cm: number) => toPx(view, cm);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, width, height);
@@ -36,10 +52,10 @@ export function drawBeltDesign(
     ctx.rect(x(0), 0, BELT_LENGTH_CM * view.pxPerCm, BELT_WIDTH_CM * view.pxPerCm);
     ctx.clip();
     const w = placement.width * view.pxPerCm;
-    const h = w / artworkAspect;
+    const h = w / artwork.aspect;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(
-      artwork,
+      artwork.image,
       x(placement.centerX) - w / 2,
       placement.centerY * view.pxPerCm - h / 2,
       w,
@@ -62,15 +78,14 @@ const ZONE_LABEL: Record<PrintZone["kind"], string> = {
  */
 export function drawPrintZones(
   ctx: CanvasRenderingContext2D,
-  zones: readonly PrintZone[],
-  stitchMarginCm: number,
+  { printZones: zones, stitchMarginCm }: ZoneLayout,
   view: StripView,
   /** Canvas pixels per CSS pixel, so labels stay readable on a dense screen. */
   dpr = 1,
 ) {
   const { width } = ctx.canvas;
   const height = BELT_WIDTH_CM * view.pxPerCm;
-  const x = (cm: number) => (cm - view.fromCm) * view.pxPerCm;
+  const x = (cm: number) => toPx(view, cm);
   const label = Math.max(9, Math.min(13, (view.pxPerCm / dpr) * 1.1)) * dpr;
 
   ctx.save();

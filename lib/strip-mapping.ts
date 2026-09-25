@@ -176,3 +176,28 @@ export function designToAtlas(
     P * v0,
   ];
 }
+
+/**
+ * The inverse of `designToAtlas`, sized for a `width` × `height` canvas: set it
+ * as the transform and draw the atlas at (0, 0), and the canvas holds the
+ * strip as a flat Belt design, the right way round. It is how the model's own
+ * printed face becomes the example the editor shows before an upload.
+ */
+export function atlasToDesign(
+  strip: PrintStrip,
+  orientation: StripOrientation,
+  atlasSize: number,
+  width: number,
+  height: number,
+): readonly [number, number, number, number, number, number] {
+  const [a, b, c, d, e, f] = designToAtlas(strip, orientation, atlasSize);
+  const det = a * d - b * c;
+  return [
+    (width * d) / det,
+    (height * -b) / det,
+    (width * -c) / det,
+    (height * a) / det,
+    (width * (c * f - d * e)) / det,
+    (height * (b * e - a * f)) / det,
+  ];
+}

@@ -27,8 +27,12 @@ const printZones: readonly PrintZone[] = [
 ];
 
 export const CUSTOM_BASE = {
-  /** The KeyCRM product whose model and size grid the Custom base borrows. */
-  productSlug: "dragon-lifting-belt",
+  /**
+   * The KeyCRM product — Dragon Lifting Belt — whose model and size grid the
+   * Custom base borrows. By id, not by slug: the slug is the product's name,
+   * and a rename would quietly leave the builder on the placeholder shape.
+   */
+  keycrmProductId: 45,
   /** The glTF material that carries the printed face. */
   printMaterial: "Dragon",
   /**
