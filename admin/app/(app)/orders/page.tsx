@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cn } from "@site/lib/utils";
 import { orderLink } from "@site/lib/order-notifications";
-import { FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
+import { FeesBanner, KeyCrmBanner } from "@/components/data-banner";
 import { ArrowUpRightIcon } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
 import { requireAdmin } from "@/lib/auth/server";
@@ -12,6 +12,7 @@ import { orderRows, type OrderRow, type OrderStatusFilter } from "@/lib/finance/
 import { SOURCE_LABELS, STAGE_LABELS_ONE } from "@/lib/finance/orders";
 import { PAYMENT_METHODS, paymentMethod } from "@/lib/finance/payments";
 import { kyivDay, periodFromSearch } from "@/lib/finance/period";
+import { topUpStaleSources } from "@/lib/ingest/live";
 import { loadOrders } from "@/lib/keycrm-orders";
 
 export const metadata: Metadata = { title: "Замовлення" };
@@ -85,6 +86,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     source: list(search.source).map(Number).filter(Number.isInteger),
     payment: list(search.pay).map(Number).filter(Number.isInteger),
   };
+  // KeyCRM starts now; Ad spend and fees are read after their top-up (#124).
+  void loadOrders();
+  await topUpStaleSources();
   const [data, fees] = await Promise.all([loadOrders(), loadFees()]);
   const rows = orderRows(data.orders, period, now, filters, fees);
   const total = rows.reduce((s, r) => s + r.order.total, 0);
@@ -126,7 +130,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHeader title="Замовлення" period={period} preset={preset} keep={filterParams} />
-      {!data.ok && <KeyCrmDownBanner />}
+      <KeyCrmBanner orders={data} />
       <FeesBanner fees={fees} />
 
       <div className="flex flex-wrap gap-x-8 gap-y-4">

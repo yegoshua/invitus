@@ -1,8 +1,9 @@
 // KeyCRM → CrmOrder. Reads only; the Admin never writes to KeyCRM (PRD #103).
 
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
-import { fetchKeyCrmAll } from "@site/lib/keycrm";
+import { fetchKeyCrm, KEYCRM_PAGE_LIMIT } from "@site/lib/keycrm";
+import type { KeyCrmPaginated } from "@site/lib/keycrm-schema";
+import { freshCache, type Snapshot } from "@/lib/live/fresh-cache";
 import { ACCOUNTING_START, type CrmOrder } from "@/lib/finance/orders";
 
 interface RawOrder {
@@ -71,40 +72,67 @@ export function toCrmOrder(raw: RawOrder): CrmOrder {
   };
 }
 
-// Cached as raw JSON together with the moment it was read, so the sidebar can
-// say how fresh the numbers are. Five minutes: fresh enough to act on, and a
-// page switch does not spend another round of KeyCRM's 60-a-minute budget.
-const loadRaw = unstable_cache(
-  async () => ({
-    raw: await fetchKeyCrmAll<RawOrder>("/order", {
-      params: {
-        include: "products,payments",
-        "filter[created_between]": `${ACCOUNTING_START} 00:00:00,2100-01-01 00:00:00`,
-      },
-      revalidate: 0,
-    }),
-    fetchedAt: Date.now(),
-  }),
-  ["admin-orders"],
-  { revalidate: 300, tags: ["admin-orders"] }
-);
+// KeyCRM is read on every page open (#124), through a 20-second in-memory
+// copy: long enough that moving between tabs does not spend another round of
+// the 60-a-minute budget, short enough that a reload shows the order placed a
+// minute ago. When KeyCRM fails the last good copy is served, dated — see
+// lib/live/fresh-cache.ts for why this is not unstable_cache.
+const ORDERS_TTL_MS = 20_000;
+// KeyCRM is single-homed and fails as a connect timeout (root CLAUDE.md), and
+// fetchKeyCrm retries that for up to ~25 s. With a last good copy in hand a
+// page waits 5 s at most, and after a failure KeyCRM is left alone for a minute.
+const ORDERS_WAIT_MS = 5_000;
+const ORDERS_BACKOFF_MS = 60_000;
 
-export type OrdersResult =
-  | { ok: true; orders: CrmOrder[]; fetchedAt: Date }
-  | { ok: false; orders: CrmOrder[]; fetchedAt: null };
+const ORDER_PARAMS = {
+  include: "products,payments",
+  "filter[created_between]": `${ACCOUNTING_START} 00:00:00,2100-01-01 00:00:00`,
+};
 
 /**
- * Every order since the accounting start — a few dozen a year, one or two
- * pages. Deduplicated per request, so the layout's sync badge and the page
- * share one read. A KeyCRM failure is a value, not a throw: the page shows a
- * banner over what it has.
+ * Every page of /order. The first page says how many there are; the rest are
+ * read in parallel — three pages today, three requests either way, so the
+ * rate limit sees the same count, only sooner.
  */
-export const loadOrders = cache(async (): Promise<OrdersResult> => {
-  try {
-    const { raw, fetchedAt } = await loadRaw();
-    return { ok: true, orders: raw.map(toCrmOrder), fetchedAt: new Date(fetchedAt) };
-  } catch (error) {
-    console.error("[admin] KeyCRM orders failed:", error);
-    return { ok: false, orders: [], fetchedAt: null };
-  }
+async function fetchAllOrders(): Promise<RawOrder[]> {
+  const page = (n: number) =>
+    fetchKeyCrm<KeyCrmPaginated<RawOrder>>("/order", {
+      params: { ...ORDER_PARAMS, limit: String(KEYCRM_PAGE_LIMIT), page: String(n) },
+      revalidate: 0,
+    });
+  const first = await page(1);
+  const rest = await Promise.all(Array.from({ length: Math.max(0, first.last_page - 1) }, (_, i) => page(i + 2)));
+  return [first, ...rest].flatMap((p) => p.data);
+}
+
+const orders = freshCache({
+  load: async () => (await fetchAllOrders()).map(toCrmOrder),
+  ttlMs: ORDERS_TTL_MS,
+  waitMs: ORDERS_WAIT_MS,
+  backoffMs: ORDERS_BACKOFF_MS,
 });
+
+export type OrdersResult =
+  /** `error` is set when KeyCRM failed and these are the orders as of `fetchedAt`. */
+  | { ok: true; orders: CrmOrder[]; fetchedAt: Date; error: string | null }
+  | { ok: false; orders: CrmOrder[]; fetchedAt: null; error: string };
+
+function toResult(snapshot: Snapshot<CrmOrder[]>): OrdersResult {
+  if (snapshot.error) console.error("[admin] KeyCRM orders failed:", snapshot.error);
+  return snapshot.value === null
+    ? { ok: false, orders: [], fetchedAt: null, error: snapshot.error }
+    : { ok: true, orders: snapshot.value, fetchedAt: snapshot.at, error: snapshot.error };
+}
+
+/**
+ * Every order since the accounting start — a few dozen a year, a few pages.
+ * Deduplicated per request, so the layout's sync badge and the page share one
+ * read. A KeyCRM failure is a value, not a throw: the page shows a banner over
+ * the last good copy, or over nothing when there never was one.
+ */
+export const loadOrders = cache(async (): Promise<OrdersResult> => toResult(await orders.get()));
+
+/** «Оновити зараз»: read KeyCRM now, whatever the copy's age. */
+export async function reloadOrders(): Promise<OrdersResult> {
+  return toResult(await orders.get({ force: true }));
+}

@@ -11,22 +11,19 @@
 // Bearer $CRON_SECRET` itself. The path is outside the login proxy (a cron
 // has no session), so this check is the only thing guarding it.
 //
+// The stages themselves are lib/ingest/stages.ts, shared with the top-up a
+// page runs over today and yesterday (#124); this route owns the long window.
+//
 // Re-running is safe — every stage upserts. `?since=YYYY-MM-DD` reads back to
 // that day instead of each stage's own look-back, for the first backfill:
 //   curl -H "Authorization: Bearer $CRON_SECRET" "https://admin.invitus.com.ua/api/cron/ingest?since=2026-07-01"
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { getMerchantStatement } from "@site/lib/monobank";
-import { replaceAdSpend } from "@/lib/expenses/store";
-import { upsertPaymentFees } from "@/lib/fees/store";
 import { ACCOUNTING_START } from "@/lib/finance/orders";
 import { addDays, kyivDay, type Day } from "@/lib/finance/period";
-import { adSpendWindows, mergeAdSpend, type AdSpendRow } from "@/lib/ingest/ad-spend";
-import { adAccountId, insightsPages } from "@/lib/ingest/meta-client";
-import { mapInsights } from "@/lib/ingest/meta-insights";
-import { mapStatement, mergeWindows, statementWindows, type PaymentFeeRow } from "@/lib/ingest/monobank-statement";
-import { runStages, type IngestStage } from "@/lib/ingest/run";
+import { runStages } from "@/lib/ingest/run";
+import { metaStage, monobankStage } from "@/lib/ingest/stages";
 import { recordIngestRun } from "@/lib/ingest/store";
 import { db } from "@/lib/db";
 
@@ -65,60 +62,6 @@ function startOf(since: Day | null, now: Date): Date {
   // earlier of the two only reads an hour more.
   const d = new Date(`${since}T00:00:00+03:00`);
   return Number.isNaN(d.getTime()) || d >= now ? fallback : d;
-}
-
-function monobankStage(from: Date, to: Date): IngestStage {
-  return {
-    source: "monobank",
-    async run() {
-      if (!process.env.MONOBANK_TOKEN) throw new Error("MONOBANK_TOKEN is not set");
-      const windows: PaymentFeeRow[][] = [];
-      for (const w of statementWindows(from, to)) {
-        const { rows: got, skipped } = mapStatement(await getMerchantStatement(w.from, w.to));
-        windows.push(got);
-        // A held or failed payment is normal; anything else is a row we could not read.
-        const odd = skipped.filter((s) => !s.reason.startsWith("status "));
-        if (odd.length) console.warn(`[ingest] monobank: skipped ${odd.length} unreadable row(s):`, odd);
-      }
-      const rows = mergeWindows(windows);
-      await upsertPaymentFees(rows);
-      return { rows: rows.length };
-    },
-  };
-}
-
-/**
- * Meta's Ad spend over from..to, re-read in full: every campaign-day
- * upserted, every stored one Meta no longer reports deleted (replaceAdSpend).
- * The days are the ad account's own — it must be set to Europe/Kyiv, or a
- * day's spend lands on a neighbouring Kyiv day.
- */
-function metaStage(from: Day, to: Day): IngestStage {
-  return {
-    source: "meta",
-    async run() {
-      const token = process.env.META_ACCESS_TOKEN;
-      const rawAccount = process.env.META_AD_ACCOUNT_ID;
-      if (!token || !rawAccount) {
-        throw new Error("Meta is not configured: META_ACCESS_TOKEN and META_AD_ACCOUNT_ID must both be set");
-      }
-      const account = adAccountId(rawAccount);
-      const pages: AdSpendRow[][] = [];
-      for (const window of adSpendWindows(from, to)) {
-        for await (const body of insightsPages({ token, account, window })) {
-          const { rows, skipped } = mapInsights(body);
-          pages.push(rows);
-          if (skipped.length) console.warn(`[ingest] meta: skipped ${skipped.length} unreadable row(s):`, skipped);
-        }
-      }
-      // Nothing is written until every window has been read: a half-read
-      // window would make the unread half look revised to zero.
-      const rows = mergeAdSpend(pages);
-      const { removed } = await replaceAdSpend("meta", { from, to }, rows);
-      if (removed) console.log(`[ingest] meta: removed ${removed} campaign-day(s) Meta no longer reports`);
-      return { rows: rows.length };
-    },
-  };
 }
 
 export async function GET(req: Request) {

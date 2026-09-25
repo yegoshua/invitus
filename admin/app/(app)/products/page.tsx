@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { KeyCrmDownBanner } from "@/components/data-banner";
+import { KeyCrmBanner } from "@/components/data-banner";
 import { PageHeader } from "@/components/page-header";
 import { requireAdmin } from "@/lib/auth/server";
 import { plural, uah } from "@/lib/finance/format";
@@ -25,7 +25,7 @@ export default async function ProductsPage({
   return (
     <>
       <PageHeader title="Товари" period={period} preset={preset} />
-      {!data.ok && <KeyCrmDownBanner />}
+      <KeyCrmBanner orders={data} />
       <section className="rounded-[26px] bg-panel px-4 py-2 sm:px-7" aria-labelledby="rank-title">
         <div className="flex flex-wrap justify-between gap-2 pt-3 pb-4">
           <h2 id="rank-title" className="font-sans text-[15px] font-medium text-white/78">Рейтинг за виручкою</h2>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { AdSpendBanner, DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
+import { AdSpendBanner, DatabaseDownBanner, FeesBanner, KeyCrmBanner } from "@/components/data-banner";
 import { ExpenseDialog, type ExpenseDraft } from "@/components/expenses/expense-dialog";
 import { FeeRatesForm } from "@/components/expenses/fee-rates-form";
 import { RecurringSection } from "@/components/expenses/recurring-section";
@@ -17,6 +17,7 @@ import { periodFees } from "@/lib/finance/fees";
 import { dayLabel, deltaLabel, plural, rangeLabel, uah, uahExact } from "@/lib/finance/format";
 import { PAYMENT_METHODS, RATED_METHOD_IDS } from "@/lib/finance/payments";
 import { kyivDay, periodFromSearch, previousPeriod } from "@/lib/finance/period";
+import { topUpStaleSources } from "@/lib/ingest/live";
 import { loadFreshness } from "@/lib/ingest/store";
 import { loadOrders } from "@/lib/keycrm-orders";
 
@@ -92,6 +93,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   ).toString();
   const withParam = (k: string, v: string) => `/expenses?${new URLSearchParams([...new URLSearchParams(back), [k, v]])}`;
 
+  // KeyCRM starts now; Ad spend and fees are read after their top-up (#124).
+  void loadOrders();
+  await topUpStaleSources();
   const [loaded, orders, feeData, meta] = await Promise.all([
     listExpenses(previousPeriod(period).from, period.to),
     loadOrders(),
@@ -125,7 +129,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         )}
       />
       {!loaded.ok && loaded.reason === "error" && <DatabaseDownBanner />}
-      {loaded.ok && !orders.ok && <KeyCrmDownBanner />}
+      {loaded.ok && <KeyCrmBanner orders={orders} />}
       {loaded.ok && <FeesBanner fees={feeData} />}
       {loaded.ok && <AdSpendBanner meta={meta} />}
 
