@@ -8,14 +8,24 @@
 
 export type IngestSource = "monobank" | "meta" | "ga4";
 
+/**
+ * `full`: the nightly cron's long window (or a `?since=` backfill), the only
+ * run that catches changes made back in time. `top-up`: today and yesterday,
+ * run when a page is opened (#124).
+ */
+export type IngestKind = "full" | "top-up";
+
 export interface IngestStage {
   source: IngestSource;
+  /** Defaults to `full`. */
+  kind?: IngestKind;
   /** Throws on failure; the message is what the journal and the banner show. */
   run: () => Promise<{ rows: number }>;
 }
 
 export interface IngestRun {
   source: IngestSource;
+  kind: IngestKind;
   startedAt: Date;
   finishedAt: Date;
   ok: boolean;
@@ -42,12 +52,13 @@ export async function runStages(
   const runs: IngestRun[] = [];
   for (const stage of stages) {
     const startedAt = clock();
+    const base = { source: stage.source, kind: stage.kind ?? "full", startedAt };
     let run: IngestRun;
     try {
       const { rows } = await stage.run();
-      run = { source: stage.source, startedAt, finishedAt: clock(), ok: true, rows, error: null };
+      run = { ...base, finishedAt: clock(), ok: true, rows, error: null };
     } catch (error) {
-      run = { source: stage.source, startedAt, finishedAt: clock(), ok: false, rows: null, error: message(error) };
+      run = { ...base, finishedAt: clock(), ok: false, rows: null, error: message(error) };
     }
     try {
       await record(run);
@@ -81,4 +92,28 @@ export function freshness(latest: RunState | null, latestOk: RunState | null, no
   const asOf = latestOk?.startedAt ?? null;
   if (latest?.ok && asOf && now.getTime() - asOf.getTime() <= STALE_AFTER_MS) return { state: "fresh", asOf };
   return { state: "stale", asOf, error: latest && !latest.ok ? latest.error : null };
+}
+
+/**
+ * The top-ups keep a source fresh by the rule above, but they read two days;
+ * a refund or a Meta revision further back is caught only by a full run. So
+ * a full run older than STALE_AFTER_MS is its own warning — `since` is when
+ * the last one worked, null for never. Nothing for a source that is not
+ * configured, nor while the data itself is stale or unknown: that banner
+ * already says more.
+ */
+export function fullSyncWarning({
+  configured,
+  freshness,
+  latestFullOk,
+  now,
+}: {
+  configured: boolean;
+  freshness: Freshness | null;
+  latestFullOk: Date | null;
+  now: Date;
+}): { since: Date | null } | null {
+  if (!configured || freshness?.state !== "fresh") return null;
+  if (latestFullOk && now.getTime() - latestFullOk.getTime() <= STALE_AFTER_MS) return null;
+  return { since: latestFullOk };
 }

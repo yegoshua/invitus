@@ -10,7 +10,7 @@ import { adSpendWindows, mergeAdSpend, type AdSpendRow } from "./ad-spend";
 import { adAccountId, insightsPages } from "./meta-client";
 import { mapInsights } from "./meta-insights";
 import { mapStatement, mergeWindows, statementWindows, type PaymentFeeRow } from "./monobank-statement";
-import type { IngestStage, IngestSource } from "./run";
+import type { IngestKind, IngestStage, IngestSource } from "./run";
 
 /** The sources a page top-up can reach. GA4 (#112) joins when it has a stage. */
 export type LiveSource = Extract<IngestSource, "monobank" | "meta">;
@@ -27,9 +27,10 @@ export function sourceConfigured(source: LiveSource): boolean {
 }
 
 /** Monobank's statement from..to, upserted on invoice_id. */
-export function monobankStage(from: Date, to: Date): IngestStage {
+export function monobankStage(from: Date, to: Date, kind: IngestKind = "full"): IngestStage {
   return {
     source: "monobank",
+    kind,
     async run() {
       if (!process.env.MONOBANK_TOKEN) throw new Error("MONOBANK_TOKEN is not set");
       const windows: PaymentFeeRow[][] = [];
@@ -54,9 +55,10 @@ export function monobankStage(from: Date, to: Date): IngestStage {
  * The days are the ad account's own — it must be set to Europe/Kyiv, or a
  * day's spend lands on a neighbouring Kyiv day.
  */
-export function metaStage(from: Day, to: Day): IngestStage {
+export function metaStage(from: Day, to: Day, kind: IngestKind = "full"): IngestStage {
   return {
     source: "meta",
+    kind,
     async run() {
       const token = process.env.META_ACCESS_TOKEN;
       const rawAccount = process.env.META_AD_ACCOUNT_ID;

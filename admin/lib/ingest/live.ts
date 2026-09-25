@@ -13,9 +13,9 @@ import { after } from "next/server";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { settledWithin, singleFlight } from "@/lib/live/flight";
-import { runStages, type Freshness, type IngestRun } from "./run";
+import { fullSyncWarning, runStages, type Freshness, type IngestRun } from "./run";
 import { LIVE_SOURCES, metaStage, monobankStage, sourceConfigured, type LiveSource } from "./stages";
-import { claimIngest, loadFreshness, recordIngestRun, releaseIngest, runStates } from "./store";
+import { claimIngest, latestFullRun, loadFreshness, recordIngestRun, releaseIngest, runStates } from "./store";
 import { RENDER_WAIT_MS, topUpDays, topUpDecision, topUpRange } from "./top-up";
 
 const flight = singleFlight<LiveSource, IngestRun | null>();
@@ -37,7 +37,7 @@ function topUp(source: LiveSource): Promise<IngestRun | null> {
       const now = new Date();
       const days = topUpDays(now);
       const range = topUpRange(now);
-      const stage = source === "meta" ? metaStage(days.from, days.to) : monobankStage(range.from, range.to);
+      const stage = source === "meta" ? metaStage(days.from, days.to, "top-up") : monobankStage(range.from, range.to, "top-up");
       const [run] = await runStages([stage], recordIngestRun);
       if (run.ok) console.log(`[live] ${source} topped up: ${run.rows} row(s)`);
       else console.error(`[live] ${source} top-up failed: ${run.error}`);
@@ -83,14 +83,36 @@ export async function topUpAllNow(deadlineMs: number): Promise<void> {
   await awaitOrDefer(work, deadlineMs);
 }
 
-export type SourceSync = { source: LiveSource; configured: false } | { source: LiveSource; configured: true; freshness: Freshness | null };
+export type SourceSync =
+  | { source: LiveSource; configured: false }
+  | {
+      source: LiveSource;
+      configured: true;
+      freshness: Freshness | null;
+      /** Set when the last full run is over 36 h old while top-ups keep the data fresh. */
+      fullSync: { since: Date | null } | null;
+    };
+
+async function latestFullOrNull(source: LiveSource): Promise<Date | null | undefined> {
+  try {
+    return await latestFullRun(source);
+  } catch (error) {
+    console.error(`[live] ${source} full-run check failed:`, error);
+    return undefined;
+  }
+}
 
 /** Per source, for the sync badge — after the top-up, so it reports what the page shows. */
 export const loadSourceSync = cache(async (): Promise<SourceSync[]> => {
   await topUpStaleSources();
+  const now = new Date();
   return Promise.all(
-    LIVE_SOURCES.map(async (source): Promise<SourceSync> =>
-      sourceConfigured(source) ? { source, configured: true, freshness: await loadFreshness(source) } : { source, configured: false }
-    )
+    LIVE_SOURCES.map(async (source): Promise<SourceSync> => {
+      if (!sourceConfigured(source)) return { source, configured: false };
+      const [freshness, latestFull] = await Promise.all([loadFreshness(source), db() ? latestFullOrNull(source) : undefined]);
+      // undefined: the journal could not be read — the database banner covers it.
+      const fullSync = latestFull === undefined ? null : fullSyncWarning({ configured: true, freshness, latestFullOk: latestFull, now });
+      return { source, configured: true, freshness, fullSync };
+    })
   );
 });

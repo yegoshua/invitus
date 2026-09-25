@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import { Suspense } from "react";
+import { FullSyncBanner } from "@/components/data-banner";
 import { RailNav, SidebarNav, TabBar } from "@/components/shell/nav";
 import { SyncBadge } from "@/components/shell/sync-badge";
 import { requireAdmin } from "@/lib/auth/server";
@@ -77,6 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <LogoutButton className="flex size-8 items-center justify-center rounded-lg text-[#737373] hover:text-foreground" />
             </div>
           </div>
+          <FullSyncBanner sources={sources} />
           {children}
         </div>
       </main>

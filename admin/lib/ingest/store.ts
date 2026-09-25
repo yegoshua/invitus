@@ -42,11 +42,19 @@ export const loadFreshness = cache(async (source: IngestSource): Promise<Freshne
   }
 });
 
+/** When the latest successful full run started; null for never. */
+export async function latestFullRun(source: IngestSource): Promise<Date | null> {
+  const sql = requireDb();
+  const [row] = await sql<Array<{ started_at: Date | null }>>`
+    SELECT max(started_at) AS started_at FROM ingest_runs WHERE source = ${source} AND ok AND kind = 'full'`;
+  return row?.started_at ?? null;
+}
+
 export async function recordIngestRun(run: IngestRun): Promise<void> {
   const sql = requireDb();
   await sql`
-    INSERT INTO ingest_runs (source, started_at, finished_at, ok, row_count, error)
-    VALUES (${run.source}, ${run.startedAt}, ${run.finishedAt}, ${run.ok}, ${run.rows}, ${run.error})`;
+    INSERT INTO ingest_runs (source, kind, started_at, finished_at, ok, row_count, error)
+    VALUES (${run.source}, ${run.kind}, ${run.startedAt}, ${run.finishedAt}, ${run.ok}, ${run.rows}, ${run.error})`;
 }
 
 /** A claim older than this is taken to belong to an instance that died. */
