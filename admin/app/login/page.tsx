@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { AuthCard } from "@/components/auth-card";
-import { TelegramLoginButton } from "@/components/telegram-login-button";
+import { Send } from "lucide-react";
 
 export const metadata: Metadata = { title: "Вхід" };
 
 const ERRORS: Record<string, string> = {
-  expired: "Посилання для входу застаріло. Спробуй ще раз.",
+  expired: "Вхід тривав задовго або почався в іншій вкладці. Спробуй ще раз.",
+  cancelled: "Вхід скасовано.",
   "bad-signature": "Telegram не підтвердив вхід. Спробуй ще раз.",
-  "missing-fields": "Telegram не підтвердив вхід. Спробуй ще раз.",
   telegram: "Telegram зараз не відповідає. Спробуй за хвилину.",
   config: "Адмінка налаштована не до кінця. Напиши розробнику.",
 };
@@ -18,18 +18,20 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
   const devLogin = process.env.NODE_ENV === "development" && process.env.ADMIN_DEV_TELEGRAM_ID;
 
   return (
     <AuthCard>
       <p className="mt-2 text-sm text-muted-foreground">Адмінка для команди</p>
       <div className="mt-8 space-y-4">
-        {botUsername ? (
-          <TelegramLoginButton botUsername={botUsername} />
-        ) : (
-          <p className="text-sm text-[var(--color-error)]">TELEGRAM_BOT_USERNAME не задано</p>
-        )}
+        {/* A plain link, not a script widget: /auth/start redirects to Telegram. */}
+        <a
+          href="/auth/start"
+          className="flex items-center justify-center gap-2 rounded-[12px] bg-[#2AABEE] py-3 text-[15px] font-medium text-white hover:bg-[#229ED9]"
+        >
+          <Send className="size-5" aria-hidden />
+          Увійти через Telegram
+        </a>
         {devLogin && (
           <a
             href="/auth/dev"

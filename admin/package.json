@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "jose": "^6.2.12",
     "lucide-react": "^0.563.0",
     "next": "16.1.4",
     "react": "19.2.3",
