@@ -12,9 +12,13 @@ import postgres from "postgres";
 const apply = process.argv.includes("--apply");
 // The direct URL where there is one: DDL through PgBouncer's transaction mode
 // works, but a migration is the one place a direct connection costs nothing.
-const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+// ADMIN_DB_ is the prefix the Vercel Neon integration was connected with.
+const env = process.env;
+const url = env.DATABASE_URL_UNPOOLED ?? env.DATABASE_URL ?? env.ADMIN_DB_DATABASE_URL_UNPOOLED ?? env.ADMIN_DB_DATABASE_URL;
 if (!url) {
-  console.error("DATABASE_URL is not set (vercel env pull, or .env.local).");
+  // `vercel env pull` cannot help: the integration marks these Sensitive, and
+  // they come down as "[SENSITIVE]". Copy the URL from Vercel → Storage.
+  console.error("DATABASE_URL is not set — put the Neon connection string in admin/.env.local.");
   process.exit(1);
 }
 

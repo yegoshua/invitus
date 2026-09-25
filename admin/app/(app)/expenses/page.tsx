@@ -110,7 +110,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
 
       {!loaded.ok && loaded.reason === "unconfigured" ? (
         <PendingPanel title="Журнал витрат">
-          Адмінці ще не підключена база даних (немає <code>DATABASE_URL</code>). Підключи Neon у Vercel — проєкт invitus-admin → Storage — і
+          Адмінці ще не підключена база даних (немає <code>ADMIN_DB_DATABASE_URL</code>). Підключи Neon у Vercel — проєкт invitus-admin → Storage — і
           застосуй міграції: <code>pnpm --filter invitus-admin db:migrate --apply</code>.
         </PendingPanel>
       ) : (
