@@ -9,6 +9,9 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/server";
 import { parseExpenseInput, type ExpenseField } from "@/lib/expenses/input";
 import { createExpense, deleteExpense, updateExpense } from "@/lib/expenses/store";
+import { parseFeeRates } from "@/lib/fees/rates-input";
+import { saveFeeRates } from "@/lib/fees/store";
+import { RATED_METHOD_IDS } from "@/lib/finance/payments";
 import { kyivDay } from "@/lib/finance/period";
 
 export type ExpenseFormState = {
@@ -73,4 +76,26 @@ export async function removeExpense(_: ExpenseFormState, form: FormData): Promis
   }
   revalidatePath("/", "layout");
   redirect(backTo(form));
+}
+
+export type FeeRatesFormState = {
+  errors?: Record<number, string>;
+  message?: string;
+  saved?: boolean;
+};
+
+/** The fee rates the estimate uses (lib/finance/fees.ts), one per payment method. */
+export async function saveRates(_: FeeRatesFormState, form: FormData): Promise<FeeRatesFormState> {
+  const session = await requireAdmin();
+  const parsed = parseFeeRates(Object.fromEntries(form), RATED_METHOD_IDS);
+  if (!parsed.ok) return { errors: parsed.errors };
+  try {
+    await saveFeeRates(parsed.value, { userId: session.userId, name: session.name });
+  } catch (error) {
+    console.error("[fees] rates save failed:", error);
+    return { message: SAVE_FAILED };
+  }
+  // Every estimated fee, and so Profit, moves with a rate.
+  revalidatePath("/", "layout");
+  return { saved: true };
 }

@@ -235,3 +235,31 @@ export async function getInvoiceStatus(
 
   return (await res.json()) as InvoiceStatusResponse;
 }
+
+/**
+ * The merchant statement: every payment between two instants (unix seconds,
+ * at most 31 days apart), with `profitAmount` — what reaches the merchant's
+ * account after the bank's fee. Read-only; the Admin's daily ingest calls it.
+ * Returned as unknown JSON on purpose: admin/lib/ingest/monobank-statement.ts
+ * is what decides whether it can be trusted.
+ */
+export async function getMerchantStatement(
+  fromUnix: number,
+  toUnix: number
+): Promise<unknown> {
+  const url = `${MONO_BASE}/api/merchant/statement?from=${fromUnix}&to=${toUnix}`;
+  const res = await fetch(url, {
+    headers: { "X-Token": token() },
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      `Monobank statement ${res.status}: ${text.slice(0, 300)}`
+    );
+  }
+
+  return res.json();
+}

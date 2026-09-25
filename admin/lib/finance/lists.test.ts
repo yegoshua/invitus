@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { order, sale } from "./fixtures.ts";
+import { actualFeesByOrder } from "./fees.ts";
 import { orderRows, productRanking, type OrderStatusFilter } from "./lists.ts";
 
 const NOW = new Date("2026-09-25T12:00:00Z");
 const SEPT = { from: "2026-09-01", to: "2026-09-25" };
 const none: { status: OrderStatusFilter[]; source: number[]; payment: number[] } = { status: [], source: [], payment: [] };
+const fees = { rates: { 2: 1.3, 6: 0 }, actual: actualFeesByOrder([]) };
 const line = (name: string, price: number, size: string | null = null, quantity = 1) =>
   ({ name, price, quantity, size, sku: null, picture: null });
 
@@ -17,9 +19,12 @@ test("rows are the period's placed orders, newest first, with an estimated fee",
       order({ id: 3, createdAt: new Date("2026-08-01T10:00:00Z") }),
       order({ id: 4, sourceId: 1 }),
     ],
-    SEPT, NOW, none
+    SEPT, NOW, none, fees
   );
-  assert.deepEqual(rows.map((r) => [r.order.id, r.fee]), [[2, 0], [1, 53]]);
+  assert.deepEqual(rows.map((r) => [r.order.id, r.fee]), [
+    [2, { kind: "estimated", kop: 0, percent: 0 }],
+    [1, { kind: "estimated", kop: 5330, percent: 1.3 }],
+  ]);
 });
 
 test("filters combine; each group is an OR of its chips", () => {
@@ -29,15 +34,31 @@ test("filters combine; each group is an OR of its chips", () => {
     order({ id: 3, sourceId: 3, statusId: 19, statusGroupId: 6 }),
     order({ id: 4, sourceId: 2, createdAt: new Date("2026-09-10T10:00:00Z") }), // stuck: new > 3 days
   ];
-  const ids = (f: Partial<typeof none>) => orderRows(orders, SEPT, NOW, { ...none, ...f }).map((r) => r.order.id);
+  const ids = (f: Partial<typeof none>) => orderRows(orders, SEPT, NOW, { ...none, ...f }, fees).map((r) => r.order.id);
   assert.deepEqual(ids({ source: [2] }), [4, 1]);
   assert.deepEqual(ids({ status: ["stuck"] }), [4]);
   assert.deepEqual(ids({ status: ["open", "cancelled"], source: [3] }), [3, 2]);
 });
 
-test("a cancelled order carries no fee", () => {
-  const [row] = orderRows([order({ statusId: 19, statusGroupId: 6, paymentMethodId: 2 })], SEPT, NOW, none);
-  assert.equal(row.fee, 0);
+test("the bank's fee replaces the estimate", () => {
+  const [row] = orderRows(
+    [order({ id: 1051, total: 700, paymentMethodId: 2 })],
+    SEPT, NOW, none,
+    { ...fees, actual: actualFeesByOrder([{ orderId: 1051, feeKop: 910, paidOn: "2026-09-18" }]) }
+  );
+  assert.deepEqual(row.fee, { kind: "actual", kop: 910 });
+});
+
+test("a cancelled order carries no fee, unless the bank kept one", () => {
+  const cancelled = { statusId: 19, statusGroupId: 6, paymentMethodId: 2 };
+  const [row] = orderRows([order({ id: 1, ...cancelled })], SEPT, NOW, none, fees);
+  assert.equal(row.fee, null);
+  const [paid] = orderRows(
+    [order({ id: 2, ...cancelled })],
+    SEPT, NOW, none,
+    { ...fees, actual: actualFeesByOrder([{ orderId: 2, feeKop: 5330, paidOn: "2026-09-10" }]) }
+  );
+  assert.deepEqual(paid.fee, { kind: "actual", kop: 5330 });
 });
 
 test("products rank by revenue from the period's Sales, with sizes", () => {

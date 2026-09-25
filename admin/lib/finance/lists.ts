@@ -2,7 +2,7 @@
 // order. Pure, like the summary.
 
 import { classifyOrder, isCounted, type CrmOrder, type OrderClass } from "./orders.ts";
-import { estimatedFee } from "./payments.ts";
+import { orderFee, type ActualFee, type FeeRates, type OrderFee } from "./fees.ts";
 import { inPeriod, kyivDay, type Day, type Period } from "./period.ts";
 
 export type OrderStatusFilter = "sale" | "open" | "stuck" | "cancelled";
@@ -12,8 +12,8 @@ export interface OrderRow {
   cls: OrderClass;
   status: OrderStatusFilter;
   placedDay: Day;
-  /** Estimated until the bank statement lands (#110). */
-  fee: number;
+  /** Actual when the bank statement has it, else estimated; null for a cancelled order the bank took nothing for. */
+  fee: OrderFee | null;
 }
 
 export function statusOf(cls: OrderClass): OrderStatusFilter {
@@ -26,18 +26,20 @@ export function orderRows(
   orders: CrmOrder[],
   period: Period,
   now: Date,
-  filters: { status: OrderStatusFilter[]; source: number[]; payment: number[] }
+  filters: { status: OrderStatusFilter[]; source: number[]; payment: number[] },
+  fees: { rates: FeeRates; actual: ReadonlyMap<number, ActualFee> }
 ): OrderRow[] {
   return orders
     .filter(isCounted)
     .map((order) => {
       const cls = classifyOrder(order, now);
+      const actual = fees.actual.get(order.id)?.kop;
       return {
         order,
         cls,
         status: statusOf(cls),
         placedDay: kyivDay(order.createdAt),
-        fee: cls.kind === "cancelled" ? 0 : estimatedFee(order.total, order.paymentMethodId),
+        fee: cls.kind === "cancelled" && actual === undefined ? null : orderFee(order, actual, fees.rates),
       };
     })
     .filter(

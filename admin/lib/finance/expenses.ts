@@ -5,6 +5,7 @@
 // on the way out, to sit next to Revenue, which KeyCRM gives in hryvnias.
 
 import type { ExpenseCategory, ExpenseSource } from "../expenses/categories.ts";
+import type { FeeSummary } from "./fees.ts";
 import { addDays, inPeriod, previousPeriod, type Day, type Period } from "./period.ts";
 
 export interface ExpenseEntry {
@@ -69,27 +70,30 @@ export interface ProfitFigures {
 }
 
 /**
- * Profit = Revenue − Expenses (CONTEXT.md). Payment fees join in #110. Cash
- * basis: a month that buys a batch of stock is negative, and that is a
- * correct answer, not an error to hide.
+ * Profit = Revenue − Payment fees − Expenses (CONTEXT.md). Cash basis: a
+ * month that buys a batch of stock is negative, and that is a correct answer,
+ * not an error to hide. The fees are whatever lib/finance/fees.ts made of them
+ * — actual where the bank reported them, estimated elsewhere.
  */
 export function profitFigures(
   revenue: { revenue: number; previousRevenue: number; revenueByDay: Array<{ day: Day; revenue: number }> },
   expenses: ExpenseSummary,
+  fees: FeeSummary,
   period: Period
 ): ProfitFigures {
   const rev = new Map(revenue.revenueByDay.map((d) => [d.day, d.revenue]));
   const exp = new Map(expenses.byDay.map((d) => [d.day, d.total]));
+  const fee = new Map(fees.byDay.map((d) => [d.day, d.total]));
   const byDay: ProfitFigures["byDay"] = [];
   let cumulative = 0;
   for (let day = period.from; day <= period.to; day = addDays(day, 1)) {
-    const profit = round((rev.get(day) ?? 0) - (exp.get(day) ?? 0));
+    const profit = round((rev.get(day) ?? 0) - (fee.get(day) ?? 0) - (exp.get(day) ?? 0));
     cumulative = round(cumulative + profit);
     byDay.push({ day, profit, cumulative });
   }
   return {
-    profit: round(revenue.revenue - expenses.total),
-    previousProfit: round(revenue.previousRevenue - expenses.previousTotal),
+    profit: round(revenue.revenue - fees.total - expenses.total),
+    previousProfit: round(revenue.previousRevenue - fees.previousTotal - expenses.previousTotal),
     byDay,
   };
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DatabaseDownBanner, KeyCrmDownBanner } from "@/components/data-banner";
+import { DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
 import { KpiCard, type Kpi } from "@/components/overview/kpi-card";
 import { OpenOrders } from "@/components/overview/open-orders";
 import { RevenueChart, type ChartDay } from "@/components/overview/revenue-chart";
@@ -8,7 +8,9 @@ import { StuckOrders } from "@/components/overview/stuck-orders";
 import { PageHeader } from "@/components/page-header";
 import { requireAdmin } from "@/lib/auth/server";
 import { listExpenses } from "@/lib/expenses/store";
+import { loadFees } from "@/lib/fees/store";
 import { profitFigures, summarizeExpenses, type ProfitFigures } from "@/lib/finance/expenses";
+import { periodFees } from "@/lib/finance/fees";
 import { dayLabel, deltaLabel, plural, profitDeltaLabel, rangeLabel, uah } from "@/lib/finance/format";
 import { addDays, daysBetween, kyivDay, periodFromSearch, previousPeriod, type Day, type Period } from "@/lib/finance/period";
 import { summarize, type PeriodSummary } from "@/lib/finance/summary";
@@ -54,17 +56,24 @@ export default async function OverviewPage({
   await requireAdmin();
   const now = new Date();
   const { period, preset } = periodFromSearch(await searchParams, kyivDay(now));
-  const [data, expenses] = await Promise.all([loadOrders(), listExpenses(previousPeriod(period).from, period.to)]);
+  const [data, expenses, feeData] = await Promise.all([
+    loadOrders(),
+    listExpenses(previousPeriod(period).from, period.to),
+    loadFees(),
+  ]);
   const s = summarize(data.orders, period, now);
-  // Both halves or nothing: without the Expenses a Profit figure is Revenue
-  // wearing Profit's name, and without KeyCRM it is a loss nobody made.
-  const profit = expenses.ok && data.ok
+  const fees = periodFees(data.orders, feeData.actual, feeData.rates, period, now);
+  // All of it or nothing: without the Expenses or the fees a Profit figure is
+  // Revenue wearing Profit's name, and without KeyCRM it is a loss nobody made.
+  const profit = expenses.ok && data.ok && feeData.ok
     ? profitFigures(
         { revenue: s.revenue, previousRevenue: s.previous.revenue, revenueByDay: s.revenueByDay },
         summarizeExpenses(expenses.value, period),
+        fees,
         period
       )
     : null;
+  const feesNote = `комісії ${fees.estimated > 0 ? "≈ " : ""}${uah(fees.total)}`;
   const days = chartDays(period, s, profit);
   const vs = `до ${rangeLabel(s.previous.period)}`;
 
@@ -89,8 +98,8 @@ export default async function OverviewPage({
           vs,
           note:
             profit.profit < 0
-              ? "Витрати перевищили виручку · без комісій"
-              : `${s.revenue ? Math.round((profit.profit / s.revenue) * 100) : 0}% від виручки · без комісій`,
+              ? `Витрати й комісії перевищили виручку · ${feesNote}`
+              : `${s.revenue ? Math.round((profit.profit / s.revenue) * 100) : 0}% від виручки · ${feesNote}`,
         }
       : {
           label: "Прибуток",
@@ -100,7 +109,9 @@ export default async function OverviewPage({
             ? "Замовлення з KeyCRM не завантажились"
             : !expenses.ok && expenses.reason === "unconfigured"
               ? "Підключи базу даних, щоб вносити витрати"
-              : "Витрати не завантажились",
+              : !expenses.ok
+                ? "Витрати не завантажились"
+                : "Комісії не завантажились",
         },
     { label: "Витрати на рекламу", value: "—", pending: true, note: "Meta і Google підтягнуться автоматично" },
     { label: "ROAS", value: "—", pending: true, note: "Виручка ÷ реклама — після підключення реклами" },
@@ -111,6 +122,7 @@ export default async function OverviewPage({
       <PageHeader title="Огляд" period={period} preset={preset} />
       {!data.ok && <KeyCrmDownBanner />}
       {!expenses.ok && expenses.reason === "error" && <DatabaseDownBanner />}
+      {expenses.ok && <FeesBanner fees={feeData} />}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 dt:grid-cols-4">
         {kpis.map((k) => (
           <KpiCard key={k.label} {...k} />

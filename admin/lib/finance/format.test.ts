@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { deltaLabel, plural, profitDeltaLabel, rangeLabel, shortAmount, uah, uahExact } from "./format.ts";
-import { estimatedFee } from "./payments.ts";
 
 const NBSP = " ";
 
@@ -32,14 +31,6 @@ test("deltas", () => {
   assert.deepEqual(deltaLabel(150, 100), { text: `↑${NBSP}50%`, direction: 1 });
   assert.deepEqual(deltaLabel(-50, -100), { text: `↑${NBSP}50%`, direction: 1 });
   assert.equal(deltaLabel(10, 0), null);
-});
-
-test("estimated fee by method; unknown and cash on delivery cost nothing", () => {
-  assert.equal(estimatedFee(4100, 2), 53);
-  assert.equal(estimatedFee(4100, 9), 144);
-  assert.equal(estimatedFee(4100, 6), 0);
-  assert.equal(estimatedFee(4100, null), 0);
-  assert.equal(estimatedFee(4100, 99), 0);
 });
 
 test("an Expense keeps its kopecks; a whole amount does not grow a ,00", () => {
