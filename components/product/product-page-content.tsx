@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
-import { usePreferParts } from "@/hooks/use-payment-preference";
+import { usePreferFullPayment, usePreferParts } from "@/hooks/use-payment-preference";
 import { usePinnedCta } from "@/hooks/use-pinned-cta";
 import { fromMonthlyLabel } from "@/lib/installments";
 import { formatPriceWithCurrency } from "@/lib/format";
@@ -47,6 +47,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const addItem = useAddToCart();
   const openCart = useOpenCart();
   const preferParts = usePreferParts();
+  const preferFullPayment = usePreferFullPayment();
   // On mobile the buttons sit under the card, and a pinned copy slides up only
   // once they have been scrolled past (lib/pinned-cta.ts). Not for a sold-out
   // product: a bar holding one dead button is viewport spent on nothing.
@@ -105,10 +106,16 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
     ...details.filter((item) => item.id === "story"),
   ];
 
-  const handleAddToCart = () => {
-    if (soldOut) return;
+  const addAndOpenCart = () => {
     addItem(product, selectedSize?.value, selectedSize?.label);
     openCart();
+  };
+
+  // A plain add drops a remembered «parts», so the drawer shows the total.
+  const handleAddToCart = () => {
+    if (soldOut) return;
+    preferFullPayment();
+    addAndOpenCart();
   };
 
   // The same add, with the intent to pay in parts remembered: the drawer then
@@ -116,7 +123,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const handleAddInParts = () => {
     if (soldOut) return;
     preferParts();
-    handleAddToCart();
+    addAndOpenCart();
   };
 
   // The paw peeks over the button's top-right corner, as in the design.

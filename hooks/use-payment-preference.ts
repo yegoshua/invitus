@@ -22,6 +22,19 @@ export const usePreferParts = () => {
 };
 
 /**
+ * One call for the plain «Додати в кошик»: the last add decides the intent, so
+ * a customer who once pressed «Від … / міс» and now adds without it does not
+ * find the drawer still selling them instalments. Only «parts» is undone — a
+ * cash-on-delivery choice made at the checkout is not the product page's to
+ * overwrite.
+ */
+export const usePreferFullPayment = () =>
+  useCallback(() => {
+    const { method, setMethod } = usePaymentPreferenceStore.getState();
+    if (method === "parts") setMethod("online");
+  }, []);
+
+/**
  * The instalment breakdown for a total, or null when the customer has not
  * chosen instalments or the total no longer qualifies — the cart drawer draws
  * its plain «До оплати» in that case. Derived, never stored: a size added to
