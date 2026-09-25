@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
 import { usePreferParts } from "@/hooks/use-payment-preference";
+import { usePinnedCta } from "@/hooks/use-pinned-cta";
 import { fromMonthlyLabel } from "@/lib/installments";
 import { formatPriceWithCurrency } from "@/lib/format";
 import type { Product, ProductSize } from "@/types";
@@ -19,6 +20,7 @@ import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
 import { MonoPaw } from "@/components/ui/mono-paw";
+import { cn } from "@/lib/utils";
 
 interface ProductPageContentProps {
   product: Product;
@@ -45,6 +47,13 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const addItem = useAddToCart();
   const openCart = useOpenCart();
   const preferParts = usePreferParts();
+  // On mobile the buttons sit under the card, and a pinned copy slides up only
+  // once they have been scrolled past (lib/pinned-cta.ts). Not for a sold-out
+  // product: a bar holding one dead button is viewport spent on nothing.
+  const inlineButtonsRef = useRef<HTMLDivElement>(null);
+  const scrolledPast = usePinnedCta(inlineButtonsRef);
+
+  const pinned = scrolledPast && !soldOut;
 
   const formattedPrice = formatPriceWithCurrency(product.price);
   // «Від 513 ₴ / міс» — drawn only for a price that qualifies for Monobank
@@ -126,6 +135,20 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
     </div>
   );
 
+  const mobileButtons = (
+    <>
+      {partsButton}
+      <CTAButton
+        width="fill"
+        onClick={handleAddToCart}
+        disabled={soldOut}
+        icon={soldOut ? null : <Plus className="w-5 h-5" />}
+      >
+        {soldOut ? "Немає в наявності" : "Додати в кошик"}
+      </CTAButton>
+    </>
+  );
+
   return (
     <>
       {/* ===== MOBILE LAYOUT ===== */}
@@ -186,7 +209,17 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           </div>
         </div>
 
-        {/* Accordion below card */}
+        {/* Buttons below card. px-4, not the accordion's px-2: the paw
+            overhangs the button's right edge by 16px. */}
+        <div
+          ref={inlineButtonsRef}
+          inert={pinned}
+          className="mt-6 flex flex-col gap-4 px-4"
+        >
+          {mobileButtons}
+        </div>
+
+        {/* Accordion below buttons */}
         <div className="mt-4 px-2 md:px-4">
           <ProductInfoAccordion
             items={mobileInfoItems}
@@ -195,17 +228,19 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         </div>
       </div>
 
-      {/* Fixed CTA — mobile only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col gap-4 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm">
-        {partsButton}
-        <CTAButton
-          width="fill"
-          onClick={handleAddToCart}
-          disabled={soldOut}
-          icon={soldOut ? null : <Plus className="w-5 h-5" />}
-        >
-          {soldOut ? "Немає в наявності" : "Додати в кошик"}
-        </CTAButton>
+      {/* Pinned copy — mobile only. Always mounted so it can slide, but inert
+          while hidden so neither the tab order nor a screen reader finds a
+          second set of the same buttons. Hidden, it drops a further 2rem so
+          the paw peeking over its top edge goes too. */}
+      <div
+        inert={!pinned}
+        aria-hidden={!pinned}
+        className={cn(
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col gap-4 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm transition-transform duration-300 ease-out motion-reduce:transition-none",
+          pinned ? "translate-y-0" : "translate-y-[calc(100%+2rem)]"
+        )}
+      >
+        {mobileButtons}
       </div>
 
       {/* ===== DESKTOP LAYOUT ===== */}
