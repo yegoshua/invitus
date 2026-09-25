@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { freshness, runStages, type IngestRun } from "./run.ts";
+import { freshness, fullSyncWarning, runStages, type IngestRun } from "./run.ts";
 
 const T0 = new Date("2026-09-25T00:30:00Z");
 
@@ -77,4 +77,43 @@ test("stale, as of never, when it has never run or never worked", () => {
     asOf: null,
     error: "MONOBANK_TOKEN is not set",
   });
+});
+
+test("a run records its kind: full unless the stage says it is a top-up", async () => {
+  const runs = await runStages(
+    [
+      { source: "monobank", run: async () => ({ rows: 1 }) },
+      { source: "meta", kind: "top-up", run: async () => ({ rows: 2 }) },
+    ],
+    async () => {},
+    () => T0
+  );
+  assert.deepEqual(runs.map((r) => r.kind), ["full", "top-up"]);
+});
+
+const FRESH = { state: "fresh" as const, asOf: T0 };
+const H = 3_600_000;
+
+test("no full-sync warning while the last full run is within 36 hours", () => {
+  const now = new Date(T0.getTime() + 36 * H);
+  assert.equal(fullSyncWarning({ configured: true, freshness: FRESH, latestFullOk: T0, now }), null);
+});
+
+test("a full run older than 36 hours warns, dated by that run — even when top-ups keep the data fresh", () => {
+  const now = new Date(T0.getTime() + 36 * H + 1);
+  assert.deepEqual(fullSyncWarning({ configured: true, freshness: FRESH, latestFullOk: T0, now }), { since: T0 });
+});
+
+test("a source that has only ever been topped up warns, as of never", () => {
+  assert.deepEqual(fullSyncWarning({ configured: true, freshness: FRESH, latestFullOk: null, now: T0 }), { since: null });
+});
+
+test("a source that is not configured never warns", () => {
+  assert.equal(fullSyncWarning({ configured: false, freshness: FRESH, latestFullOk: null, now: T0 }), null);
+});
+
+test("no full-sync warning when the data itself is stale or unknown: that banner already speaks", () => {
+  const stale = { state: "stale" as const, asOf: null, error: "down" };
+  assert.equal(fullSyncWarning({ configured: true, freshness: stale, latestFullOk: null, now: T0 }), null);
+  assert.equal(fullSyncWarning({ configured: true, freshness: null, latestFullOk: null, now: T0 }), null);
 });

@@ -42,9 +42,41 @@ export const loadFreshness = cache(async (source: IngestSource): Promise<Freshne
   }
 });
 
+/** When the latest successful full run started; null for never. */
+export async function latestFullRun(source: IngestSource): Promise<Date | null> {
+  const sql = requireDb();
+  const [row] = await sql<Array<{ started_at: Date | null }>>`
+    SELECT max(started_at) AS started_at FROM ingest_runs WHERE source = ${source} AND ok AND kind = 'full'`;
+  return row?.started_at ?? null;
+}
+
 export async function recordIngestRun(run: IngestRun): Promise<void> {
   const sql = requireDb();
   await sql`
-    INSERT INTO ingest_runs (source, started_at, finished_at, ok, row_count, error)
-    VALUES (${run.source}, ${run.startedAt}, ${run.finishedAt}, ${run.ok}, ${run.rows}, ${run.error})`;
+    INSERT INTO ingest_runs (source, kind, started_at, finished_at, ok, row_count, error)
+    VALUES (${run.source}, ${run.kind}, ${run.startedAt}, ${run.finishedAt}, ${run.ok}, ${run.rows}, ${run.error})`;
+}
+
+/** A claim older than this is taken to belong to an instance that died. */
+const CLAIM_EXPIRES_SECONDS = 120;
+
+/**
+ * Takes the top-up claim on a source, across every server instance: the token
+ * when this caller now holds it, null when someone else does.
+ */
+export async function claimIngest(source: IngestSource): Promise<string | null> {
+  const sql = requireDb();
+  const token = crypto.randomUUID();
+  const rows = await sql`
+    INSERT INTO ingest_claims (source, claimed_at, token) VALUES (${source}, now(), ${token})
+    ON CONFLICT (source) DO UPDATE SET claimed_at = now(), token = EXCLUDED.token
+    WHERE ingest_claims.claimed_at IS NULL
+       OR ingest_claims.claimed_at < now() - make_interval(secs => ${CLAIM_EXPIRES_SECONDS})
+    RETURNING source`;
+  return rows.length ? token : null;
+}
+
+export async function releaseIngest(source: IngestSource, token: string): Promise<void> {
+  const sql = requireDb();
+  await sql`UPDATE ingest_claims SET claimed_at = NULL, token = NULL WHERE source = ${source} AND token = ${token}`;
 }

@@ -1,5 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import type { FeeData } from "@/lib/fees/store";
+import type { OrdersResult } from "@/lib/keycrm-orders";
+import type { SourceSync } from "@/lib/ingest/live";
 import type { Freshness } from "@/lib/ingest/run";
 
 export function DatabaseDownBanner() {
@@ -7,15 +9,6 @@ export function DatabaseDownBanner() {
     <p role="alert" className="flex items-center gap-2 rounded-[16px] border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 px-4 py-3 text-sm">
       <TriangleAlert className="size-4 shrink-0 text-[var(--color-error)]" aria-hidden />
       Не вдалося прочитати витрати з бази даних. Прибуток і витрати зараз не показуються — онови сторінку за хвилину.
-    </p>
-  );
-}
-
-export function KeyCrmDownBanner() {
-  return (
-    <p role="alert" className="flex items-center gap-2 rounded-[16px] border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 px-4 py-3 text-sm">
-      <TriangleAlert className="size-4 shrink-0 text-[var(--color-error)]" aria-hidden />
-      Не вдалося завантажити замовлення з KeyCRM. Цифри нижче неповні — онови сторінку за хвилину.
     </p>
   );
 }
@@ -36,6 +29,28 @@ function staleText(
   const { asOf: when, error } = freshness;
   if (when) return asOf(AS_OF.format(when), error ? `останнє оновлення не вдалося (${error})` : "нічне оновлення давно не запускалось");
   return never(error ? `не завантажились (${error})` : "ще не завантажувались");
+}
+
+/**
+ * KeyCRM down: over nothing when no read has ever worked in this server
+ * instance, otherwise over the last good copy — the figures are whole, only
+ * as of an earlier moment.
+ */
+export function KeyCrmBanner({ orders }: { orders: OrdersResult }) {
+  if (!orders.ok) {
+    return (
+      <p role="alert" className="flex items-center gap-2 rounded-[16px] border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 px-4 py-3 text-sm">
+        <TriangleAlert className="size-4 shrink-0 text-[var(--color-error)]" aria-hidden />
+        Не вдалося завантажити замовлення з KeyCRM. Цифри нижче неповні — онови сторінку за хвилину.
+      </p>
+    );
+  }
+  if (!orders.error) return null;
+  return (
+    <StaleBanner
+      text={`Замовлення KeyCRM — дані станом на ${AS_OF.format(orders.fetchedAt)}: KeyCRM зараз не відповідає. Нові замовлення й зміни статусів після цього часу ще не враховані.`}
+    />
+  );
 }
 
 function StaleBanner({ text }: { text: string | null }) {
@@ -79,5 +94,37 @@ export function AdSpendBanner({ meta }: { meta: Freshness | null }) {
         (why) => `Витрати на рекламу Meta ${why}. Витрати на рекламу, ROAS і CAC поки рахуються без Meta.`
       )}
     />
+  );
+}
+
+const SINCE = new Intl.DateTimeFormat("uk-UA", { timeZone: "Europe/Kyiv", day: "numeric", month: "short" });
+
+const BACKDATED: Record<SourceSync["source"], { name: string; what: string }> = {
+  monobank: { name: "Monobank", what: "повернення, зміни статусів оплат" },
+  meta: { name: "Meta", what: "перерахунки витрат Meta" },
+};
+
+/**
+ * The page top-ups read today and yesterday; only the nightly full run catches
+ * what changed further back. Shown when that run has not worked for 36 h
+ * while the top-ups keep the badge green (fullSyncWarning).
+ */
+export function FullSyncBanner({ sources }: { sources: SourceSync[] }) {
+  const lines = sources.flatMap((s) => {
+    if (!s.configured || !s.fullSync) return [];
+    const { name, what } = BACKDATED[s.source];
+    const when = s.fullSync.since ? `не проходила з ${SINCE.format(s.fullSync.since).replace(/\.$/, "")}` : "ще не проходила";
+    return [`Нічна повна синхронізація ${name} ${when} — зміни заднім числом (${what}) можуть бути не враховані.`];
+  });
+  if (!lines.length) return null;
+  return (
+    <p role="status" className="flex items-start gap-2 rounded-[16px] border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+      <span className="flex flex-col gap-1">
+        {lines.map((l) => (
+          <span key={l}>{l}</span>
+        ))}
+      </span>
+    </p>
   );
 }
