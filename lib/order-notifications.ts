@@ -36,7 +36,7 @@ export interface NewOrderNotification {
  * A link into KeyCRM when KEYCRM_APP_URL is set, and nothing at all when it is
  * not — a guessed admin origin would render a broken link on every order.
  */
-function orderLink(orderId: number): string | null {
+export function orderLink(orderId: number): string | null {
   const base = process.env.KEYCRM_APP_URL?.replace(/\/+$/, "");
   if (!base) return null;
   return `${base}/app/orders/${orderId}`;
