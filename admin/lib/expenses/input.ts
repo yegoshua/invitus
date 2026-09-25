@@ -33,7 +33,7 @@ export function parseAmount(text: string): number | null {
 }
 
 // A real calendar day: "2026-02-30" matches the pattern and is not one.
-function isCalendarDay(s: string): boolean {
+export function isCalendarDay(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const d = new Date(`${s}T12:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;

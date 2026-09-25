@@ -4,6 +4,7 @@ import Link from "next/link";
 import { DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
 import { ExpenseDialog, type ExpenseDraft } from "@/components/expenses/expense-dialog";
 import { FeeRatesForm } from "@/components/expenses/fee-rates-form";
+import { RecurringSection } from "@/components/expenses/recurring-section";
 import { KpiCard } from "@/components/overview/kpi-card";
 import { PageHeader } from "@/components/page-header";
 import { PendingPanel } from "@/components/pending-panel";
@@ -20,7 +21,7 @@ import { loadOrders } from "@/lib/keycrm-orders";
 
 export const metadata: Metadata = { title: "Витрати" };
 
-type Search = { period?: string; from?: string; to?: string; add?: string; edit?: string };
+type Search = { period?: string; from?: string; to?: string; add?: string; edit?: string; recurring?: string };
 
 /** Kopecks as the form shows them back: "2400", "1250,50". */
 function amountText(kop: number): string {
@@ -55,6 +56,9 @@ function Entry({ e, editHref }: { e: Expense; editHref: string }) {
         <span className="flex items-center gap-1.5 text-[15px]">
           {!manual && <Lock className="size-3.5 shrink-0 text-[#737373]" aria-label="Автоматичний запис" />}
           <span className="truncate">{e.title}</span>
+          {e.recurringId != null && (
+            <span className="shrink-0 rounded-[6px] bg-field px-1.5 py-px text-[11px] text-muted-foreground">регулярний</span>
+          )}
         </span>
         <span className="text-[13px] text-[#737373]">{meta.join(" · ")}</span>
         {e.comment && <span className="text-[13px] text-muted-foreground">{e.comment}</span>}
@@ -216,6 +220,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               })}
             </section>
           </div>
+
+          {loaded.ok && <RecurringSection today={today} back={back} open={search.recurring} />}
 
           {loaded.ok && (
             <section className="flex min-w-0 flex-col gap-4 rounded-[26px] bg-panel p-5 sm:p-6 dt:p-7" aria-labelledby="rates-title">
