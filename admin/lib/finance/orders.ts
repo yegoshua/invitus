@@ -39,9 +39,18 @@ export const STAGE_BY_GROUP: Record<number, OpenStage> = {
 export const STAGE_LABELS: Record<OpenStage, string> = {
   new: "Нові",
   confirming: "Підтвердження",
-  production: "Виробництво",
-  delivery: "Доставка",
+  production: "У виробництві",
+  delivery: "В дорозі",
   "awaiting-payment": "Чекають оплати",
+};
+
+/** One order's stage, as a row reads it: "Нове", not "Нові". */
+export const STAGE_LABELS_ONE: Record<OpenStage, string> = {
+  new: "Нове",
+  confirming: "Підтвердження",
+  production: "У виробництві",
+  delivery: "В дорозі",
+  "awaiting-payment": "Чекає оплати",
 };
 
 export interface OrderLine {
@@ -50,6 +59,8 @@ export interface OrderLine {
   /** Price per unit as sold, after line discounts. */
   price: number;
   size: string | null;
+  sku: string | null;
+  picture: string | null;
 }
 
 /** Just enough of a KeyCRM order to classify it. Dates are instants. */
@@ -67,19 +78,20 @@ export interface CrmOrder {
   closedAt: Date | null;
   /** When the latest payment marked paid was recorded. */
   paidAt: Date | null;
-  paymentMethod: string | null;
+  /** KeyCRM payment method id of the first payment (see payments.ts). */
+  paymentMethodId: number | null;
   lines: OrderLine[];
 }
 
 export type StuckReason = "new-too-long" | "in-transit-too-long" | "delivered-not-closed" | "completed-unpaid";
 
 export const STUCK_REASON_LABELS: Record<StuckReason, string> = {
-  "new-too-long": "Новий понад 3 дні",
+  "new-too-long": "Нове понад 3 дні",
   // Nova Poshta delivers in days; a waybill two weeks old was collected or
   // came back, and either way the CRM has not been told.
   "in-transit-too-long": "У дорозі понад 2 тижні",
-  "delivered-not-closed": "Товар у покупця, не закрите",
-  "completed-unpaid": "Виконане, оплату не відмічено",
+  "delivered-not-closed": "Товар у покупця понад 7 днів",
+  "completed-unpaid": "Виконано, але оплату не відмічено",
 };
 
 export type OrderClass =

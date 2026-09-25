@@ -1,41 +1,85 @@
 import { LogOut } from "lucide-react";
-import { SidebarNav, TabBar } from "@/components/nav";
+import { Suspense } from "react";
+import { RailNav, SidebarNav, TabBar } from "@/components/shell/nav";
+import { SyncBadge } from "@/components/shell/sync-badge";
 import { requireAdmin } from "@/lib/auth/server";
+import { loadOrders } from "@/lib/keycrm-orders";
+
+function Wordmark({ size }: { size: "lg" | "sm" }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className={size === "lg" ? "font-heading text-[20px] tracking-[0.05em] text-white" : "font-heading text-base tracking-[0.05em] text-white"}>
+        INVITUS
+      </span>
+      <span className={size === "lg" ? "text-[13px] text-[#737373]" : "text-xs text-[#737373]"}>Admin</span>
+    </span>
+  );
+}
+
+function LogoutButton({ className, label }: { className?: string; label?: string }) {
+  return (
+    <form action="/auth/logout" method="post">
+      <button aria-label="Вийти" title="Вийти" className={className}>
+        <LogOut className="size-4" aria-hidden />
+        {label}
+      </button>
+    </form>
+  );
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
+  const { fetchedAt } = await loadOrders();
 
   return (
-    <div className="min-h-svh lg:grid lg:grid-cols-[15rem_1fr]">
-      <aside className="sticky top-0 hidden h-svh flex-col border-r border-border px-4 py-6 lg:flex">
-        <p className="px-3 font-heading text-2xl tracking-wide">INVITUS</p>
-        <div className="mt-8 flex-1">
-          <SidebarNav />
+    <div className="flex min-h-svh flex-col sm:flex-row">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-[232px] shrink-0 border-r border-border dt:block">
+        <div className="sticky top-0 flex h-svh flex-col gap-8 px-4 pt-7 pb-6">
+          <div className="px-3">
+            <Wordmark size="lg" />
+          </div>
+          <Suspense>
+            <SidebarNav />
+          </Suspense>
+          <div className="mt-auto flex flex-col gap-4 px-3">
+            <SyncBadge fetchedAt={fetchedAt} />
+            <div className="flex items-center justify-between gap-2 border-t border-border pt-4">
+              <span className="truncate text-[13px] text-muted-foreground">{session.name}</span>
+              <LogoutButton className="flex size-8 items-center justify-center rounded-lg text-[#737373] hover:bg-field hover:text-foreground" />
+            </div>
+          </div>
         </div>
-        <form action="/auth/logout" method="post" className="border-t border-border pt-4">
-          <p className="truncate px-3 text-sm text-muted-foreground">{session.name}</p>
-          <button className="mt-1 flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground">
-            <LogOut className="size-4" aria-hidden />
-            Вийти
-          </button>
-        </form>
       </aside>
 
-      <div className="min-w-0 px-4 pb-28 pt-4 md:px-8 lg:pb-10 lg:pt-8">
-        <header className="mb-6 flex items-center justify-between lg:hidden">
-          <p className="font-heading text-xl tracking-wide">INVITUS</p>
-          <form action="/auth/logout" method="post">
-            <button
-              aria-label={`Вийти (${session.name})`}
-              className="flex size-10 items-center justify-center rounded-[12px] text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <LogOut className="size-5" aria-hidden />
-            </button>
-          </form>
-        </header>
-        {children}
-      </div>
-      <TabBar />
+      {/* Tablet rail */}
+      <aside className="hidden w-[84px] shrink-0 border-r border-border sm:block dt:hidden">
+        <div className="sticky top-0 flex h-svh flex-col items-center gap-7 py-6">
+          <span className="font-heading text-[22px] text-white">I</span>
+          <Suspense>
+            <RailNav />
+          </Suspense>
+          <LogoutButton className="mt-auto flex size-10 items-center justify-center rounded-xl text-[#737373] hover:bg-field hover:text-foreground" />
+        </div>
+      </aside>
+
+      <main className="min-w-0 flex-1 px-4 pt-4 pb-6 sm:px-7 sm:pt-7 sm:pb-10 dt:px-12 dt:pt-9 dt:pb-14">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-5 sm:gap-6 dt:gap-7">
+          {/* Phone top bar */}
+          <div className="flex items-center justify-between sm:hidden">
+            <Wordmark size="sm" />
+            <div className="flex items-center gap-2">
+              <SyncBadge fetchedAt={fetchedAt} compact />
+              <LogoutButton className="flex size-8 items-center justify-center rounded-lg text-[#737373] hover:text-foreground" />
+            </div>
+          </div>
+          {children}
+        </div>
+      </main>
+
+      <Suspense>
+        <TabBar />
+      </Suspense>
     </div>
   );
 }

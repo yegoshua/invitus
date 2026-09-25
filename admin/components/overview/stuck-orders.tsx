@@ -1,67 +1,51 @@
-import { ArrowUpRight, CircleCheck } from "lucide-react";
-import { formatPriceWithCurrency } from "@site/lib/format";
 import { orderLink } from "@site/lib/order-notifications";
+import { ArrowUpRightIcon } from "@/components/icons";
+import { plural, uah } from "@/lib/finance/format";
 import { STUCK_REASON_LABELS } from "@/lib/finance/orders";
 import type { StuckOrder } from "@/lib/finance/summary";
-
-function days(n: number): string {
-  const tens = n % 100, ones = n % 10;
-  if (tens >= 11 && tens <= 14) return `${n} днів`;
-  if (ones === 1) return `${n} день`;
-  if (ones >= 2 && ones <= 4) return `${n} дні`;
-  return `${n} днів`;
-}
 
 export function StuckOrders({ orders }: { orders: StuckOrder[] }) {
   const total = orders.reduce((sum, o) => sum + o.total, 0);
   return (
-    <section className="rounded-[26px] bg-card p-5 md:p-6" aria-labelledby="stuck-title">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 id="stuck-title" className="font-sans text-lg font-semibold">Потребують закриття</h2>
-        {orders.length > 0 && (
-          <p className="text-sm text-muted-foreground">
-            {orders.length} · {formatPriceWithCurrency(total)}
+    <section style={{ gridArea: "close" }} className="flex min-w-0 flex-col rounded-[26px] border border-primary/55 bg-panel p-5 sm:p-6 dt:p-7" aria-labelledby="stuck-title">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-col gap-1.5">
+          <h2 id="stuck-title" className="flex items-center gap-2 font-sans text-[15px] font-medium text-white/78">
+            <span className="size-2 rounded-full bg-primary" />
+            Потребують закриття
+          </h2>
+          <p className="text-2xl font-semibold tracking-[-0.01em]">
+            {orders.length} {plural(orders.length, "замовлення", "замовлення", "замовлень")} · {uah(total)}
           </p>
-        )}
+        </div>
+        <p className="max-w-60 text-[13px] leading-[1.4] text-[#737373]">Фактично завершились, але в KeyCRM ще не закриті</p>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Фактично завершені, але в KeyCRM не доведені до «виконано + оплачено». Поки не закриті, їх немає у виручці.
-      </p>
-
       {orders.length === 0 ? (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <CircleCheck className="size-4 text-emerald-400/90" aria-hidden /> Усе закрито
-        </p>
+        <p className="border-t border-border pt-4 text-sm text-muted-foreground">Усе закрито ✓</p>
       ) : (
-        <ul className="mt-4 divide-y divide-border">
-          {orders.map((o) => {
-            const href = orderLink(o.id);
-            const row = (
-              <>
-                <span className="w-14 shrink-0 text-sm text-muted-foreground">№{o.id}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px]">{STUCK_REASON_LABELS[o.reason]}</span>
-                  <span className="block text-sm text-muted-foreground">
-                    {o.sourceLabel} · висить {days(o.days)}
-                  </span>
+        orders.map((o) => {
+          const href = orderLink(o.id);
+          const Row = href ? "a" : "div";
+          return (
+            <Row
+              key={o.id}
+              {...(href ? { href, target: "_blank", rel: "noreferrer", title: "Відкрити в KeyCRM" } : {})}
+              className="group grid grid-cols-[minmax(0,1fr)_auto_auto_20px] items-center gap-3 border-t border-border py-3.5 text-foreground"
+            >
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[15px] font-semibold">№{o.id}</span>
+                <span className="text-sm text-pretty text-muted-foreground">
+                  {STUCK_REASON_LABELS[o.reason]} · {o.sourceLabel}
                 </span>
-                <span className="shrink-0 text-[15px]">{formatPriceWithCurrency(o.total)}</span>
-                {href && <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
-              </>
-            );
-            return (
-              <li key={o.id}>
-                {href ? (
-                  <a href={href} target="_blank" rel="noreferrer" className="-mx-2 flex items-center gap-3 rounded-[12px] px-2 py-3 hover:bg-secondary">
-                    {row}
-                  </a>
-                ) : (
-                  <div className="flex items-center gap-3 py-3">{row}</div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+              </span>
+              <span className="text-[15px] font-semibold whitespace-nowrap">{uah(o.total)}</span>
+              <span className="rounded-lg bg-field px-2 py-1 text-[13px] font-medium whitespace-nowrap">
+                {o.days} {plural(o.days, "день", "дні", "днів")}
+              </span>
+              {href ? <ArrowUpRightIcon className="text-muted-foreground group-hover:text-primary" /> : <span />}
+            </Row>
+          );
+        })
       )}
     </section>
   );

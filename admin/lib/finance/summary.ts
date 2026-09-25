@@ -35,6 +35,8 @@ export interface PeriodSummary {
   placed: { count: number; total: number; cancelled: number };
   bySource: SourceFigures[];
   revenueByDay: Array<{ day: Day; revenue: number }>;
+  /** Orders placed that day that are still open (stuck included) — "in progress". */
+  openByDay: Array<{ day: Day; total: number }>;
   /** Open orders right now — not bound to the period. */
   open: { count: number; total: number; byStage: Array<{ stage: OpenStage; count: number; total: number }> };
   /** Stuck orders right now, longest-waiting first. */
@@ -52,6 +54,7 @@ export function summarize(orders: CrmOrder[], period: Period, now: Date): Period
   let revenue = 0, sales = 0, prevRevenue = 0, prevSales = 0;
   const bySource = new Map<number, SourceFigures>();
   const byDay = new Map<Day, number>();
+  const openByDay = new Map<Day, number>();
   const placed = { count: 0, total: 0, cancelled: 0 };
   const stages = new Map<OpenStage, { count: number; total: number }>();
   const stuck: StuckOrder[] = [];
@@ -80,6 +83,8 @@ export function summarize(orders: CrmOrder[], period: Period, now: Date): Period
     }
 
     if (cls.kind === "open") {
+      const placedDay = kyivDay(order.createdAt);
+      if (inPeriod(placedDay, period)) openByDay.set(placedDay, (openByDay.get(placedDay) ?? 0) + order.total);
       const stage = stages.get(cls.stage) ?? { count: 0, total: 0 };
       stage.count += 1;
       stage.total += order.total;
@@ -100,6 +105,7 @@ export function summarize(orders: CrmOrder[], period: Period, now: Date): Period
     placed,
     bySource: [...bySource.values()].sort((a, b) => b.revenue - a.revenue),
     revenueByDay: [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, revenue]) => ({ day, revenue })),
+    openByDay: [...openByDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, total]) => ({ day, total })),
     open: {
       count: openList.reduce((n, s) => n + s.count, 0),
       total: openList.reduce((n, s) => n + s.total, 0),

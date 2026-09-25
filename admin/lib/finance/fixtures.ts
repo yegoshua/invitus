@@ -16,7 +16,7 @@ export function order(overrides: Partial<CrmOrder> = {}): CrmOrder {
     statusChangedAt: createdAt,
     closedAt: null,
     paidAt: null,
-    paymentMethod: null,
+    paymentMethodId: null,
     lines: [],
     ...overrides,
   };

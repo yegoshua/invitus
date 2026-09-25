@@ -1,5 +1,7 @@
 // KeyCRM → CrmOrder. Reads only; the Admin never writes to KeyCRM (PRD #103).
 
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { fetchKeyCrmAll } from "@site/lib/keycrm";
 import { ACCOUNTING_START, type CrmOrder } from "@/lib/finance/orders";
 
@@ -18,6 +20,8 @@ interface RawOrder {
     name: string;
     quantity: number;
     price_sold: number | string | null;
+    sku?: string | null;
+    picture?: { thumbnail?: string | null } | null;
     price: number | string;
     properties?: Array<{ name: string; value: string }> | null;
   }>;
@@ -55,27 +59,52 @@ export function toCrmOrder(raw: RawOrder): CrmOrder {
     statusChangedAt: date(raw.status_changed_at) ?? createdAt,
     closedAt: date(raw.closed_at),
     paidAt: paidDates.length ? new Date(Math.max(...paidDates.map((d) => d.getTime()))) : null,
-    paymentMethod: raw.payments?.[0]?.payment_method_id != null ? String(raw.payments[0].payment_method_id) : null,
+    paymentMethodId: raw.payments?.[0]?.payment_method_id ?? null,
     lines: (raw.products ?? []).map((p) => ({
       name: p.name,
       quantity: p.quantity || 0,
       price: amount(p.price_sold ?? p.price),
       size: p.properties?.find((prop) => SIZE_PROPERTIES.has(prop.name))?.value ?? null,
+      sku: p.sku ?? null,
+      picture: p.picture?.thumbnail ?? null,
     })),
   };
 }
 
-/** Every order since the accounting start. A few dozen a year — one or two pages. */
-export async function fetchOrders(): Promise<CrmOrder[]> {
-  const raw = await fetchKeyCrmAll<RawOrder>("/order", {
-    params: {
-      include: "products,payments",
-      "filter[created_between]": `${ACCOUNTING_START} 00:00:00,2100-01-01 00:00:00`,
-    },
-    // Five minutes: fresh enough to act on, and a page switch does not cost
-    // another round of KeyCRM's 60-a-minute budget.
-    revalidate: 300,
-    tags: ["admin-orders"],
-  });
-  return raw.map(toCrmOrder);
-}
+// Cached as raw JSON together with the moment it was read, so the sidebar can
+// say how fresh the numbers are. Five minutes: fresh enough to act on, and a
+// page switch does not spend another round of KeyCRM's 60-a-minute budget.
+const loadRaw = unstable_cache(
+  async () => ({
+    raw: await fetchKeyCrmAll<RawOrder>("/order", {
+      params: {
+        include: "products,payments",
+        "filter[created_between]": `${ACCOUNTING_START} 00:00:00,2100-01-01 00:00:00`,
+      },
+      revalidate: 0,
+    }),
+    fetchedAt: Date.now(),
+  }),
+  ["admin-orders"],
+  { revalidate: 300, tags: ["admin-orders"] }
+);
+
+export type OrdersResult =
+  | { ok: true; orders: CrmOrder[]; fetchedAt: Date }
+  | { ok: false; orders: CrmOrder[]; fetchedAt: null };
+
+/**
+ * Every order since the accounting start — a few dozen a year, one or two
+ * pages. Deduplicated per request, so the layout's sync badge and the page
+ * share one read. A KeyCRM failure is a value, not a throw: the page shows a
+ * banner over what it has.
+ */
+export const loadOrders = cache(async (): Promise<OrdersResult> => {
+  try {
+    const { raw, fetchedAt } = await loadRaw();
+    return { ok: true, orders: raw.map(toCrmOrder), fetchedAt: new Date(fetchedAt) };
+  } catch (error) {
+    console.error("[admin] KeyCRM orders failed:", error);
+    return { ok: false, orders: [], fetchedAt: null };
+  }
+});
