@@ -108,7 +108,7 @@ export function CartDrawer() {
                     <div className="flex flex-col gap-2 mb-6 px-0 lg:px-4">
                       <div className="flex items-end justify-between">
                         <span className="font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
-                          До оплати сьогодні:
+                          До оплати зараз:
                         </span>
                         <span className="font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
                           {formatPrice(breakdown.monthly)} ₴

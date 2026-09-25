@@ -119,7 +119,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   };
 
   // The same add, with the intent to pay in parts remembered: the drawer then
-  // opens on «до оплати сьогодні» and the checkout on the instalment radio.
+  // opens on «до оплати зараз» and the checkout on the instalment radio.
   const handleAddInParts = () => {
     if (soldOut) return;
     preferParts();

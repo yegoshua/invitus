@@ -123,7 +123,7 @@ export function OrderSummary({
         )}
         <div className="flex justify-between items-baseline mt-4">
           <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
-            {schedule ? "До оплати сьогодні:" : "До оплати:"}
+            {schedule ? "До оплати зараз:" : "До оплати:"}
           </span>
           <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
             {formatPrice(schedule ? schedule.monthly : total)} ₴

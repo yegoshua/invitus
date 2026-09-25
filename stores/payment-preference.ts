@@ -10,7 +10,7 @@ export type PaymentMethod = "online" | "parts" | "cod";
  *
  * The «Від 513 ₴ / міс» button on a product is a statement of intent, not a
  * different add-to-cart: it sets this to instalments, and from then on the
- * cart drawer shows «до оплати сьогодні» instead of the total and the checkout
+ * cart drawer shows «до оплати зараз» instead of the total and the checkout
  * opens with «Оплата частинами monobank» selected. Changing the radio on the
  * checkout writes back here, so the cart and the checkout never disagree.
  *
