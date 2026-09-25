@@ -44,6 +44,7 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// api/cron/ has no session to check: the cron route checks CRON_SECRET itself.
 export const config = {
-  matcher: ["/((?!login|no-access|auth/|_next/|favicon.ico|robots.txt).*)"],
+  matcher: ["/((?!login|no-access|auth/|api/cron/|_next/|favicon.ico|robots.txt).*)"],
 };

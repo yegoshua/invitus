@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cn } from "@site/lib/utils";
 import { orderLink } from "@site/lib/order-notifications";
-import { KeyCrmDownBanner } from "@/components/data-banner";
+import { FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
 import { ArrowUpRightIcon } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
 import { requireAdmin } from "@/lib/auth/server";
-import { dayLabel, plural, uah } from "@/lib/finance/format";
+import { loadFees } from "@/lib/fees/store";
+import { dayLabel, plural, uah, uahExact } from "@/lib/finance/format";
 import { orderRows, type OrderRow, type OrderStatusFilter } from "@/lib/finance/lists";
 import { SOURCE_LABELS, STAGE_LABELS_ONE } from "@/lib/finance/orders";
 import { PAYMENT_METHODS, paymentMethod } from "@/lib/finance/payments";
@@ -42,14 +43,16 @@ function paidView(row: OrderRow): string {
 }
 
 function Fee({ row }: { row: OrderRow }) {
-  if (row.cls.kind === "cancelled") return <>—</>;
-  // Every fee is an estimate until the bank statement is read (#110).
+  const fee = row.fee;
+  if (!fee) return <>—</>;
+  // The bank's own figure is a plain number; only an estimate carries «≈».
+  const estimated = fee.kind === "estimated";
   return (
     <span className="group/fee relative cursor-help whitespace-nowrap">
-      <span className="text-primary">≈&nbsp;</span>
-      {uah(row.fee)}
+      {estimated && <span className="text-primary">≈&nbsp;</span>}
+      {uahExact(fee.kop / 100)}
       <span className="pointer-events-none absolute right-0 bottom-[calc(100%+8px)] z-10 hidden rounded-[10px] border border-border bg-field px-2.5 py-2 text-xs whitespace-nowrap text-foreground group-hover/fee:block">
-        Оцінка за ставкою способу оплати
+        {estimated ? `Оцінка: ${String(fee.percent).replace(".", ",")}% за способом оплати` : "Фактична комісія з виписки Monobank"}
       </span>
     </span>
   );
@@ -82,8 +85,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     source: list(search.source).map(Number).filter(Number.isInteger),
     payment: list(search.pay).map(Number).filter(Number.isInteger),
   };
-  const data = await loadOrders();
-  const rows = orderRows(data.orders, period, now, filters);
+  const [data, fees] = await Promise.all([loadOrders(), loadFees()]);
+  const rows = orderRows(data.orders, period, now, filters, fees);
   const total = rows.reduce((s, r) => s + r.order.total, 0);
   const hasFilters = filters.status.length + filters.source.length + filters.payment.length > 0;
 
@@ -124,6 +127,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader title="Замовлення" period={period} preset={preset} keep={filterParams} />
       {!data.ok && <KeyCrmDownBanner />}
+      <FeesBanner fees={fees} />
 
       <div className="flex flex-wrap gap-x-8 gap-y-4">
         {groups.map((g) => (
@@ -237,7 +241,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               );
             })}
           </div>
-          <p className="text-xs text-[#737373]">≈ — оцінка за ставкою способу оплати; фактична комісія з&apos;явиться після виписки банку</p>
+          <p className="text-xs text-[#737373]">≈ — оцінка за ставкою способу оплати (ставки — на сторінці «Витрати»); без позначки — фактична комісія з виписки Monobank</p>
         </>
       )}
     </>

@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { DatabaseDownBanner } from "@/components/data-banner";
+import { DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
 import { ExpenseDialog, type ExpenseDraft } from "@/components/expenses/expense-dialog";
+import { FeeRatesForm } from "@/components/expenses/fee-rates-form";
 import { KpiCard } from "@/components/overview/kpi-card";
 import { PageHeader } from "@/components/page-header";
-import { PendingKpi, PendingPanel } from "@/components/pending-panel";
+import { PendingPanel } from "@/components/pending-panel";
 import { requireAdmin } from "@/lib/auth/server";
 import { categoryLabel } from "@/lib/expenses/categories";
 import { listExpenses, type Expense } from "@/lib/expenses/store";
+import { loadFees } from "@/lib/fees/store";
 import { summarizeExpenses } from "@/lib/finance/expenses";
+import { periodFees } from "@/lib/finance/fees";
 import { dayLabel, deltaLabel, plural, rangeLabel, uah, uahExact } from "@/lib/finance/format";
+import { PAYMENT_METHODS, RATED_METHOD_IDS } from "@/lib/finance/payments";
 import { kyivDay, periodFromSearch, previousPeriod } from "@/lib/finance/period";
+import { loadOrders } from "@/lib/keycrm-orders";
 
 export const metadata: Metadata = { title: "Витрати" };
 
@@ -72,7 +77,8 @@ function Entry({ e, editHref }: { e: Expense; editHref: string }) {
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requireAdmin();
   const search = await searchParams;
-  const today = kyivDay(new Date());
+  const now = new Date();
+  const today = kyivDay(now);
   const { period, preset } = periodFromSearch(search, today);
 
   // The period's own query, kept by every link on the page and by the form.
@@ -81,7 +87,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   ).toString();
   const withParam = (k: string, v: string) => `/expenses?${new URLSearchParams([...new URLSearchParams(back), [k, v]])}`;
 
-  const loaded = await listExpenses(previousPeriod(period).from, period.to);
+  const [loaded, orders, feeData] = await Promise.all([listExpenses(previousPeriod(period).from, period.to), loadOrders(), loadFees()]);
+  const fees = periodFees(orders.orders, feeData.actual, feeData.rates, period, now);
+  const feesKnown = orders.ok && feeData.ok;
   const all = loaded.ok ? loaded.value : [];
   const s = summarizeExpenses(all, period);
   const entries = all.filter((e) => e.date >= period.from);
@@ -107,6 +115,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         )}
       />
       {!loaded.ok && loaded.reason === "error" && <DatabaseDownBanner />}
+      {loaded.ok && !orders.ok && <KeyCrmDownBanner />}
+      {loaded.ok && <FeesBanner fees={feeData} />}
 
       {!loaded.ok && loaded.reason === "unconfigured" ? (
         <PendingPanel title="Журнал витрат">
@@ -123,7 +133,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               delta={loaded.ok ? deltaLabel(s.total, s.previousTotal) : null}
               upIsGood={false}
               vs={`до ${rangeLabel(previousPeriod(period))}`}
-              note="Без комісій — вони з'являться окремо"
+              note="Без комісій за оплату — вони окремо"
             />
             <KpiCard
               label="Реклама"
@@ -131,7 +141,23 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               pending={!loaded.ok || s.ads === 0}
               note={s.ads > 0 ? `${Math.round((s.ads / s.total) * 100)}% від усіх витрат · автоматично` : "Meta і Google, автоматично — підключаються наступним кроком"}
             />
-            <PendingKpi label="Комісії" note="оцінка, потім факт з виписки" />
+            <KpiCard
+              label="Комісії"
+              value={feesKnown ? `${fees.estimated > 0 ? "≈ " : ""}${uah(fees.total)}` : "—"}
+              pending={!feesKnown}
+              delta={feesKnown ? deltaLabel(fees.total, fees.previousTotal) : null}
+              upIsGood={false}
+              vs={`до ${rangeLabel(previousPeriod(period))}`}
+              note={
+                !feesKnown
+                  ? "Не завантажились — див. банер вище"
+                  : fees.estimated === 0
+                    ? "Фактичні, з виписки Monobank"
+                    : fees.actual === 0
+                      ? "Оцінка за ставками нижче"
+                      : `Факт ${uah(fees.actual)} · оцінка ${uah(fees.estimated)}`
+              }
+            />
             <KpiCard
               label="Інші витрати"
               value={loaded.ok ? uah(s.manual) : "—"}
@@ -190,6 +216,21 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               })}
             </section>
           </div>
+
+          {loaded.ok && (
+            <section className="flex min-w-0 flex-col gap-4 rounded-[26px] bg-panel p-5 sm:p-6 dt:p-7" aria-labelledby="rates-title">
+              <div className="flex flex-col gap-1.5">
+                <h2 id="rates-title" className="font-sans text-[15px] font-medium text-white/78">Ставки комісій</h2>
+                <p className="text-[13px] text-[#737373]">
+                  Відсоток від суми замовлення, який утримує банк чи перевізник. З нього рахується оцінка «≈» там, де фактичної
+                  комісії з виписки Monobank немає.
+                </p>
+              </div>
+              <FeeRatesForm
+                methods={RATED_METHOD_IDS.map((id) => ({ id, label: PAYMENT_METHODS[id].label, percent: feeData.rates[id] ?? 0 }))}
+              />
+            </section>
+          )}
         </>
       )}
 
