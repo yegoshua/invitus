@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
+import { AdSpendBanner, DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
 import { ExpenseDialog, type ExpenseDraft } from "@/components/expenses/expense-dialog";
 import { FeeRatesForm } from "@/components/expenses/fee-rates-form";
 import { KpiCard } from "@/components/overview/kpi-card";
@@ -16,6 +16,7 @@ import { periodFees } from "@/lib/finance/fees";
 import { dayLabel, deltaLabel, plural, rangeLabel, uah, uahExact } from "@/lib/finance/format";
 import { PAYMENT_METHODS, RATED_METHOD_IDS } from "@/lib/finance/payments";
 import { kyivDay, periodFromSearch, previousPeriod } from "@/lib/finance/period";
+import { loadFreshness } from "@/lib/ingest/store";
 import { loadOrders } from "@/lib/keycrm-orders";
 
 export const metadata: Metadata = { title: "Витрати" };
@@ -87,7 +88,12 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   ).toString();
   const withParam = (k: string, v: string) => `/expenses?${new URLSearchParams([...new URLSearchParams(back), [k, v]])}`;
 
-  const [loaded, orders, feeData] = await Promise.all([listExpenses(previousPeriod(period).from, period.to), loadOrders(), loadFees()]);
+  const [loaded, orders, feeData, meta] = await Promise.all([
+    listExpenses(previousPeriod(period).from, period.to),
+    loadOrders(),
+    loadFees(),
+    loadFreshness("meta"),
+  ]);
   const fees = periodFees(orders.orders, feeData.actual, feeData.rates, period, now);
   const feesKnown = orders.ok && feeData.ok;
   const all = loaded.ok ? loaded.value : [];
@@ -117,6 +123,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       {!loaded.ok && loaded.reason === "error" && <DatabaseDownBanner />}
       {loaded.ok && !orders.ok && <KeyCrmDownBanner />}
       {loaded.ok && <FeesBanner fees={feeData} />}
+      {loaded.ok && <AdSpendBanner meta={meta} />}
 
       {!loaded.ok && loaded.reason === "unconfigured" ? (
         <PendingPanel title="Журнал витрат">
@@ -139,7 +146,16 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               label="Реклама"
               value={loaded.ok && s.ads > 0 ? uah(s.ads) : "—"}
               pending={!loaded.ok || s.ads === 0}
-              note={s.ads > 0 ? `${Math.round((s.ads / s.total) * 100)}% від усіх витрат · автоматично` : "Meta і Google, автоматично — підключаються наступним кроком"}
+              delta={loaded.ok && s.ads > 0 ? deltaLabel(s.ads, s.previousAds) : null}
+              upIsGood={false}
+              vs={`до ${rangeLabel(previousPeriod(period))}`}
+              note={
+                s.ads > 0
+                  ? `${Math.round((s.ads / s.total) * 100)}% від усіх витрат · Meta, автоматично`
+                  : meta?.asOf
+                    ? "Meta, автоматично — у цьому періоді реклама не крутилась"
+                    : "Meta, автоматично — після підключення"
+              }
             />
             <KpiCard
               label="Комісії"

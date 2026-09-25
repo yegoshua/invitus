@@ -1,13 +1,14 @@
-// Fee rates, Monobank's actual fees and the ingest journal, in Postgres. No
-// rules of their own: what a fee is lives in lib/finance/fees.ts, what the
-// statement says in lib/ingest/monobank-statement.ts.
+// Fee rates and Monobank's actual fees, in Postgres; the ingest journal is
+// lib/ingest/store.ts. No rules of their own: what a fee is lives in
+// lib/finance/fees.ts, what the statement says in lib/ingest/monobank-statement.ts.
 
 import { cache } from "react";
 import { db } from "@/lib/db";
 import type { Author } from "@/lib/expenses/store";
 import { actualFeesByOrder, DEFAULT_FEE_PERCENT, type ActualFee, type FeeRates } from "@/lib/finance/fees";
 import type { PaymentFeeRow } from "@/lib/ingest/monobank-statement";
-import { freshness, type Freshness, type IngestRun, type IngestSource, type RunState } from "@/lib/ingest/run";
+import { freshness, type Freshness } from "@/lib/ingest/run";
+import { runStates } from "@/lib/ingest/store";
 
 function requireDb() {
   const sql = db();
@@ -23,20 +24,6 @@ export interface FeeData {
   actual: ReadonlyMap<number, ActualFee>;
   /** How fresh the Monobank figures are; null when there is no database to have run into. */
   monobank: Freshness | null;
-}
-
-/** The latest run and the latest successful one, for the banner. */
-async function runStates(source: IngestSource): Promise<{ latest: RunState | null; latestOk: RunState | null }> {
-  const sql = requireDb();
-  // One row per outcome: the newest success and the newest failure.
-  const rows = await sql<Array<{ started_at: Date; ok: boolean; error: string | null }>>`
-    SELECT DISTINCT ON (ok) started_at, ok, error FROM ingest_runs
-    WHERE source = ${source}
-    ORDER BY ok, started_at DESC`;
-  const states = rows.map((r) => ({ startedAt: r.started_at, ok: r.ok, error: r.error }));
-  const latestOk = states.find((s) => s.ok) ?? null;
-  const latest = states.reduce<RunState | null>((a, s) => (!a || s.startedAt > a.startedAt ? s : a), null);
-  return { latest, latestOk };
 }
 
 /**
@@ -103,11 +90,4 @@ export async function upsertPaymentFees(rows: PaymentFeeRow[]): Promise<void> {
     SET order_id = EXCLUDED.order_id, amount_kop = EXCLUDED.amount_kop, fee_kop = EXCLUDED.fee_kop,
         paid_at = EXCLUDED.paid_at, paid_on = EXCLUDED.paid_on, payment_scheme = EXCLUDED.payment_scheme,
         ingested_at = now()`;
-}
-
-export async function recordIngestRun(run: IngestRun): Promise<void> {
-  const sql = requireDb();
-  await sql`
-    INSERT INTO ingest_runs (source, started_at, finished_at, ok, row_count, error)
-    VALUES (${run.source}, ${run.startedAt}, ${run.finishedAt}, ${run.ok}, ${run.rows}, ${run.error})`;
 }

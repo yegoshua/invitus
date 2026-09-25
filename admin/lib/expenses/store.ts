@@ -1,10 +1,12 @@
 // Expenses in Postgres. No rules of its own: what may be written is decided
 // by lib/expenses/input.ts, who may write it by the Server Action. The one
-// thing enforced here is that only `manual` rows are ever changed — the
-// ingest's Ad spend rows are shown, never edited (PRD #103, story 32).
+// thing enforced here is that a person only ever changes `manual` rows — the
+// ingest's Ad spend rows are shown, never edited (PRD #103, story 32), and
+// are written only by replaceAdSpend below.
 
 import { db } from "@/lib/db";
-import type { Day } from "@/lib/finance/period";
+import type { Day, Period } from "@/lib/finance/period";
+import { staleAdSpend, type AdSpendRow } from "@/lib/ingest/ad-spend";
 import type { ExpenseCategory, ExpenseSource } from "./categories";
 import type { ExpenseInput } from "./input";
 
@@ -114,4 +116,46 @@ export async function deleteExpense(id: number): Promise<boolean> {
   const sql = requireDb();
   const rows = await sql`DELETE FROM expenses WHERE id = ${id} AND source = 'manual' RETURNING id`;
   return rows.length > 0;
+}
+
+/**
+ * The ingest's writer for one platform's Ad spend over the window it just
+ * re-read in full. In one transaction: every campaign-day Meta reported is
+ * upserted on (spent_on, source, campaign) — a re-run changes nothing, a
+ * renamed campaign gets its new title, a revised amount its new amount — and
+ * every stored campaign-day in the window that the platform no longer reports
+ * is deleted (staleAdSpend: a day revised to nothing). A zero amount cannot
+ * be stored anyway (amount_kop > 0), so deleting is the only honest way to
+ * say "this cost nothing after all".
+ */
+export async function replaceAdSpend(
+  source: Exclude<ExpenseSource, "manual">,
+  window: Period,
+  rows: AdSpendRow[]
+): Promise<{ upserted: number; removed: number }> {
+  const sql = requireDb();
+  return sql.begin(async (tx) => {
+    const stored = await tx<Array<{ id: string; day: string; campaign: string }>>`
+      SELECT id, spent_on::text AS day, campaign FROM expenses
+      WHERE source = ${source} AND spent_on BETWEEN ${window.from} AND ${window.to}`;
+    const stale = staleAdSpend(stored, rows, window).map((r) => r.id);
+    if (stale.length) await tx`DELETE FROM expenses WHERE id IN ${tx(stale)} AND source = ${source}`;
+    if (rows.length) {
+      const values = rows.map((r) => ({
+        title: r.title,
+        amount_kop: r.amountKop,
+        spent_on: r.day,
+        category: "ads",
+        source,
+        campaign: r.campaign,
+      }));
+      // updated_at moves only when something did, so it says when Meta last revised the row.
+      await tx`
+        INSERT INTO expenses ${tx(values, "title", "amount_kop", "spent_on", "category", "source", "campaign")}
+        ON CONFLICT (spent_on, source, campaign) WHERE source <> 'manual' DO UPDATE
+        SET title = EXCLUDED.title, amount_kop = EXCLUDED.amount_kop, updated_at = now()
+        WHERE expenses.title IS DISTINCT FROM EXCLUDED.title OR expenses.amount_kop <> EXCLUDED.amount_kop`;
+    }
+    return { upserted: rows.length, removed: stale.length };
+  });
 }
