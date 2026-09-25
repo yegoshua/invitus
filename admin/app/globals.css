@@ -8,3 +8,33 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* The design's three layouts: phone < 640, tablet 640–1099, desktop ≥ 1100.
+   `sm` is Tailwind's 640 already; `dt` is the desktop one. */
+@theme {
+  /* rem, like Tailwind's own: mixed units cannot be sorted, and `sm:` would win. */
+  --breakpoint-dt: 68.75rem;
+  --color-panel: #141414;
+  --color-field: #1F1F1F;
+  --color-good: #7EB693;
+}
+
+/* Overview grid, straight from the design: one column on a phone, the Stuck
+   list across the top on a tablet, and beside Open + Sources on a desktop. */
+.ov-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "close" "chart" "open" "src";
+}
+@media (min-width: 640px) {
+  .ov-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "close close" "chart chart" "open src";
+  }
+}
+@media (min-width: 1100px) {
+  .ov-grid {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    grid-template-areas: "close open" "close src" "chart chart";
+  }
+}
