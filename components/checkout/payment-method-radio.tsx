@@ -61,7 +61,7 @@ export function PaymentMethodRadio() {
                   onBlur={field.onBlur}
                 />
                 {option.value === "parts" && (
-                  <MonoPaw className="absolute -top-3 right-1 size-8" />
+                  <MonoPaw className="absolute -top-3 -right-3 size-8" />
                 )}
               </div>
               {option.value === "parts" && field.value === "parts" && (
