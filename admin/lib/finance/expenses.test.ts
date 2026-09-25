@@ -46,6 +46,21 @@ test("the manual/automatic split is kept apart", () => {
   assert.equal(s.ads, 500);
 });
 
+test("Ad spend is the automatic rows of every platform, for the period and the one before; a blogger paid by hand is not Ad spend", () => {
+  const s = summarizeExpenses(
+    [
+      entry("2026-09-02", 100_000, { category: "influencers" }),
+      entry("2026-09-03", 50_000, { source: "meta", category: "ads" }),
+      entry("2026-09-04", 20_000, { source: "google", category: "ads" }),
+      entry("2026-08-20", 30_000, { source: "meta", category: "ads" }),
+      entry("2026-08-21", 70_000, { category: "influencers" }),
+    ],
+    SEPT
+  );
+  assert.equal(s.ads, 700);
+  assert.equal(s.previousAds, 300);
+});
+
 test("an empty period is zeros, not NaN", () => {
   const s = summarizeExpenses([], SEPT);
   assert.deepEqual(

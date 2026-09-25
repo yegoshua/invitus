@@ -20,7 +20,9 @@ export interface ExpenseSummary {
   /** Hryvnias, as everything else on the page. */
   total: number;
   manual: number;
+  /** Ad spend: the rows the ingest wrote, every platform — what ROAS and CAC divide by. */
   ads: number;
+  previousAds: number;
   count: number;
   previousTotal: number;
   byCategory: Array<{ category: ExpenseCategory; total: number; count: number }>;
@@ -31,12 +33,15 @@ const uah = (kop: number) => kop / 100;
 
 export function summarizeExpenses(entries: ExpenseEntry[], period: Period): ExpenseSummary {
   const previous = previousPeriod(period);
-  let total = 0, manual = 0, count = 0, previousTotal = 0;
+  let total = 0, manual = 0, count = 0, previousTotal = 0, previousAds = 0;
   const byCategory = new Map<ExpenseCategory, { total: number; count: number }>();
   const byDay = new Map<Day, number>();
 
   for (const e of entries) {
-    if (inPeriod(e.date, previous)) previousTotal += e.amountKop;
+    if (inPeriod(e.date, previous)) {
+      previousTotal += e.amountKop;
+      if (e.source !== "manual") previousAds += e.amountKop;
+    }
     if (!inPeriod(e.date, period)) continue;
     total += e.amountKop;
     count += 1;
@@ -53,6 +58,7 @@ export function summarizeExpenses(entries: ExpenseEntry[], period: Period): Expe
     total: uah(total),
     manual: uah(manual),
     ads: uah(total - manual),
+    previousAds: uah(previousAds),
     count,
     previousTotal: uah(previousTotal),
     byCategory: [...byCategory.entries()]

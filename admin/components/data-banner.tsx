@@ -1,5 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import type { FeeData } from "@/lib/fees/store";
+import type { Freshness } from "@/lib/ingest/run";
 
 export function DatabaseDownBanner() {
   return (
@@ -22,28 +23,61 @@ export function KeyCrmDownBanner() {
 const AS_OF = new Intl.DateTimeFormat("uk-UA", { timeZone: "Europe/Kyiv", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
 /**
- * «Дані станом на …» for the actual fees: shown when the last Monobank ingest
- * failed or has not run for a night. Nothing is hidden — the orders it did
- * not reach keep their estimate, marked «≈».
+ * «Дані станом на …» for one ingest source, in its own words: `asOf` when some
+ * run has worked (with why the latest did not), `never` when none has. Null
+ * while the source is fresh — or unknown, which the database banner covers.
  */
-export function FeesBanner({ fees }: { fees: FeeData }) {
-  let text: string;
-  if (!fees.ok) {
-    text = "Не вдалося прочитати комісії з бази даних. Комісії нижче — оцінка за стандартними ставками.";
-  } else if (fees.monobank?.state === "stale") {
-    const { asOf, error } = fees.monobank;
-    if (asOf) {
-      const why = error ? `останнє оновлення не вдалося (${error})` : "нічне оновлення давно не запускалось";
-      text = `Комісії Monobank — дані станом на ${AS_OF.format(asOf)}: ${why}. Пізніші оплати показані з оцінкою «≈».`;
-    } else {
-      const why = error ? `не завантажились (${error})` : "ще не завантажувались";
-      text = `Фактичні комісії Monobank ${why}. Усі комісії поки — оцінка «≈».`;
-    }
-  } else return null;
+function staleText(
+  freshness: Freshness | null | undefined,
+  asOf: (when: string, why: string) => string,
+  never: (why: string) => string
+): string | null {
+  if (freshness?.state !== "stale") return null;
+  const { asOf: when, error } = freshness;
+  if (when) return asOf(AS_OF.format(when), error ? `останнє оновлення не вдалося (${error})` : "нічне оновлення давно не запускалось");
+  return never(error ? `не завантажились (${error})` : "ще не завантажувались");
+}
+
+function StaleBanner({ text }: { text: string | null }) {
+  if (!text) return null;
   return (
     <p role="status" className="flex items-center gap-2 rounded-[16px] border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
       <TriangleAlert className="size-4 shrink-0 text-primary" aria-hidden />
       {text}
     </p>
+  );
+}
+
+/**
+ * The actual fees: shown when the last Monobank ingest failed or has not run
+ * for a night. Nothing is hidden — the orders it did not reach keep their
+ * estimate, marked «≈».
+ */
+export function FeesBanner({ fees }: { fees: FeeData }) {
+  const text = !fees.ok
+    ? "Не вдалося прочитати комісії з бази даних. Комісії нижче — оцінка за стандартними ставками."
+    : staleText(
+        fees.monobank,
+        (when, why) => `Комісії Monobank — дані станом на ${when}: ${why}. Пізніші оплати показані з оцінкою «≈».`,
+        (why) => `Фактичні комісії Monobank ${why}. Усі комісії поки — оцінка «≈».`
+      );
+  return <StaleBanner text={text} />;
+}
+
+/**
+ * Meta's Ad spend. Unlike a fee there is no estimate to fall back on: days
+ * the ingest did not reach are simply missing, so Ad spend reads low and ROAS
+ * high until it catches up — the banner says which way the figures lean.
+ */
+export function AdSpendBanner({ meta }: { meta: Freshness | null }) {
+  return (
+    <StaleBanner
+      text={staleText(
+        meta,
+        (when, why) =>
+          `Реклама Meta — дані станом на ${when}: ${why}. Пізніші дні ще без витрат Meta, тож витрати на рекламу й CAC занижені, а ROAS завищений.`,
+        (why) => `Витрати на рекламу Meta ${why}. Витрати на рекламу, ROAS і CAC поки рахуються без Meta.`
+      )}
+    />
   );
 }
