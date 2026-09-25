@@ -324,7 +324,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                     width="fill"
                     onClick={handleAddToCart}
                     disabled={soldOut}
-                    icon={soldOut ? null : undefined}
+                    icon={soldOut ? null : <PlusIcon className="size-6" />}
                   >
                     {soldOut ? "Немає в наявності" : "Додати в кошик"}
                   </CTAButton>
