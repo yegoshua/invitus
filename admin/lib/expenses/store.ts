@@ -22,6 +22,8 @@ export interface Expense {
   authorName: string | null;
   /** Set once someone has edited it. */
   editorName: string | null;
+  /** The Recurring payment it was generated from (lib/recurring/store.ts), if any. */
+  recurringId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +46,7 @@ interface Row {
   comment: string | null;
   author_name: string | null;
   updated_by_name: string | null;
+  recurring_id: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -60,6 +63,7 @@ function toExpense(r: Row): Expense {
     comment: r.comment,
     authorName: r.author_name,
     editorName: r.updated_by_name,
+    recurringId: r.recurring_id == null ? null : Number(r.recurring_id),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -74,7 +78,7 @@ export async function listExpenses(from: Day, to: Day): Promise<Loaded<Expense[]
     // somewhere, and the server's somewhere is UTC.
     const rows = await sql<Row[]>`
       SELECT id, title, amount_kop, spent_on::text AS date, category, source, order_id,
-             comment, author_name, updated_by_name, created_at, updated_at
+             comment, author_name, updated_by_name, recurring_id, created_at, updated_at
       FROM expenses
       WHERE spent_on BETWEEN ${from} AND ${to}
       ORDER BY spent_on DESC, created_at DESC`;
