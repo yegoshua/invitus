@@ -124,11 +124,13 @@ export function OrderSummary({
             <span className="font-medium">Частинами • {schedule.parts} платежів</span>
           </div>
         )}
-        <div className="flex justify-between items-baseline mt-4">
-          <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
+        {/* One line, always: on a narrow phone the label gives way with an
+            ellipsis, the amount never wraps. */}
+        <div className="flex justify-between items-baseline gap-3 mt-4">
+          <span className="min-w-0 truncate font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
             {schedule ? "До оплати зараз:" : "До оплати:"}
           </span>
-          <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
+          <span className="shrink-0 whitespace-nowrap font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
             {formatPrice(schedule ? schedule.monthly : total)} ₴
           </span>
         </div>

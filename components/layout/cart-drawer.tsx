@@ -106,11 +106,13 @@ export function CartDrawer() {
                 <>
                   {breakdown ? (
                     <div className="flex flex-col gap-2 mb-6 px-0 lg:px-4">
-                      <div className="flex items-end justify-between">
-                        <span className="font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
+                      {/* One line, always: on a narrow phone the label gives
+                          way with an ellipsis, the amount never wraps. */}
+                      <div className="flex items-end justify-between gap-3">
+                        <span className="min-w-0 truncate font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
                           До оплати зараз:
                         </span>
-                        <span className="font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
+                        <span className="shrink-0 whitespace-nowrap font-heading text-sm lg:text-base font-bold text-black uppercase tracking-[0.05em]">
                           {formatPrice(breakdown.monthly)} ₴
                         </span>
                       </div>
