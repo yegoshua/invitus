@@ -4,12 +4,12 @@
 
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { artworkStoreToken } from "@/lib/artwork-store";
 import {
   ARTWORK_CONTENT_TYPES,
   MAX_ARTWORK_BYTES,
-  artworkStoreToken,
-} from "@/lib/artwork-store";
-import { ARTWORK_FOLDER } from "@/lib/custom-request";
+  isArtworkPathname,
+} from "@/lib/custom-request";
 
 export async function POST(request: Request) {
   const token = artworkStoreToken();
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       // good for one image of at most 25 MB, in one folder, and a store that
       // starts filling up with junk shows on the Blob dashboard.
       onBeforeGenerateToken: async (pathname) => {
-        if (!pathname.startsWith(ARTWORK_FOLDER) || pathname.includes("..")) {
+        if (!isArtworkPathname(pathname)) {
           throw new Error("Unexpected pathname");
         }
         return {

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { customRequestSchema } from "./custom-request.ts";
+import { customRequestSchema, isArtworkPathname } from "./custom-request.ts";
 
 const valid = {
   name: "Олена Коваль",
@@ -60,5 +60,21 @@ describe("customRequestSchema", () => {
 
   it("rejects an Artwork with no size", () => {
     assert.ok(problem({ ...valid, artwork: { ...valid.artwork, width: 0 } }));
+  });
+});
+
+describe("isArtworkPathname", () => {
+  it("accepts a file directly in custom-belt/", () => {
+    assert.equal(isArtworkPathname("custom-belt/gym-Xy12ab.png"), true);
+  });
+
+  it("refuses sub-folders, so an upload can never be one the request would then reject", () => {
+    assert.equal(isArtworkPathname("custom-belt/a/b.png"), false);
+  });
+
+  it("refuses anything outside the folder or climbing out of it", () => {
+    assert.equal(isArtworkPathname("videos/hero.mp4"), false);
+    assert.equal(isArtworkPathname("custom-belt/../videos/hero.mp4"), false);
+    assert.equal(isArtworkPathname("custom-belt/.."), false);
   });
 });

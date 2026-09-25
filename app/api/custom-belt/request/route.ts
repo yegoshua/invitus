@@ -9,12 +9,24 @@
 //
 // Nothing here touches KeyCRM or the Finance chat: a Custom request is not an
 // Order and carries no money (CONTEXT.md).
+//
+// No rate limit, like the upload token and for the same reason (Hobby has no
+// WAF rules, and a limit needs shared state this project does not keep). The
+// worst a script can do is re-post Artwork already in the store to the team's
+// own chat; if it happens, the answer is rotating the store token.
 
 import { after, NextResponse } from "next/server";
 import { reportFailure } from "@/lib/alerts";
 import { artworkExists, readArtwork } from "@/lib/artwork-store";
 import { customRequestSchema } from "@/lib/custom-request";
 import { deliverCustomRequest } from "@/lib/custom-request-notification";
+
+/**
+ * Room for after(): reading a 25 MB Artwork and three Telegram uploads, each
+ * allowed up to a minute. Cut short, the send dies half-way and the alert
+ * that would have said so dies with it.
+ */
+export const maxDuration = 300;
 
 /** The preview is a small JPEG the browser renders from the Belt design. */
 const MAX_PREVIEW_BYTES = 2 * 1024 * 1024;
@@ -60,7 +72,10 @@ export async function POST(request: Request) {
     const delivered = await deliverCustomRequest(data, preview, artwork);
     if (!delivered) {
       await reportFailure({
-        scope: "custom-request.deliver",
+        // Per request, not one shared scope: the alert throttle would otherwise
+        // swallow a second failed request inside five minutes, and this alert
+        // is the only place that customer's phone number appears.
+        scope: `custom-request.deliver:${data.artwork.pathname}`,
         title: "Запит на кастомний пояс не дійшов у групу повністю",
         context: {
           "Ім'я": data.name,

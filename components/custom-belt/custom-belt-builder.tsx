@@ -18,14 +18,13 @@ import {
   type Placement,
 } from "@/lib/belt-design";
 import { CUSTOM_BASE } from "@/lib/custom-base";
+import { ARTWORK_CONTENT_TYPES, MAX_ARTWORK_BYTES } from "@/lib/custom-request";
 import { cn } from "@/lib/utils";
 import type { ProductSize } from "@/types";
 import { CustomRequestForm, type UploadableArtwork } from "./custom-request-form";
 import { DesignEditor } from "./design-editor";
 import { drawBeltDesign } from "./draw-belt-design";
 
-const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_ARTWORK_BYTES = 25 * 1024 * 1024;
 
 /**
  * Density of the design the 3D model wears. The Dragon atlas gives the strip
@@ -58,7 +57,7 @@ interface Artwork extends UploadableArtwork {
 
 /** Why a file cannot be used, in the customer's words — or null if it can. */
 function rejectReason(file: File): string | null {
-  if (!ACCEPTED_TYPES.includes(file.type)) return "Підходять лише PNG, JPG або WebP.";
+  if (!ARTWORK_CONTENT_TYPES.includes(file.type)) return "Підходять лише PNG, JPG або WebP.";
   if (file.size > MAX_ARTWORK_BYTES) return "Файл більший за 25 МБ — стисни його або збережи як JPG.";
   return null;
 }
@@ -179,7 +178,7 @@ export function CustomBeltBuilder({
             <input
               ref={fileInput}
               type="file"
-              accept={ACCEPTED_TYPES.join(",")}
+              accept={ARTWORK_CONTENT_TYPES.join(",")}
               className="hidden"
               onChange={(e) => {
                 void onFile(e.target.files?.[0]);

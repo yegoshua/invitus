@@ -9,6 +9,7 @@ import { CTAButton } from "@/components/ui/cta-button";
 import { IconInput } from "@/components/ui/icon-input";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { PhoneField } from "@/components/ui/phone-field";
+import { TextArea } from "@/components/ui/text-area";
 import { SizeChartDialog } from "@/components/product/size-chart-dialog";
 import PersonIcon from "@/public/assets/icons/checkout/person.svg";
 import { BELT_LENGTH_CM, BELT_WIDTH_CM, type Placement } from "@/lib/belt-design";
@@ -55,6 +56,9 @@ function artworkPathname(file: File): string {
   const safe = file.name.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-80);
   return `${ARTWORK_FOLDER}${safe || "artwork"}`;
 }
+
+/** A failure whose message is written for the customer and may be shown as is. */
+class CustomerFacingError extends Error {}
 
 type Status = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "failed"; message: string };
 
@@ -108,14 +112,14 @@ export function CustomRequestForm({ artwork, placement, sizes }: Props) {
       const res = await fetch("/api/custom-belt/request", { method: "POST", body });
       if (!res.ok) {
         const { error } = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(error || "Не вдалося надіслати запит.");
+        throw new CustomerFacingError(error || "Не вдалося надіслати запит.");
       }
       setStatus({ kind: "sent" });
     } catch (err) {
       setStatus({
         kind: "failed",
         message:
-          err instanceof Error && /[А-Яа-яІіЇїЄєҐґ]/.test(err.message)
+          err instanceof CustomerFacingError
             ? err.message
             : "Не вдалося надіслати запит. Перевір інтернет і спробуй ще раз.",
       });
@@ -205,13 +209,12 @@ export function CustomRequestForm({ artwork, placement, sizes }: Props) {
 
         <LabeledField name="comment" label="Коментар (необовʼязково)">
           {({ id, hintId, error }) => (
-            <textarea
+            <TextArea
               id={id}
               rows={3}
               placeholder="Наприклад: додайте напис знизу, або зробіть фон темнішим"
               aria-describedby={hintId}
-              aria-invalid={!!error}
-              className="min-h-24 rounded-[var(--radius-checkout-field)] border-[1.5px] border-transparent bg-[var(--color-checkout-field)] px-5 py-4 text-white placeholder:text-white/40 focus:border-coral focus:outline-none aria-[invalid=true]:border-[var(--color-error)]"
+              invalid={!!error}
               {...form.register("comment")}
             />
           )}

@@ -11,10 +11,7 @@
 //     default — BLOB_READ_WRITE_TOKEN — is already the public video store's.
 
 import { get, head } from "@vercel/blob";
-import { ARTWORK_FOLDER } from "./custom-request.ts";
-
-export const ARTWORK_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp"];
-export const MAX_ARTWORK_BYTES = 25 * 1024 * 1024;
+import { isArtworkPathname } from "./custom-request.ts";
 
 /** The private store's token, or null — callers turn that into a clear failure. */
 export function artworkStoreToken(): string | null {
@@ -24,7 +21,7 @@ export function artworkStoreToken(): string | null {
 /** Whether `pathname` is one of ours and was actually uploaded. */
 export async function artworkExists(pathname: string): Promise<boolean> {
   const token = artworkStoreToken();
-  if (!token || !pathname.startsWith(ARTWORK_FOLDER)) return false;
+  if (!token || !isArtworkPathname(pathname)) return false;
   try {
     await head(pathname, { token });
     return true;
@@ -36,7 +33,7 @@ export async function artworkExists(pathname: string): Promise<boolean> {
 /** The Artwork's bytes, or null when it cannot be read. Never throws. */
 export async function readArtwork(pathname: string): Promise<Blob | null> {
   const token = artworkStoreToken();
-  if (!token) return null;
+  if (!token || !isArtworkPathname(pathname)) return null;
   try {
     const result = await get(pathname, { access: "private", token });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
