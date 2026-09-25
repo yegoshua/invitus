@@ -10,6 +10,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import type { CheckoutFormData } from "@/lib/checkout-schema";
 import {
   partsAvailable,
+  promoDiscountFor,
   partsSchedule,
   remainingLabel,
 } from "@/lib/installments";
@@ -34,8 +35,13 @@ export function OrderSummary({
   // Only a discount the server has confirmed for this exact cart is ever shown;
   // while a re-check is in flight this reports nothing applied, so nobody reads
   // a total the invoice is about to disagree with.
-  const { discount } = useAppliedPromo();
+  const applied = useAppliedPromo();
   const promoStatus = usePromoStatus();
+  const { control } = useFormContext<CheckoutFormData>();
+  const method = useWatch({ control, name: "paymentMethod" });
+  const parts = useWatch({ control, name: "parts" });
+  // A code does not combine with instalments, so on them it shows no line.
+  const discount = promoDiscountFor(method, applied.discount);
 
   // Delivery is paid to Nova Poshta on collection, so "Тарифи оператора" is the
   // whole delivery line and the total is the goods, less any promo.
@@ -44,9 +50,6 @@ export function OrderSummary({
   // Instalments split the same total; nothing else changes. The schedule is
   // the same arithmetic the chips and the cart drawer use, so the figure here
   // is the figure the customer picked one section up.
-  const { control } = useFormContext<CheckoutFormData>();
-  const method = useWatch({ control, name: "paymentMethod" });
-  const parts = useWatch({ control, name: "parts" });
   const schedule =
     method === "parts" && partsAvailable(total) ? partsSchedule(total, parts) : null;
 
@@ -143,7 +146,11 @@ export function OrderSummary({
       <CTAButton
         type="submit"
         width="fill"
-        disabled={submitting || items.length === 0 || promoStatus === "checking"}
+        disabled={
+          submitting ||
+          items.length === 0 ||
+          (method !== "parts" && promoStatus === "checking")
+        }
       >
         До оплати
       </CTAButton>

@@ -47,6 +47,22 @@ export function partsAvailable(total: number): boolean {
 }
 
 /**
+ * What an applied promo takes off, given how the order will be paid.
+ *
+ * Nothing on instalments — a shop decision: a promo code and «Покупка
+ * частинами» do not combine. So the floor for *offering* instalments is judged
+ * on the goods alone (picking them takes the discount away), the checkout
+ * hides the code field while they are picked, and the order endpoint refuses
+ * the pair outright rather than trusting the browser to have dropped the code.
+ */
+export function promoDiscountFor(
+  method: "online" | "parts" | "cod",
+  discount: number
+): number {
+  return method === "parts" ? 0 : discount;
+}
+
+/**
  * One payment, in whole hryvnia, rounded *up*.
  *
  * Up rather than to nearest so the sum of the parts is never less than the

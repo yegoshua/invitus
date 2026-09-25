@@ -9,6 +9,7 @@ import {
   lowestMonthly,
   monthlyPayment,
   partsAvailable,
+  promoDiscountFor,
   partsFailureMessage,
   partsOptionLabel,
   partsOutcome,
@@ -134,4 +135,10 @@ test("every documented refusal has a Ukrainian sentence", () => {
     assert.ok(message.length > 20, sub);
     assert.doesNotMatch(message, /[A-Z_]{6,}/, `${sub} leaks a constant`);
   }
+});
+
+test("a promo is worth nothing on an instalment order, and its full value otherwise", () => {
+  assert.equal(promoDiscountFor("parts", 300), 0);
+  assert.equal(promoDiscountFor("online", 300), 300);
+  assert.equal(promoDiscountFor("cod", 300), 300);
 });

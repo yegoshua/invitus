@@ -6,7 +6,6 @@ import { RadioCard } from "@/components/ui/radio-card";
 import { MonoPaw } from "@/components/ui/mono-paw";
 import { cn } from "@/lib/utils";
 import { useCartTotal } from "@/hooks/use-cart";
-import { useAppliedPromo } from "@/hooks/use-promo";
 import {
   PARTS_OPTIONS,
   partsAvailable,
@@ -25,15 +24,14 @@ export function PaymentMethodRadio() {
   const { control, setValue } = useFormContext<CheckoutFormData>();
   const method = useWatch({ control, name: "paymentMethod" });
   const subtotal = useCartTotal();
-  const { discount } = useAppliedPromo();
-  // The same total the server will judge the floor against: goods less promo.
-  const total = subtotal - discount;
-  const partsOffered = partsAvailable(total);
+  // Judged on the goods alone: picking instalments takes any promo away
+  // (promoDiscountFor), so the discount cannot be what disqualifies them.
+  const partsOffered = partsAvailable(subtotal);
 
-  // The cart can shrink under an open checkout — a size removed, a promo that
-  // landed — and take the option with it. The form then must not sit on a
-  // method the server will refuse: fall back to online, which is the default
-  // and the closest in spirit (pay now, just all at once).
+  // The cart can shrink under an open checkout — a size removed — and take the
+  // option with it. The form then must not sit on a method the server will
+  // refuse: fall back to online, which is the default and the closest in spirit
+  // (pay now, just all at once).
   useEffect(() => {
     if (method === "parts" && !partsOffered) {
       setValue("paymentMethod", "online", { shouldDirty: true });
@@ -67,7 +65,7 @@ export function PaymentMethodRadio() {
                 )}
               </div>
               {option.value === "parts" && field.value === "parts" && (
-                <PartsPicker total={total} />
+                <PartsPicker total={subtotal} />
               )}
             </div>
           ))}

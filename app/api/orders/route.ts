@@ -100,6 +100,15 @@ export async function POST(req: Request) {
   const wantsParts = parsed.paymentMethod === "parts";
   const phoneForParts = wantsParts ? partsPhone(parsed.customer.phone) : null;
   if (wantsParts) {
+    // The checkout never sends a code with instalments (promoDiscountFor); one
+    // arriving anyway is a stale tab or a hand-made request, and pricing it
+    // either way would charge a figure the customer was not shown.
+    if (parsed.promoCode?.trim()) {
+      return NextResponse.json(
+        { error: "Промокод не діє разом з оплатою частинами. Обери інший спосіб оплати або прибери промокод." },
+        { status: 409 }
+      );
+    }
     if (!isPartsConfigured()) {
       return NextResponse.json(
         { error: "Покупка частинами тимчасово недоступна. Обери інший спосіб оплати." },

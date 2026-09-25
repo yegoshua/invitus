@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingBag } from "lucide-react";
@@ -14,7 +14,7 @@ import {
   useSetPartsPreference,
   useSetPaymentMethodPreference,
 } from "@/hooks/use-payment-preference";
-import { partsAvailable } from "@/lib/installments";
+import { partsAvailable, promoDiscountFor } from "@/lib/installments";
 import { gaItems, trackEvent } from "@/lib/gtag";
 import { TrackOnce } from "@/components/analytics/track-once";
 import {
@@ -83,12 +83,18 @@ export function CheckoutPage() {
     seeded.current = true;
     methods.setValue(
       "paymentMethod",
-      preferredMethod === "parts" && !partsAvailable(subtotal - discount)
+      preferredMethod === "parts" && !partsAvailable(subtotal)
         ? "online"
         : preferredMethod
     );
     methods.setValue("parts", preferredParts);
-  }, [hydrated, methods, preferredMethod, preferredParts, subtotal, discount]);
+  }, [hydrated, methods, preferredMethod, preferredParts, subtotal]);
+
+  // A code does not combine with instalments (promoDiscountFor): while they are
+  // picked the field is hidden and the code is neither counted nor sent. It is
+  // kept, not cleared, so switching back to another method brings it back.
+  const paymentMethod = useWatch({ control: methods.control, name: "paymentMethod" });
+  const inParts = paymentMethod === "parts";
 
   // And the other way: what is picked here is what the cart drawer shows next
   // time it opens, so the two never describe two different ways of paying. A
@@ -143,7 +149,11 @@ export function CheckoutPage() {
         quantity: i.quantity,
         price: i.product.price,
       })),
-      totals: { subtotal, discount, total: subtotal - discount },
+      totals: {
+        subtotal,
+        discount: promoDiscountFor(data.paymentMethod, discount),
+        total: subtotal - promoDiscountFor(data.paymentMethod, discount),
+      },
       createdAt: new Date().toISOString(),
     };
 
@@ -164,7 +174,7 @@ export function CheckoutPage() {
           },
           paymentMethod: data.paymentMethod,
           parts: data.paymentMethod === "parts" ? data.parts : null,
-          promoCode: appliedCode,
+          promoCode: data.paymentMethod === "parts" ? null : appliedCode,
           items: items.map((i) => ({
             productId: Number(i.product.id),
             size: i.size ?? null,
@@ -273,11 +283,20 @@ export function CheckoutPage() {
               >
                 <DeliveryFields />
               </CheckoutFormSection>
-              <CheckoutFormSection title="Промокод">
-                <PromoCodeField />
-              </CheckoutFormSection>
+              {!inParts && (
+                <CheckoutFormSection title="Промокод">
+                  <PromoCodeField />
+                </CheckoutFormSection>
+              )}
               <CheckoutFormSection title="Оплата">
                 <PaymentMethodRadio />
+                {/* Said, not silently dropped: a customer who applied a code
+                    would otherwise watch the discount vanish from the total. */}
+                {inParts && appliedCode && (
+                  <p className="mt-4 text-xs/4 tracking-[0.02em] lg:text-sm/5 lg:tracking-[0.01em] text-white/64">
+                    Промокод {appliedCode} не діє разом з оплатою частинами.
+                  </p>
+                )}
                 {paymentError && (
                   <p
                     role="alert"
