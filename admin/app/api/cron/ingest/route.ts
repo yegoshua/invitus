@@ -20,7 +20,7 @@ import { NextResponse } from "next/server";
 import { getMerchantStatement } from "@site/lib/monobank";
 import { recordIngestRun, upsertPaymentFees } from "@/lib/fees/store";
 import { ACCOUNTING_START } from "@/lib/finance/orders";
-import { mapStatement, statementWindows, type PaymentFeeRow } from "@/lib/ingest/monobank-statement";
+import { mapStatement, mergeWindows, statementWindows, type PaymentFeeRow } from "@/lib/ingest/monobank-statement";
 import { runStages, type IngestStage } from "@/lib/ingest/run";
 import { db } from "@/lib/db";
 
@@ -51,14 +51,15 @@ function monobankStage(from: Date, to: Date): IngestStage {
     source: "monobank",
     async run() {
       if (!process.env.MONOBANK_TOKEN) throw new Error("MONOBANK_TOKEN is not set");
-      const rows: PaymentFeeRow[] = [];
+      const windows: PaymentFeeRow[][] = [];
       for (const w of statementWindows(from, to)) {
         const { rows: got, skipped } = mapStatement(await getMerchantStatement(w.from, w.to));
-        rows.push(...got);
+        windows.push(got);
         // A held or failed payment is normal; anything else is a row we could not read.
         const odd = skipped.filter((s) => !s.reason.startsWith("status "));
         if (odd.length) console.warn(`[ingest] monobank: skipped ${odd.length} unreadable row(s):`, odd);
       }
+      const rows = mergeWindows(windows);
       await upsertPaymentFees(rows);
       return { rows: rows.length };
     },

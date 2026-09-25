@@ -113,3 +113,15 @@ export function statementWindows(from: Date, to: Date): Array<{ from: number; to
   }
   return windows;
 }
+
+/**
+ * The rows of several windows as one batch, each invoice once. Adjacent
+ * windows share their boundary second, so a payment made on it can come back
+ * in both — and Postgres refuses an upsert that touches the same row twice,
+ * which would fail the whole backfill. The later window's copy wins.
+ */
+export function mergeWindows(windows: PaymentFeeRow[][]): PaymentFeeRow[] {
+  const byInvoice = new Map<string, PaymentFeeRow>();
+  for (const rows of windows) for (const row of rows) byInvoice.set(row.invoiceId, row);
+  return [...byInvoice.values()];
+}

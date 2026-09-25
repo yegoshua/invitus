@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mapStatement, statementWindows } from "./monobank-statement.ts";
+import { mapStatement, statementWindows, mergeWindows } from "./monobank-statement.ts";
 
 // The shape of GET /api/merchant/statement, per Monobank's OpenAPI
 // (MerchantStatementItem), with this shop's reference = KeyCRM order id.
@@ -117,4 +117,12 @@ test("an empty or inverted range is no windows", () => {
   const d = new Date("2026-09-25T00:00:00Z");
   assert.deepEqual(statementWindows(d, d), []);
   assert.deepEqual(statementWindows(d, new Date("2026-09-01T00:00:00Z")), []);
+});
+
+test("windows that share a boundary second yield each invoice once, so one upsert can take them", () => {
+  const row = (invoiceId: string, feeKop: number) => ({
+    invoiceId, orderId: 1, amountKop: 410_000, feeKop, paidAt: new Date("2026-08-01T00:00:00Z"), paidOn: "2026-08-01", paymentScheme: "full",
+  });
+  const merged = mergeWindows([[row("a", 5330), row("b", 100)], [row("b", 100), row("c", 200)]]);
+  assert.deepEqual(merged.map((r) => r.invoiceId), ["a", "b", "c"]);
 });
