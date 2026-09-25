@@ -5,6 +5,7 @@ import {
   formatKeyCrmStatusChange,
   formatNewOrder,
   formatOrderPaid,
+  notifyNewOrder,
   type NewOrderNotification,
 } from "./order-notifications.ts";
 
@@ -126,4 +127,88 @@ test("an unrecognised context still produces a sendable message", () => {
   assert.match(text, /без номера/);
   assert.match(text, /статус не вказано/);
   assert.ok(text.length > 0);
+});
+
+// notifyNewOrder is the one sender tested end to end: fetch is replaced, so
+// nothing reaches Telegram, and the fake token is never a real bot's.
+async function withTelegram(
+  respond: (chatId: string) => Response | Promise<Response>,
+  run: (sent: Array<Record<string, unknown>>) => Promise<void>
+): Promise<void> {
+  const saved = { ...process.env };
+  const realFetch = globalThis.fetch;
+  const sent: Array<Record<string, unknown>> = [];
+  process.env.TELEGRAM_BOT_TOKEN = "test-token";
+  process.env.TELEGRAM_CHAT_ID = "-100111";
+  process.env.TELEGRAM_FINANCE_CHAT_ID = "-100222";
+  globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    sent.push(body);
+    return respond(String(body.chat_id));
+  }) as typeof fetch;
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    await run(sent);
+  } finally {
+    globalThis.fetch = realFetch;
+    console.error = originalError;
+    process.env = saved;
+  }
+}
+
+const ok = (chatId: string) =>
+  Response.json({ ok: true, result: { message_id: 1, chat: { id: Number(chatId) } } });
+
+test("a new order reaches the Finance chat as a copy without buttons", async () => {
+  await withTelegram(ok, async (sent) => {
+    assert.equal(await notifyNewOrder(draft()), true);
+
+    const orders = sent.find((b) => b.chat_id === "-100111");
+    const finance = sent.find((b) => b.chat_id === "-100222");
+    assert.ok(orders && finance, "both chats are sent to");
+    assert.ok(orders.reply_markup, "the orders group keeps its buttons");
+    assert.equal("reply_markup" in finance, false);
+    assert.equal(finance.text, orders.text);
+    assert.equal(finance.parse_mode, "HTML");
+  });
+});
+
+test("a Finance chat that fails costs nothing to the orders group", async () => {
+  await withTelegram(
+    (chatId) =>
+      chatId === "-100222"
+        ? new Response("Bad Request: chat not found", { status: 400 })
+        : ok(chatId),
+    async (sent) => {
+      assert.equal(await notifyNewOrder(draft()), true);
+      assert.equal(sent.length, 2);
+    }
+  );
+});
+
+test("a Finance send that throws does not reject", async () => {
+  await withTelegram(
+    (chatId) => {
+      if (chatId === "-100222") throw new Error("network down");
+      return ok(chatId);
+    },
+    async () => {
+      assert.equal(await notifyNewOrder(draft()), true);
+    }
+  );
+});
+
+test("with no Finance chat configured, only the orders group is sent to", async () => {
+  await withTelegram(ok, async (sent) => {
+    delete process.env.TELEGRAM_FINANCE_CHAT_ID;
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+      await notifyNewOrder(draft());
+    } finally {
+      console.warn = originalWarn;
+    }
+    assert.deepEqual(sent.map((b) => b.chat_id), ["-100111"]);
+  });
 });
