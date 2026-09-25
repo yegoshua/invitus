@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { RailNav, SidebarNav, TabBar } from "@/components/shell/nav";
 import { SyncBadge } from "@/components/shell/sync-badge";
 import { requireAdmin } from "@/lib/auth/server";
+import { loadSourceSync } from "@/lib/ingest/live";
 import { loadOrders } from "@/lib/keycrm-orders";
+import { syncRows } from "@/lib/live/sync-status";
 
 function Wordmark({ size }: { size: "lg" | "sm" }) {
   return (
@@ -29,7 +31,9 @@ function LogoutButton({ className, label }: { className?: string; label?: string
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdmin();
-  const { fetchedAt } = await loadOrders();
+  // In parallel: KeyCRM, and the Meta/Monobank top-up the badge reports on.
+  const [orders, sources] = await Promise.all([loadOrders(), loadSourceSync()]);
+  const sync = syncRows(orders, sources);
 
   return (
     <div className="flex min-h-svh flex-col sm:flex-row">
@@ -43,7 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <SidebarNav />
           </Suspense>
           <div className="mt-auto flex flex-col gap-4 px-3">
-            <SyncBadge fetchedAt={fetchedAt} />
+            <SyncBadge rows={sync} />
             <div className="flex items-center justify-between gap-2 border-t border-border pt-4">
               <span className="truncate text-[13px] text-muted-foreground">{session.name}</span>
               <LogoutButton className="flex size-8 items-center justify-center rounded-lg text-[#737373] hover:bg-field hover:text-foreground" />
@@ -69,7 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center justify-between sm:hidden">
             <Wordmark size="sm" />
             <div className="flex items-center gap-2">
-              <SyncBadge fetchedAt={fetchedAt} compact />
+              <SyncBadge rows={sync} compact />
               <LogoutButton className="flex size-8 items-center justify-center rounded-lg text-[#737373] hover:text-foreground" />
             </div>
           </div>

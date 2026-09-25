@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdSpendBanner, DatabaseDownBanner, FeesBanner, KeyCrmDownBanner } from "@/components/data-banner";
+import { AdSpendBanner, DatabaseDownBanner, FeesBanner, KeyCrmBanner } from "@/components/data-banner";
 import { KpiCard, type Kpi } from "@/components/overview/kpi-card";
 import { OpenOrders } from "@/components/overview/open-orders";
 import { RevenueChart, type ChartDay } from "@/components/overview/revenue-chart";
@@ -15,6 +15,7 @@ import { cacLabel, marketingFigures, roasLabel } from "@/lib/finance/marketing";
 import { dayLabel, deltaLabel, plural, profitDeltaLabel, rangeLabel, uah } from "@/lib/finance/format";
 import { addDays, daysBetween, kyivDay, periodFromSearch, previousPeriod, type Day, type Period } from "@/lib/finance/period";
 import { summarize, type PeriodSummary } from "@/lib/finance/summary";
+import { topUpStaleSources } from "@/lib/ingest/live";
 import { loadFreshness } from "@/lib/ingest/store";
 import { loadOrders } from "@/lib/keycrm-orders";
 
@@ -58,6 +59,9 @@ export default async function OverviewPage({
   await requireAdmin();
   const now = new Date();
   const { period, preset } = periodFromSearch(await searchParams, kyivDay(now));
+  // KeyCRM starts now; Ad spend and fees are read after their top-up (#124).
+  void loadOrders();
+  await topUpStaleSources();
   const [data, expenses, feeData, meta] = await Promise.all([
     loadOrders(),
     listExpenses(previousPeriod(period).from, period.to),
@@ -169,7 +173,7 @@ export default async function OverviewPage({
   return (
     <>
       <PageHeader title="Огляд" period={period} preset={preset} />
-      {!data.ok && <KeyCrmDownBanner />}
+      <KeyCrmBanner orders={data} />
       {!expenses.ok && expenses.reason === "error" && <DatabaseDownBanner />}
       {expenses.ok && <FeesBanner fees={feeData} />}
       {expenses.ok && <AdSpendBanner meta={meta} />}

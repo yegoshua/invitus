@@ -1,5 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import type { FeeData } from "@/lib/fees/store";
+import type { OrdersResult } from "@/lib/keycrm-orders";
 import type { Freshness } from "@/lib/ingest/run";
 
 export function DatabaseDownBanner() {
@@ -7,15 +8,6 @@ export function DatabaseDownBanner() {
     <p role="alert" className="flex items-center gap-2 rounded-[16px] border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 px-4 py-3 text-sm">
       <TriangleAlert className="size-4 shrink-0 text-[var(--color-error)]" aria-hidden />
       Не вдалося прочитати витрати з бази даних. Прибуток і витрати зараз не показуються — онови сторінку за хвилину.
-    </p>
-  );
-}
-
-export function KeyCrmDownBanner() {
-  return (
-    <p role="alert" className="flex items-center gap-2 rounded-[16px] border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 px-4 py-3 text-sm">
-      <TriangleAlert className="size-4 shrink-0 text-[var(--color-error)]" aria-hidden />
-      Не вдалося завантажити замовлення з KeyCRM. Цифри нижче неповні — онови сторінку за хвилину.
     </p>
   );
 }
@@ -36,6 +28,28 @@ function staleText(
   const { asOf: when, error } = freshness;
   if (when) return asOf(AS_OF.format(when), error ? `останнє оновлення не вдалося (${error})` : "нічне оновлення давно не запускалось");
   return never(error ? `не завантажились (${error})` : "ще не завантажувались");
+}
+
+/**
+ * KeyCRM down: over nothing when no read has ever worked in this server
+ * instance, otherwise over the last good copy — the figures are whole, only
+ * as of an earlier moment.
+ */
+export function KeyCrmBanner({ orders }: { orders: OrdersResult }) {
+  if (!orders.ok) {
+    return (
+      <p role="alert" className="flex items-center gap-2 rounded-[16px] border border-[var(--color-error)]/40 bg-[var(--color-error)]/10 px-4 py-3 text-sm">
+        <TriangleAlert className="size-4 shrink-0 text-[var(--color-error)]" aria-hidden />
+        Не вдалося завантажити замовлення з KeyCRM. Цифри нижче неповні — онови сторінку за хвилину.
+      </p>
+    );
+  }
+  if (!orders.error) return null;
+  return (
+    <StaleBanner
+      text={`Замовлення KeyCRM — дані станом на ${AS_OF.format(orders.fetchedAt)}: KeyCRM зараз не відповідає. Нові замовлення й зміни статусів після цього часу ще не враховані.`}
+    />
+  );
 }
 
 function StaleBanner({ text }: { text: string | null }) {
