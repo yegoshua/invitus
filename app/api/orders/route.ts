@@ -150,7 +150,9 @@ export async function POST(req: Request) {
   }
 
   // KeyCRM has no "order created" trigger, so the notification is ours to
-  // send. after() rather than a floating promise: the customer is not made to
+  // send — to the orders group with its buttons, and a button-less copy to
+  // the Finance chat, both inside this one after(). after() rather than a
+  // floating promise: the customer is not made to
   // wait for Telegram, and the work is still guaranteed to run — a bare
   // `void notify()` can be cut off when the function instance is reclaimed
   // after the response, which is exactly when this fires.

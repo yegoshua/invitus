@@ -159,13 +159,25 @@ export function orderActionKeyboard(orderId: number): InlineKeyboard {
   ];
 }
 
+/**
+ * The orders group gets the order with its buttons; the Finance chat gets the
+ * same text as a copy with none (PRD #103, story 41) — the owners watch sales
+ * there, they do not work orders there, and the buttons webhook would refuse a
+ * press from it anyway.
+ *
+ * Sent side by side and settled independently: the copy failing, or the
+ * Finance chat not being configured, never costs the orders group its message.
+ * Resolves to whether the orders group got it. Never rejects.
+ */
 export async function notifyNewOrder(
   order: NewOrderNotification
 ): Promise<boolean> {
-  const sent = await sendTelegramMessage(formatNewOrder(order), {
-    keyboard: orderActionKeyboard(order.orderId),
-  });
-  return sent !== null;
+  const text = formatNewOrder(order);
+  const [orders] = await Promise.allSettled([
+    sendTelegramMessage(text, { keyboard: orderActionKeyboard(order.orderId) }),
+    sendTelegramMessage(text, { target: "finance" }),
+  ]);
+  return orders.status === "fulfilled" && orders.value !== null;
 }
 
 export async function notifyOrderPaid(
