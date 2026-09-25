@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
 import { usePreferFullPayment, usePreferParts } from "@/hooks/use-payment-preference";
@@ -19,6 +18,7 @@ import { DispatchBadge } from "./dispatch-badge";
 import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
+import PlusIcon from "@/public/assets/icons/cta-plus-icon.svg";
 import { MonoPaw } from "@/components/ui/mono-paw";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +133,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         variant="outline"
         width="fill"
         onClick={handleAddInParts}
-        icon={<Plus className="w-5 h-5 lg:w-6 lg:h-6" />}
+        icon={<PlusIcon className="size-6" />}
         aria-label={`${partsLabel} — додати в кошик з оплатою частинами`}
       >
         {partsLabel}
@@ -149,7 +149,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         width="fill"
         onClick={handleAddToCart}
         disabled={soldOut}
-        icon={soldOut ? null : <Plus className="w-5 h-5" />}
+        icon={soldOut ? null : <PlusIcon className="size-6" />}
       >
         {soldOut ? "Немає в наявності" : "Додати в кошик"}
       </CTAButton>
