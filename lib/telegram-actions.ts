@@ -58,3 +58,19 @@ export function decodeCallback(
   const action = findOrderAction(parts[2]);
   return action ? { orderId, action } : null;
 }
+
+/**
+ * May a button pressed in this chat act on an order? Only in the orders group.
+ *
+ * The Finance chat receives a copy of every new order *without* buttons, and
+ * alerts may land there too; neither is a place to work orders from. Accepting
+ * presses anywhere else would let the same order be actioned from two chats
+ * (PRD #103, story 42). No orders group configured means no chat qualifies.
+ */
+export function acceptsOrderActionsFrom(
+  chatId: number,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  const orders = env.TELEGRAM_CHAT_ID;
+  return Boolean(orders) && String(chatId) === orders;
+}
