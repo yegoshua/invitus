@@ -15,6 +15,13 @@ export function uah(n: number): string {
   return `${n < 0 ? "−" : ""}${digits(n)}${NBSP}₴`;
 }
 
+/** "420,50 ₴" — kopecks shown when there are any. For a single Expense, not a total. */
+export function uahExact(n: number): string {
+  const kop = Math.round(Math.abs(n) * 100) % 100;
+  if (kop === 0) return uah(n);
+  return `${n < 0 ? "−" : ""}${digits(Math.trunc(Math.abs(n)))},${String(kop).padStart(2, "0")}${NBSP}₴`;
+}
+
 /** Axis labels: "12,5 тис", "800". */
 export function shortAmount(n: number): string {
   const a = Math.abs(n), sign = n < 0 ? "−" : "";
@@ -50,4 +57,13 @@ export function deltaLabel(current: number, previous: number): { text: string; d
   const v = Math.round(((current - previous) / Math.abs(previous)) * 100);
   const direction = v > 0 ? 1 : v < 0 ? -1 : 0;
   return { text: `${direction > 0 ? "↑" : direction < 0 ? "↓" : "→"}${NBSP}${Math.abs(v)}%`, direction };
+}
+
+/**
+ * Profit's delta. Across zero a percentage is nonsense ("↑ 350%" from a loss
+ * to a gain), so it says what it was instead — calmly, in no colour.
+ */
+export function profitDeltaLabel(current: number, previous: number): { text: string; direction: -1 | 0 | 1 } | null {
+  if (previous === 0 || current < 0 !== previous < 0) return { text: `було ${uah(previous)}`, direction: 0 };
+  return deltaLabel(current, previous);
 }

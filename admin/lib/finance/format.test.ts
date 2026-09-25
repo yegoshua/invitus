@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { deltaLabel, plural, rangeLabel, shortAmount, uah } from "./format.ts";
+import { deltaLabel, plural, profitDeltaLabel, rangeLabel, shortAmount, uah, uahExact } from "./format.ts";
 import { estimatedFee } from "./payments.ts";
 
 const NBSP = " ";
@@ -40,4 +40,23 @@ test("estimated fee by method; unknown and cash on delivery cost nothing", () =>
   assert.equal(estimatedFee(4100, 6), 0);
   assert.equal(estimatedFee(4100, null), 0);
   assert.equal(estimatedFee(4100, 99), 0);
+});
+
+test("an Expense keeps its kopecks; a whole amount does not grow a ,00", () => {
+  assert.equal(uahExact(420.5), `420,50${NBSP}₴`);
+  assert.equal(uahExact(2400), `2${NBSP}400${NBSP}₴`);
+  assert.equal(uahExact(0.01), `0,01${NBSP}₴`);
+});
+
+test("Profit crossing zero is told as the old figure, not a percentage", () => {
+  // −300% of a loss means nothing to anyone.
+  assert.deepEqual(profitDeltaLabel(5000, -2000), { text: `було −2${NBSP}000${NBSP}₴`, direction: 0 });
+  assert.deepEqual(profitDeltaLabel(-500, 3000), { text: `було 3${NBSP}000${NBSP}₴`, direction: 0 });
+  assert.deepEqual(profitDeltaLabel(1000, 0), { text: `було 0${NBSP}₴`, direction: 0 });
+});
+
+test("Profit on the same side of zero is an ordinary delta", () => {
+  assert.deepEqual(profitDeltaLabel(1200, 1000), deltaLabel(1200, 1000));
+  // A smaller loss is an improvement: the arrow points up.
+  assert.equal(profitDeltaLabel(-500, -1000)!.direction, 1);
 });

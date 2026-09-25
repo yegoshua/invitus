@@ -7,6 +7,8 @@ export interface Kpi {
   accent?: boolean;
   /** Cumulative series for the sparkline; omitted when there is none. */
   spark?: number[];
+  /** The sparkline's colour; coral unless given. */
+  sparkColor?: string;
   delta?: { text: string; direction: -1 | 0 | 1 } | null;
   /** For costs, going up is not good news. */
   upIsGood?: boolean;
@@ -21,7 +23,7 @@ function sparkPoints(values: number[]): string {
   return values.map((v, i) => `${(i / Math.max(1, values.length - 1)) * 100},${100 - ((v - min) / range) * 100}`).join(" ");
 }
 
-export function KpiCard({ label, value, accent, spark, delta, upIsGood = true, vs, note, pending }: Kpi) {
+export function KpiCard({ label, value, accent, spark, sparkColor, delta, upIsGood = true, vs, note, pending }: Kpi) {
   const tone =
     !delta || delta.direction === 0 ? "text-muted-foreground" : (delta.direction > 0) === upIsGood ? "text-good" : "text-[var(--color-error)]";
   return (
@@ -33,7 +35,7 @@ export function KpiCard({ label, value, accent, spark, delta, upIsGood = true, v
       <div className="h-[30px]">
         {spark && spark.length > 1 && (
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible" aria-hidden>
-            <polyline points={sparkPoints(spark)} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className="text-primary" />
+            <polyline points={sparkPoints(spark)} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className="text-primary" style={sparkColor ? { color: sparkColor } : undefined} />
           </svg>
         )}
       </div>
