@@ -56,8 +56,9 @@ export default async function OverviewPage({
   const { period, preset } = periodFromSearch(await searchParams, kyivDay(now));
   const [data, expenses] = await Promise.all([loadOrders(), listExpenses(previousPeriod(period).from, period.to)]);
   const s = summarize(data.orders, period, now);
-  // Without the Expenses a Profit figure would be Revenue wearing Profit's name.
-  const profit = expenses.ok
+  // Both halves or nothing: without the Expenses a Profit figure is Revenue
+  // wearing Profit's name, and without KeyCRM it is a loss nobody made.
+  const profit = expenses.ok && data.ok
     ? profitFigures(
         { revenue: s.revenue, previousRevenue: s.previous.revenue, revenueByDay: s.revenueByDay },
         summarizeExpenses(expenses.value, period),
@@ -95,7 +96,11 @@ export default async function OverviewPage({
           label: "Прибуток",
           value: "—",
           pending: true,
-          note: !expenses.ok && expenses.reason === "unconfigured" ? "Підключи базу даних, щоб вносити витрати" : "Витрати не завантажились",
+          note: !data.ok
+            ? "Замовлення з KeyCRM не завантажились"
+            : !expenses.ok && expenses.reason === "unconfigured"
+              ? "Підключи базу даних, щоб вносити витрати"
+              : "Витрати не завантажились",
         },
     { label: "Витрати на рекламу", value: "—", pending: true, note: "Meta і Google підтягнуться автоматично" },
     { label: "ROAS", value: "—", pending: true, note: "Виручка ÷ реклама — після підключення реклами" },

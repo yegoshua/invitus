@@ -42,6 +42,7 @@ function Entry({ e, editHref }: { e: Expense; editHref: string }) {
     categoryLabel(e.category, e.source),
     e.orderId != null && `№${e.orderId}`,
     manual && e.authorName && `${e.authorName}, ${TIME.format(e.createdAt)}`,
+    manual && e.editorName && `змінив(ла) ${e.editorName}, ${TIME.format(e.updatedAt)}`,
   ].filter(Boolean);
   const body = (
     <>

@@ -48,9 +48,10 @@ export async function saveExpense(_: ExpenseFormState, form: FormData): Promise<
 
   const id = form.has("id") ? idOf(form) : null;
   if (form.has("id") && id === null) return { message: GONE };
+  const who = { userId: session.userId, name: session.name };
   try {
-    if (id === null) await createExpense(parsed.value, { userId: session.userId, name: session.name });
-    else if (!(await updateExpense(id, parsed.value))) return { message: GONE };
+    if (id === null) await createExpense(parsed.value, who);
+    else if (!(await updateExpense(id, parsed.value, who))) return { message: GONE };
   } catch (error) {
     console.error("[expenses] save failed:", error);
     return { message: SAVE_FAILED };

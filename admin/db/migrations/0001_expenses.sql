@@ -19,6 +19,9 @@ CREATE TABLE expenses (
   -- A person's Telegram user id, and the name they had then; null for the ingest.
   author_id   bigint,
   author_name text,
+  -- Who last edited it, when that was someone: the journal says so.
+  updated_by_id   bigint,
+  updated_by_name text,
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
   CHECK ((source = 'manual') = (author_id IS NOT NULL)),

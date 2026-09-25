@@ -18,6 +18,8 @@ export interface Expense {
   orderId: number | null;
   comment: string | null;
   authorName: string | null;
+  /** Set once someone has edited it. */
+  editorName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +41,7 @@ interface Row {
   order_id: number | null;
   comment: string | null;
   author_name: string | null;
+  updated_by_name: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -54,6 +57,7 @@ function toExpense(r: Row): Expense {
     orderId: r.order_id,
     comment: r.comment,
     authorName: r.author_name,
+    editorName: r.updated_by_name,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -68,7 +72,7 @@ export async function listExpenses(from: Day, to: Day): Promise<Loaded<Expense[]
     // somewhere, and the server's somewhere is UTC.
     const rows = await sql<Row[]>`
       SELECT id, title, amount_kop, spent_on::text AS date, category, source, order_id,
-             comment, author_name, created_at, updated_at
+             comment, author_name, updated_by_name, created_at, updated_at
       FROM expenses
       WHERE spent_on BETWEEN ${from} AND ${to}
       ORDER BY spent_on DESC, created_at DESC`;
@@ -94,13 +98,13 @@ export async function createExpense(input: ExpenseInput, author: Author): Promis
 }
 
 /** False when there is no such manual Expense — deleted meanwhile, or an Ad spend row. */
-export async function updateExpense(id: number, input: ExpenseInput): Promise<boolean> {
+export async function updateExpense(id: number, input: ExpenseInput, editor: Author): Promise<boolean> {
   const sql = requireDb();
   const rows = await sql`
     UPDATE expenses
     SET title = ${input.title}, amount_kop = ${input.amountKop}, spent_on = ${input.date},
         category = ${input.category}, order_id = ${input.orderId}, comment = ${input.comment},
-        updated_at = now()
+        updated_by_id = ${editor.userId}, updated_by_name = ${editor.name}, updated_at = now()
     WHERE id = ${id} AND source = 'manual'
     RETURNING id`;
   return rows.length > 0;

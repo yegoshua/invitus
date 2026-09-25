@@ -23,7 +23,7 @@ export type ParseResult =
   | { ok: true; value: ExpenseInput }
   | { ok: false; errors: Partial<Record<ExpenseField, string>> };
 
-/** Кopecks from what a person types: "2 400", "1250,50", "4 100 ₴". Null if it is not a positive amount. */
+/** Kopecks from what a person types: "2 400", "1250,50", "4 100 ₴". Null if it is not a positive amount. */
 export function parseAmount(text: string): number | null {
   const s = text.replace(/[\s  ]/g, "").replace(/₴|грн\.?$/i, "").replace(",", ".");
   if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
