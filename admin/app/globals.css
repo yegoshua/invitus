@@ -1,0 +1,10 @@
+/* The site's theme, imported rather than copied (ADR 0001): a change to the
+   brand colours or type scale reaches the Admin on its next build. */
+@import "../../app/globals.css";
+
+@layer base {
+  /* Every number in the Admin lines up in columns. */
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+}
