@@ -67,3 +67,25 @@ test("no fbq (preview host, dev) is a silent no-op", () => {
   (globalThis as { window?: unknown }).window = { gtag: () => {} };
   assert.doesNotThrow(() => trackEvent("purchase", { transaction_id: "1", value: 1, items: [] }));
 });
+
+test("a sent Custom request reaches Meta as the standard Lead, without product fields", () => {
+  const calls = withFbq();
+
+  trackEvent("generate_lead", { lead_source: "custom_belt" });
+
+  assert.deepEqual(calls, [["track", "Lead", { content_name: "custom_belt" }]]);
+});
+
+test("the rest of the Custom belt funnel reaches Meta as custom events", () => {
+  const calls = withFbq();
+
+  trackEvent("custom_belt_card_click", {});
+  trackEvent("custom_belt_artwork_upload", {});
+  trackEvent("custom_belt_prompt_copy", {});
+
+  assert.deepEqual(calls, [
+    ["trackCustom", "CustomBeltCardClick", {}],
+    ["trackCustom", "CustomBeltArtworkUpload", {}],
+    ["trackCustom", "CustomBeltPromptCopy", {}],
+  ]);
+});

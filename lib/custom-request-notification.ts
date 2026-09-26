@@ -3,6 +3,8 @@
 // testable without a bot token — hence relative imports and no `@/` alias.
 
 import { printQuality } from "./belt-design.ts";
+import { CUSTOM_BASE } from "./custom-base.ts";
+import { formatPriceWithCurrency } from "./format.ts";
 import { UNKNOWN_SIZE, type CustomRequest } from "./custom-request.ts";
 import { sizeDisplayText } from "./size-display.ts";
 import { escapeHtml, sendTelegramFile, sendTelegramMessage } from "./telegram.ts";
@@ -43,7 +45,7 @@ export function formatCustomRequest(request: CustomRequest): string {
     `фон ${placement.background}`,
     `${quality.verdict === "low" ? "⚠️ " : ""}Якість друку: ${Math.round(quality.dpi)} DPI`,
     "",
-    "Ціна «від 10 000 ₴» — узгодити з покупцем.",
+    `Ціна «від ${formatPriceWithCurrency(CUSTOM_BASE.fromPrice)}» — узгодити з покупцем.`,
   );
 
   return lines.join("\n");

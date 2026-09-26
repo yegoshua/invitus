@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ProductCard } from "@/components/ui/product-card";
+import { CustomBeltCard } from "@/components/custom-belt/custom-belt-card";
 import { FadeUp } from "@/components/ui/fade-up";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
@@ -16,9 +17,11 @@ const ABOVE_THE_FOLD = 4;
 
 interface CatalogGridProps {
   products: Product[];
+  /** End the grid with the «Свій дизайн» card — the belts catalogue only. */
+  withCustomBelt?: boolean;
 }
 
-export function CatalogGrid({ products }: CatalogGridProps) {
+export function CatalogGrid({ products, withCustomBelt = false }: CatalogGridProps) {
   // GA4: view_item_list once the catalog is rendered.
   useEffect(() => {
     if (products.length) {
@@ -29,13 +32,29 @@ export function CatalogGrid({ products }: CatalogGridProps) {
     }
   }, [products]);
 
+  // The card is the only way into the builder, so an empty or unreachable
+  // catalogue still shows it. Painted, not faded, when it lands in the first
+  // row — the same rule as the product cards there.
+  const customBeltCard = withCustomBelt ? (
+    products.length < ABOVE_THE_FOLD ? (
+      <CustomBeltCard />
+    ) : (
+      <FadeUp duration={0.5} delay={(products.length % 4) * 0.1}>
+        <CustomBeltCard />
+      </FadeUp>
+    )
+  ) : null;
+
   if (products.length === 0) {
     return (
       <section className="bg-black py-12 lg:py-20">
-        <div className="container-main">
+        <div className="container-main flex flex-col gap-8">
           <p className="text-center text-neutral-400 text-xl">
             Товарів не знайдено
           </p>
+          {customBeltCard && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">{customBeltCard}</div>
+          )}
         </div>
       </section>
     );
@@ -67,6 +86,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
               </FadeUp>
             );
           })}
+          {customBeltCard}
         </div>
       </div>
     </section>

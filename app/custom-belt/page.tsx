@@ -11,9 +11,6 @@ export const metadata: Metadata = {
   description:
     "Завантаж свій малюнок і подивись, як він виглядатиме на атлетичному поясі INVITUS у 3D.",
   alternates: { canonical: "/custom-belt" },
-  // Not linked from anywhere yet, and not a page anyone should land on from a
-  // search until it can take a request (#128) and has a way in (#129).
-  robots: { index: false, follow: false },
 };
 
 export default async function CustomBeltPage() {

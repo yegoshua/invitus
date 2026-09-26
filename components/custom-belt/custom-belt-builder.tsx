@@ -18,10 +18,13 @@ import {
   type Placement,
 } from "@/lib/belt-design";
 import { CUSTOM_BASE } from "@/lib/custom-base";
+import { formatPriceWithCurrency } from "@/lib/format";
+import { trackEvent } from "@/lib/gtag";
 import { ARTWORK_CONTENT_TYPES, MAX_ARTWORK_BYTES } from "@/lib/custom-request";
 import { cn } from "@/lib/utils";
 import type { ProductSize } from "@/types";
 import { CustomRequestForm, type UploadableArtwork } from "./custom-request-form";
+import { DESIGN_PROMPT_ID, DesignPrompt } from "./design-prompt";
 import { DesignEditor } from "./design-editor";
 import { drawBeltDesign } from "./draw-belt-design";
 
@@ -98,6 +101,7 @@ export function CustomBeltBuilder({
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"design" | "3d">("3d");
   const [example, setExample] = useState<HTMLCanvasElement | null>(null);
+  const [promptOpen, setPromptOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // The Belt design the model wears: an off-screen canvas, redrawn whenever
@@ -142,6 +146,7 @@ export function CustomBeltBuilder({
       setArtwork({ image, file, size, aspect: size.width / size.height, url });
       setPlacement((p) => fillStrip(size, p.background));
       setTab("design");
+      trackEvent("custom_belt_artwork_upload", {});
     } catch {
       URL.revokeObjectURL(url);
       setError("Не вдалося відкрити це зображення. Спробуй інший файл.");
@@ -163,13 +168,22 @@ export function CustomBeltBuilder({
               виглядатиме в 3D. Друкуємо на всій лицьовій поверхні — дизайн допоможемо
               довести до друку.
             </p>
-            <p className="font-heading text-h3 font-bold text-white">від 10 000 ₴</p>
+            <p className="font-heading text-h3 font-bold text-white">
+              від {formatPriceWithCurrency(CUSTOM_BASE.fromPrice)}
+            </p>
           </div>
           <div className="flex flex-col gap-3 lg:items-end">
             <CTAButton type="button" onClick={() => fileInput.current?.click()}>
               {artwork ? "Інше зображення" : "Завантажити зображення"}
             </CTAButton>
             <p className="text-sm text-white/50">PNG, JPG або WebP, до 25 МБ</p>
+            <a
+              href={`#${DESIGN_PROMPT_ID}`}
+              onClick={() => setPromptOpen(true)}
+              className="text-sm text-white underline underline-offset-4 hover:text-coral"
+            >
+              Немає картинки? Згенеруй з AI
+            </a>
             {error && (
               <p role="alert" className="text-sm text-coral">
                 {error}
@@ -325,6 +339,7 @@ export function CustomBeltBuilder({
             )}
           </div>
         </div>
+        <DesignPrompt open={promptOpen} onOpenChange={setPromptOpen} />
         <CustomRequestForm artwork={artwork} placement={placement} sizes={sizes} />
       </div>
     </section>

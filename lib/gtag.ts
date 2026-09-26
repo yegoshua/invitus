@@ -38,6 +38,8 @@ type ListPayload = {
   items: GAItem[];
 };
 
+type NoParams = Record<string, never>;
+
 // Note: payloads are `type` aliases (not interfaces) so they satisfy
 // gtag's Record<string, unknown> parameter via implicit index signatures.
 export type GAEventMap = {
@@ -49,6 +51,13 @@ export type GAEventMap = {
   view_cart: ValuePayload;
   begin_checkout: ValuePayload;
   purchase: ValuePayload & { transaction_id: string; shipping?: number };
+
+  // The Custom belt funnel: card → Artwork → Design prompt → Custom request.
+  // Nothing is sold here, so none of these carries items or a value.
+  custom_belt_card_click: NoParams;
+  custom_belt_artwork_upload: NoParams;
+  custom_belt_prompt_copy: NoParams;
+  generate_lead: { lead_source: "custom_belt" };
 };
 
 export type GAEventName = keyof GAEventMap;

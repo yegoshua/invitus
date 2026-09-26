@@ -26,6 +26,9 @@ const printZones: readonly PrintZone[] = [
   { kind: "under-buckle", from: 84, to: 100 },
 ];
 
+/** The catalogue whose grid ends with the way into the builder. */
+export const CUSTOM_BELT_CATEGORY = "belts";
+
 export const CUSTOM_BASE = {
   /**
    * The KeyCRM product — Dragon Lifting Belt — whose model and size grid the
@@ -35,6 +38,8 @@ export const CUSTOM_BASE = {
   keycrmProductId: 45,
   /** The glTF material that carries the printed face. */
   printMaterial: "Dragon",
+  /** What a Custom belt starts at. The final price is agreed with the customer. */
+  fromPrice: 10_000,
   /**
    * The Dragon atlas runs its strip from 100 cm to 0 and bottom edge to top, so
    * a design laid on it the natural way reads upside down. Found by eye on the

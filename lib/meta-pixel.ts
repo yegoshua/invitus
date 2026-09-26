@@ -13,18 +13,27 @@ import type { GAEventMap, GAEventName, GAItem } from "./gtag.ts";
 export const META_PIXEL_ID = "1078690034571892";
 
 type FbqFn = (
-  command: "track",
+  command: "track" | "trackCustom",
   eventName: string,
   params?: Record<string, unknown>,
   options?: { eventID?: string }
 ) => void;
 
-/** GA4 events Meta has a standard counterpart for; the rest are GA-only. */
-const META_EVENT_BY_GA: Partial<Record<GAEventName, string>> = {
-  view_item: "ViewContent",
-  add_to_cart: "AddToCart",
-  begin_checkout: "InitiateCheckout",
-  purchase: "Purchase",
+/**
+ * GA4 events Meta hears about, as a standard event where Meta has one (those
+ * are what ads optimise for) and a custom one otherwise. The rest are GA-only.
+ */
+const META_EVENT_BY_GA: Partial<
+  Record<GAEventName, { command: "track" | "trackCustom"; name: string }>
+> = {
+  view_item: { command: "track", name: "ViewContent" },
+  add_to_cart: { command: "track", name: "AddToCart" },
+  begin_checkout: { command: "track", name: "InitiateCheckout" },
+  purchase: { command: "track", name: "Purchase" },
+  generate_lead: { command: "track", name: "Lead" },
+  custom_belt_card_click: { command: "trackCustom", name: "CustomBeltCardClick" },
+  custom_belt_artwork_upload: { command: "trackCustom", name: "CustomBeltArtworkUpload" },
+  custom_belt_prompt_copy: { command: "trackCustom", name: "CustomBeltPromptCopy" },
 };
 
 function contents(items: GAItem[]) {
@@ -39,12 +48,26 @@ export function trackMetaEvent<E extends GAEventName>(
   name: E,
   params: GAEventMap[E] & { currency: string }
 ): void {
-  const metaName = META_EVENT_BY_GA[name];
-  if (!metaName || typeof window === "undefined") return;
+  const meta = META_EVENT_BY_GA[name];
+  if (!meta || typeof window === "undefined") return;
 
   const fbq = (window as unknown as { fbq?: FbqFn }).fbq;
   if (!fbq) return;
 
+  if (meta.command === "trackCustom") {
+    fbq("trackCustom", meta.name, {});
+    return;
+  }
+
+  // A lead is not a product: no content_ids, or Meta reads it as a catalogue
+  // event for a product that does not exist. No currency either — it carries
+  // no value for one to qualify.
+  if ("lead_source" in params) {
+    fbq("track", meta.name, { content_name: params.lead_source });
+    return;
+  }
+
+  const metaName = meta.name;
   const items = "items" in params ? params.items : [];
   const payload: Record<string, unknown> = {
     currency: params.currency,

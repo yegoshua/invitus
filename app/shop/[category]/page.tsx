@@ -18,6 +18,7 @@ import {
   getProducts,
 } from "@/lib/api";
 import { ALL_FILTER_SLUG } from "@/lib/filter";
+import { CUSTOM_BELT_CATEGORY } from "@/lib/custom-base";
 import { breadcrumbSchema } from "@/lib/structured-data";
 import type { Category } from "@/types";
 
@@ -82,7 +83,10 @@ async function CatalogContent({
   return (
     <>
       <PageHero title={`${category.name} (${products.length})`} />
-      <CatalogGrid products={products} />
+      <CatalogGrid
+        products={products}
+        withCustomBelt={category.slug === CUSTOM_BELT_CATEGORY}
+      />
     </>
   );
 }

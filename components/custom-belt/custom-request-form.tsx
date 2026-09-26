@@ -20,6 +20,7 @@ import {
   type CustomRequest,
   type CustomRequestFormData,
 } from "@/lib/custom-request";
+import { trackEvent } from "@/lib/gtag";
 import { sizeDisplayText } from "@/lib/size-display";
 import type { ProductSize } from "@/types";
 import { drawBeltDesign, type DrawableArtwork } from "./draw-belt-design";
@@ -115,6 +116,7 @@ export function CustomRequestForm({ artwork, placement, sizes }: Props) {
         throw new CustomerFacingError(error || "Не вдалося надіслати запит.");
       }
       setStatus({ kind: "sent" });
+      trackEvent("generate_lead", { lead_source: "custom_belt" });
     } catch (err) {
       setStatus({
         kind: "failed",
