@@ -63,4 +63,8 @@ export const installmentsProviderDisclosure = {
     "Порядок погашення: щомісячні платежі рівними частинами",
     "Перший платіж у момент оформлення покупки",
   ],
+  // The sentence ends on the bank's site name, which the page makes a link.
+  moreInfo:
+    "Інформація про істотні характеристики продукту та попередження розміщені на сайті продукту",
+  moreInfoSite: { label: "chast.monobank.ua", href: "https://chast.monobank.ua" },
 } as const;

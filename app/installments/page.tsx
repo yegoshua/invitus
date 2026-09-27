@@ -36,6 +36,17 @@ export default function InstallmentsRoute() {
                   <li key={term}>{term}</li>
                 ))}
               </ul>
+              <p>
+                {installmentsProviderDisclosure.moreInfo}{" "}
+                <a
+                  href={installmentsProviderDisclosure.moreInfoSite.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-coral transition-colors"
+                >
+                  {installmentsProviderDisclosure.moreInfoSite.label}
+                </a>
+              </p>
             </div>
           }
           className="pt-4 lg:pt-8 pb-20 lg:pb-32"
