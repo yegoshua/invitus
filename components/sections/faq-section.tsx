@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 interface FAQSectionProps {
   /** Defaults to the site FAQ; a page with questions of its own passes them. */
   items?: FAQItem[];
-  title?: string;
+  /** `null` for a page whose hero already names the subject: accordions only. */
+  title?: string | null;
   className?: string;
 }
 
@@ -26,14 +27,16 @@ export function FAQSection({
     <section
       className={cn("bg-black pt-20 lg:pt-45 lg:pb-4 pb-4 relative", className)}
     >
-      <div className="container-main">
-        {/* Heading */}
-        <FadeUp className="text-center mb-10 lg:mb-20">
-          <h2 className="font-heading sm:text-center text-left text-h2 font-bold text-white">
-            {title}
-          </h2>
-        </FadeUp>
-      </div>
+      {/* Heading */}
+      {title && (
+        <div className="container-main">
+          <FadeUp className="text-center mb-10 lg:mb-20">
+            <h2 className="font-heading sm:text-center text-left text-h2 font-bold text-white">
+              {title}
+            </h2>
+          </FadeUp>
+        </div>
+      )}
 
       {/* Accordion */}
       <div className="container-main [--container-px:0.5rem] sm:[--container-px:0.75rem] lg:[--container-px:clamp(1rem,5vw,2rem)]">

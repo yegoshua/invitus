@@ -20,7 +20,7 @@ export default function InstallmentsRoute() {
       <main className="bg-black">
         <PageHero title="Покупка частинами" />
         <FAQSection
-          title="Як це працює"
+          title={null}
           items={installmentsSteps}
           className="pt-4 lg:pt-8 pb-20 lg:pb-32"
         />
