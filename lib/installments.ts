@@ -105,15 +105,18 @@ export function partsOptionLabel(total: number, parts: PartsCount): string {
 }
 
 /** «Від 513 ₴ / міс» — the product page button. Null when not offered. */
-export function fromMonthlyLabel(price: number): string | null {
+function monthlyLabel(prefix: string, price: number): string | null {
   const monthly = lowestMonthly(price);
-  return monthly === null ? null : `Від ${formatPrice(monthly)} ₴ / міс`;
+  return monthly === null ? null : `${prefix} ${formatPrice(monthly)} ₴ / міс`;
+}
+
+export function fromMonthlyLabel(price: number): string | null {
+  return monthlyLabel("Від", price);
 }
 
 /** «або від 513 ₴ / міс» — the catalogue card, where it follows the price. */
 export function orFromMonthlyLabel(price: number): string | null {
-  const monthly = lowestMonthly(price);
-  return monthly === null ? null : `або від ${formatPrice(monthly)} ₴ / міс`;
+  return monthlyLabel("або від", price);
 }
 
 /** «5 × 684 ₴» — what is left after today's payment. */

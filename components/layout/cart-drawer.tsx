@@ -34,8 +34,8 @@ export function CartDrawer() {
   const total = useCartTotal();
   // Set when the customer came in through «Від … ₴ / міс» (or picked
   // instalments on a previous checkout) and this cart still qualifies. The
-  // promo is not known here — it is checked on the checkout — so the drawer
-  // shows the split of the goods, and the checkout corrects it if a code lands.
+  // split is of the goods alone, which is also what the checkout charges on
+  // instalments: a promo code does not combine with them (promoDiscountFor).
   const breakdown = usePartsBreakdown(total);
 
   const formattedTotal = formatPrice(total);

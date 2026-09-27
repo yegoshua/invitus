@@ -110,7 +110,7 @@ export function ProductCard({
             <p className="font-golos text-base lg:text-lg leading-tight tracking-[0.01em] font-medium text-white mt-2 lg:mt-3">
               {formattedPrice} ₴
               {partsLabel && (
-                <span className="ml-2 text-sm/5 lg:text-base/6 tracking-normal text-white/64">
+                <span className="ml-2 whitespace-nowrap text-sm/5 lg:text-base/6 tracking-normal text-white/64">
                   {partsLabel}
                 </span>
               )}

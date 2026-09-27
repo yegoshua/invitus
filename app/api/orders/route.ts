@@ -17,6 +17,7 @@ import {
   partsProducts,
 } from "@/lib/installments";
 import { formatPrice } from "@/lib/format";
+import { normalizePromoCode } from "@/lib/promo";
 import {
   attachPartsOrderId,
   createKeyCrmOrder,
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
     // The checkout never sends a code with instalments (promoDiscountFor); one
     // arriving anyway is a stale tab or a hand-made request, and pricing it
     // either way would charge a figure the customer was not shown.
-    if (parsed.promoCode?.trim()) {
+    if (normalizePromoCode(parsed.promoCode ?? "")) {
       return NextResponse.json(
         { error: "Промокод не діє разом з оплатою частинами. Обери інший спосіб оплати або прибери промокод." },
         { status: 409 }

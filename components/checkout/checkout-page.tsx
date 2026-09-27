@@ -120,6 +120,7 @@ export function CheckoutPage() {
 
   const onSubmit = async (data: CheckoutFormData) => {
     setPaymentError(null);
+    const orderDiscount = promoDiscountFor(data.paymentMethod, discount);
 
     // PII: upgrade Clarity identity from anon UUID to customer email so post-payment
     // sessions are grouped with checkout sessions in the dashboard.
@@ -149,11 +150,7 @@ export function CheckoutPage() {
         quantity: i.quantity,
         price: i.product.price,
       })),
-      totals: {
-        subtotal,
-        discount: promoDiscountFor(data.paymentMethod, discount),
-        total: subtotal - promoDiscountFor(data.paymentMethod, discount),
-      },
+      totals: { subtotal, discount: orderDiscount, total: subtotal - orderDiscount },
       createdAt: new Date().toISOString(),
     };
 
