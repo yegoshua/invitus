@@ -22,6 +22,9 @@ const eslintConfig = defineConfig([
     // excluded, linting one reports findings against a path that is not the
     // file anybody would edit.
     ".claude/worktrees/**",
+
+    // The Admin lints itself with its own config (ADR 0001).
+    "admin/**",
   ]),
 ]);
 

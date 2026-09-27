@@ -1,5 +1,6 @@
 packages:
   - .
+  - admin
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

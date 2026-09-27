@@ -8,8 +8,10 @@
 //   1. Telegram's own `secret_token`, which it echoes in a header on every
 //      delivery. Unlike the KeyCRM webhook — which cannot send headers, so its
 //      secret rides in the query string — this one is done properly.
-//   2. The chat the callback came from must be a chat we notify. A stranger
-//      who somehow forged a delivery still cannot act from their own chat.
+//   2. The chat the callback came from must be the orders group. A stranger
+//      who somehow forged a delivery still cannot act from their own chat, and
+//      neither can the Finance chat, which gets a button-less copy of every
+//      order and must never be a second place to action one from.
 //
 // Register the webhook with scripts/set-telegram-webhook.mts.
 
@@ -20,7 +22,11 @@ import {
   editMessageText,
   escapeHtml,
 } from "@/lib/telegram";
-import { decodeCallback, type OrderAction } from "@/lib/telegram-actions";
+import {
+  acceptsOrderActionsFrom,
+  decodeCallback,
+  type OrderAction,
+} from "@/lib/telegram-actions";
 import { partsOrderIdOf, setKeyCrmOrderStatus } from "@/lib/orders";
 import { confirmPartsOrder, rejectPartsOrder } from "@/lib/monobank-parts";
 import { reportFailure } from "@/lib/alerts";
@@ -110,14 +116,6 @@ async function applyPartsAction(
   }
 }
 
-function isKnownChat(chatId: number): boolean {
-  const allowed = [
-    process.env.TELEGRAM_CHAT_ID,
-    process.env.TELEGRAM_ALERT_CHAT_ID,
-  ].filter(Boolean);
-  return allowed.includes(String(chatId));
-}
-
 export async function POST(req: Request) {
   const secret = process.env.TELEGRAM_BOT_SECRET;
   if (!secret) {
@@ -147,7 +145,7 @@ export async function POST(req: Request) {
   }
 
   const chatId = query.message?.chat.id;
-  if (chatId === undefined || !isKnownChat(chatId)) {
+  if (chatId === undefined || !acceptsOrderActionsFrom(chatId)) {
     await answerCallbackQuery(query.id, "Дія недоступна в цьому чаті", true);
     return NextResponse.json({ ok: true, ignored: "foreign chat" }, { status: 200 });
   }

@@ -9,7 +9,10 @@
 // Env (server-only, set in .env.local and in Vercel):
 //   TELEGRAM_BOT_TOKEN       from @BotFather
 //   TELEGRAM_CHAT_ID         the orders group (negative, e.g. -1001234567890)
-//   TELEGRAM_ALERT_CHAT_ID   optional; failures go here instead when set
+//   TELEGRAM_FINANCE_CHAT_ID the Finance chat: a button-less copy of every new
+//                            order, and alerts when no alert chat is set
+//   TELEGRAM_ALERT_CHAT_ID   optional; failures go here instead when set —
+//                            meant to be the Finance chat's id (PRD #103)
 //   TELEGRAM_WEBHOOK_SECRET  guards /api/keycrm/webhook (query string)
 //   TELEGRAM_BOT_SECRET      guards /api/telegram/webhook (header)
 //   KEYCRM_APP_URL           optional; when set, messages link to the order
@@ -26,8 +29,12 @@ const MAX_MESSAGE_LENGTH = 4096;
  */
 const SEND_TIMEOUT_MS = 5000;
 
-/** Which chat a message is for. Alerts are separable without touching callers. */
-export type ChatTarget = "orders" | "alerts";
+/**
+ * Which chat a message is for. The orders group is where the team works the
+ * buttons; the Finance chat is the owners' (CONTEXT.md) and gets copies and
+ * alerts; alerts are separable without touching callers.
+ */
+export type ChatTarget = "orders" | "finance" | "alerts";
 
 export interface InlineButton {
   text: string;
@@ -40,14 +47,26 @@ export function isTelegramConfigured(): boolean {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
 }
 
-function chatIdFor(target: ChatTarget): string | undefined {
-  // Alerts fall back to the orders group rather than going nowhere: a failure
-  // in the wrong chat is recoverable, a failure in no chat is the situation
-  // this whole feature exists to end.
+/** Exported for tests; `env` defaults to the process's. */
+export function chatIdFor(
+  target: ChatTarget,
+  env: Record<string, string | undefined> = process.env
+): string | undefined {
+  // The Finance chat has no fallback. A copy that lands in the orders group
+  // instead puts money in front of the people ADR 0002 keeps it from.
+  if (target === "finance") return env.TELEGRAM_FINANCE_CHAT_ID || undefined;
+  // Alerts fall back — to the Finance chat, then the orders group — rather
+  // than going nowhere: a failure in the wrong chat is recoverable, a failure
+  // in no chat is the situation this whole feature exists to end.
   if (target === "alerts") {
-    return process.env.TELEGRAM_ALERT_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+    return (
+      env.TELEGRAM_ALERT_CHAT_ID ||
+      env.TELEGRAM_FINANCE_CHAT_ID ||
+      env.TELEGRAM_CHAT_ID ||
+      undefined
+    );
   }
-  return process.env.TELEGRAM_CHAT_ID;
+  return env.TELEGRAM_CHAT_ID || undefined;
 }
 
 /**
@@ -118,9 +137,10 @@ export async function sendTelegramMessage(
   text: string,
   options: { target?: ChatTarget; keyboard?: InlineKeyboard } = {}
 ): Promise<SentMessage | null> {
-  const chatId = chatIdFor(options.target ?? "orders");
+  const target = options.target ?? "orders";
+  const chatId = chatIdFor(target);
   if (!chatId) {
-    console.warn("[telegram] TELEGRAM_CHAT_ID not set — notification skipped");
+    console.warn(`[telegram] no chat configured for "${target}" — notification skipped`);
     return null;
   }
 

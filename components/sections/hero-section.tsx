@@ -7,23 +7,22 @@ import { blobUrl } from "@/lib/blob";
 import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-conditions";
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
-// The supplied clip, already delivered at 1280x720 and 1.7 MB, with only its
-// audio stripped and the moov atom moved to the front: the video stream is
-// copied, not re-encoded, because a second lossy pass over an already
-// compressed file costs quality and buys nothing here. It is shown greyscale
-// at full strength under a 20% overlay, and the greyscale is a CSS filter
-// rather than a zeroed chroma plane for the same reason. Hosted on Blob, see
-// lib/blob.ts; a recut gets a new path rather than overwriting the old one, so
-// a deployment still serving the old poster keeps the video that matches it.
-const HERO_VIDEO_URL = blobUrl("hero/hero-gym.mp4");
+// From the 27 MB camera original: 1920x1080, 60 -> 30 fps, chroma zeroed (it
+// is shown greyscale), a light denoise and CRF 30 — 2.3 MB. The denoise is
+// what makes that size possible: this clip is grainy, grain is noise to a
+// codec, and without it the same quality costs 6 MB. Compare with the 1.7 MB
+// 720p file this replaced — same weight class, a visibly cleaner picture.
+// Hosted on Blob, see lib/blob.ts; a recut gets a new path rather than
+// overwriting the old one, so a deployment still serving the old poster keeps
+// the video that matches it.
+const HERO_VIDEO_URL = blobUrl("hero/hero-gym-1080.mp4");
 
-// The video's first frame with the greyscale baked in, so the still and the
-// first frame are the same picture and the fade reads as the page coming to
-// life rather than as a swap. It stays in public/, served same-origin: it is
-// the LCP element, and a DNS lookup plus a TLS handshake on that path would
-// cost far more than the 49 KB it saves. It is heavier than the 26 KB of the
-// previous clip because this one is grainy, and grain is what WebP spends
-// bytes on; quality 50 is where it stops being worth more.
+// The video's first frame, greyscale like the video, at 1280 wide and WebP
+// quality 50 — 36 KB. It is the LCP element and it is replaced within about a
+// second, so it is sized for arriving fast rather than for being inspected;
+// full width at a quality that survives inspection is 66 KB. It stays in
+// public/, served same-origin: a DNS lookup plus a TLS handshake on that path
+// would cost far more than it saves.
 const HERO_POSTER_URL = "/assets/hero-poster.webp";
 
 export function HeroSection() {
@@ -69,7 +68,7 @@ export function HeroSection() {
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- the file is
-              already a 49 KB WebP; the image optimiser would add
+              already a 36 KB WebP; the image optimiser would add
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
@@ -90,7 +89,7 @@ export function HeroSection() {
               playsInline
               aria-hidden="true"
               onCanPlay={() => setVideoReady(true)}
-              className={`absolute inset-0 w-full h-full object-cover grayscale transition-opacity duration-1000 ${
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
                 videoReady ? "opacity-100" : "opacity-0"
               }`}
             />
