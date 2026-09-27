@@ -8,6 +8,8 @@ import {
   warmModelViewer,
 } from "@/components/models/model-viewer";
 import { formatPrice } from "@/lib/format";
+import { orFromMonthlyLabel } from "@/lib/installments";
+import { MonoPaw } from "@/components/ui/mono-paw";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
 
@@ -27,6 +29,12 @@ interface ProductCardProps {
    * has prioritised nothing.
    */
   aboveTheFold?: boolean;
+  /**
+   * Show the instalment offer — the paw on the photo and «або від … / міс»
+   * after the price — for a product priced over the floor. The catalogue asks
+   * for it; the homepage rows and cross-sell keep the plain card.
+   */
+  showInstalments?: boolean;
 }
 
 export function ProductCard({
@@ -34,6 +42,7 @@ export function ProductCard({
   index = 0,
   listName,
   aboveTheFold = false,
+  showInstalments = false,
 }: ProductCardProps) {
   // For the visitor who never hovers — a phone, where the first contact with a
   // card is the tap itself. Owned by the card rather than by each grid, so a
@@ -42,6 +51,7 @@ export function ProductCard({
   useWarmModelViewerWhenIdle();
 
   const formattedPrice = formatPrice(product.price);
+  const partsLabel = showInstalments ? orFromMonthlyLabel(product.price) : null;
 
   // A card that decides the LCP does not get to spend half a second being
   // transparent first. Cards further down keep the entrance they always had.
@@ -90,6 +100,7 @@ export function ProductCard({
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {partsLabel && <MonoPaw className="absolute left-4 bottom-3 size-14" />}
           </div>
 
           <div className="px-5 lg:px-6 pt-4 pb-5 lg:pt-5 lg:pb-6">
@@ -98,6 +109,11 @@ export function ProductCard({
             </h3>
             <p className="font-golos text-base lg:text-lg leading-tight tracking-[0.01em] font-medium text-white mt-2 lg:mt-3">
               {formattedPrice} ₴
+              {partsLabel && (
+                <span className="ml-2 text-sm/5 lg:text-base/6 tracking-normal text-white/64">
+                  {partsLabel}
+                </span>
+              )}
             </p>
           </div>
         </div>

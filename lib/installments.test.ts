@@ -5,6 +5,7 @@ import {
   PARTS_MIN_TOTAL,
   PARTS_OPTIONS,
   fromMonthlyLabel,
+  orFromMonthlyLabel,
   isPartsCount,
   lowestMonthly,
   monthlyPayment,
@@ -141,4 +142,9 @@ test("a promo is worth nothing on an instalment order, and its full value otherw
   assert.equal(promoDiscountFor("parts", 300), 0);
   assert.equal(promoDiscountFor("online", 300), 300);
   assert.equal(promoDiscountFor("cod", 300), 300);
+});
+
+test("the catalogue card's line reads as the alternative to the price beside it", () => {
+  assert.equal(orFromMonthlyLabel(4100), "або від 513 ₴ / міс");
+  assert.equal(orFromMonthlyLabel(1200), null);
 });

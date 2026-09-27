@@ -110,6 +110,12 @@ export function fromMonthlyLabel(price: number): string | null {
   return monthly === null ? null : `Від ${formatPrice(monthly)} ₴ / міс`;
 }
 
+/** «або від 513 ₴ / міс» — the catalogue card, where it follows the price. */
+export function orFromMonthlyLabel(price: number): string | null {
+  const monthly = lowestMonthly(price);
+  return monthly === null ? null : `або від ${formatPrice(monthly)} ₴ / міс`;
+}
+
 /** «5 × 684 ₴» — what is left after today's payment. */
 export function remainingLabel(schedule: PartsSchedule): string {
   return `${schedule.remainingCount} × ${formatPrice(schedule.monthly)} ₴`;
