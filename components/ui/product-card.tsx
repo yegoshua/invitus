@@ -29,12 +29,6 @@ interface ProductCardProps {
    * has prioritised nothing.
    */
   aboveTheFold?: boolean;
-  /**
-   * Show the instalment offer — the paw on the photo and «або від … / міс»
-   * after the price — for a product priced over the floor. The catalogue asks
-   * for it; the homepage rows and cross-sell keep the plain card.
-   */
-  showInstalments?: boolean;
 }
 
 export function ProductCard({
@@ -42,7 +36,6 @@ export function ProductCard({
   index = 0,
   listName,
   aboveTheFold = false,
-  showInstalments = false,
 }: ProductCardProps) {
   // For the visitor who never hovers — a phone, where the first contact with a
   // card is the tap itself. Owned by the card rather than by each grid, so a
@@ -51,7 +44,9 @@ export function ProductCard({
   useWarmModelViewerWhenIdle();
 
   const formattedPrice = formatPrice(product.price);
-  const partsLabel = showInstalments ? orFromMonthlyLabel(product.price) : null;
+  // The instalment offer — the paw on the photo, «або від … / міс» after the
+  // price — on every card whose price qualifies, wherever the card is shown.
+  const partsLabel = orFromMonthlyLabel(product.price);
 
   // A card that decides the LCP does not get to spend half a second being
   // transparent first. Cards further down keep the entrance they always had.

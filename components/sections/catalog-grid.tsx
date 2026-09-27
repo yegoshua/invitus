@@ -52,7 +52,6 @@ export function CatalogGrid({ products }: CatalogGridProps) {
                 index={index}
                 listName={LIST_NAME}
                 aboveTheFold={index < ABOVE_THE_FOLD}
-                showInstalments
               />
             );
 
