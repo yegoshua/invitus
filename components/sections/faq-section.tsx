@@ -15,12 +15,15 @@ interface FAQSectionProps {
   items?: FAQItem[];
   /** `null` for a page whose hero already names the subject: accordions only. */
   title?: string | null;
+  /** Printed under the last accordion, inside the same column. */
+  footnote?: React.ReactNode;
   className?: string;
 }
 
 export function FAQSection({
   items = faqItems,
   title = "Щось неясно? Розповідаємо як є",
+  footnote,
   className,
 }: FAQSectionProps) {
   return (
@@ -57,6 +60,7 @@ export function FAQSection({
               </AccordionItem>
             ))}
           </Accordion>
+          {footnote}
         </FadeUp>
       </div>
     </section>

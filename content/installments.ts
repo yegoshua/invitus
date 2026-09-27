@@ -42,3 +42,25 @@ export const installmentsSteps: FAQItem[] = [
       "Умови повернення ті самі, що й для будь-якої оплати — дивись сторінку «Повернення товару». Після повернення екіпу ми закриваємо розстрочку в monobank, і банк повертає списані платежі на картку.",
   },
 ];
+
+/**
+ * The bank's product disclosure, as the owner supplied it — printed under the
+ * page's accordions. These are the bank's own limits for the product, not the
+ * shop's plan (that is PARTS_OPTIONS / PARTS_MIN_TOTAL), so they are copied
+ * verbatim rather than derived.
+ */
+export const installmentsProviderDisclosure = {
+  title: "Покупка частинами monobank | Universal Bank",
+  providerLabel: "Надавач послуг:",
+  provider:
+    "АТ «УНІВЕРСАЛ БАНК» ліцензія НБУ №92 від 20.01.1994, номер у держреєстрі банків № 226.",
+  termsLabel: "Характеристики продукту:",
+  terms: [
+    "Мінімальна сума розстрочки: 2 грн",
+    "Максимальна сума розстрочки: 400 000 грн",
+    "Реальна річна процентна ставка: 0,000001%",
+    "Доступний строк, платежів: 3 — 25",
+    "Порядок погашення: щомісячні платежі рівними частинами",
+    "Перший платіж у момент оформлення покупки",
+  ],
+} as const;

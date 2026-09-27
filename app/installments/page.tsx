@@ -3,7 +3,10 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/ui/page-hero";
 import { FAQSection } from "@/components/sections/faq-section";
-import { installmentsSteps } from "@/content/installments";
+import {
+  installmentsProviderDisclosure,
+  installmentsSteps,
+} from "@/content/installments";
 import { formatPrice } from "@/lib/format";
 import { PARTS_MIN_TOTAL, PARTS_OPTIONS } from "@/lib/installments";
 
@@ -22,6 +25,19 @@ export default function InstallmentsRoute() {
         <FAQSection
           title={null}
           items={installmentsSteps}
+          footnote={
+            <div className="mt-8 lg:mt-12 px-6 lg:px-12 flex flex-col gap-2 text-xs/4 tracking-[0.02em] lg:text-sm/5 lg:tracking-[0.01em] text-white/64">
+              <p>{installmentsProviderDisclosure.title}</p>
+              <p className="font-medium">{installmentsProviderDisclosure.providerLabel}</p>
+              <p>{installmentsProviderDisclosure.provider}</p>
+              <p className="font-medium">{installmentsProviderDisclosure.termsLabel}</p>
+              <ul className="list-disc pl-4">
+                {installmentsProviderDisclosure.terms.map((term) => (
+                  <li key={term}>{term}</li>
+                ))}
+              </ul>
+            </div>
+          }
           className="pt-4 lg:pt-8 pb-20 lg:pb-32"
         />
       </main>
