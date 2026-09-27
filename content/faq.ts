@@ -1,5 +1,7 @@
 // FAQ content. Static today; if migrated to CMS, swap this file for a fetcher.
 
+import { installmentsFaqItem } from "./installments";
+
 export interface FAQItem {
   question: string;
   answer: string;
@@ -26,6 +28,7 @@ export const faqItems: FAQItem[] = [
     answer:
       "Екіпірування виконане відповідно до стандартів IPF і національних змагань, проте статус не був підтверджений ФПУ через відсутність бажання співпраці з українським брендом.",
   },
+  installmentsFaqItem,
   {
     question: "Чи можливо зробити замовлення за кордон?",
     answer:

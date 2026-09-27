@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/use-media-query";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import { useAddToCart, useOpenCart } from "@/hooks/use-cart";
+import { usePreferFullPayment, usePreferParts } from "@/hooks/use-payment-preference";
+import { usePinnedCta } from "@/hooks/use-pinned-cta";
+import { fromMonthlyLabel } from "@/lib/installments";
 import { formatPriceWithCurrency } from "@/lib/format";
 import type { Product, ProductSize } from "@/types";
 import { SizeSelector } from "./size-selector";
@@ -16,6 +18,9 @@ import { DispatchBadge } from "./dispatch-badge";
 import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
+import PlusIcon from "@/public/assets/icons/cta-plus-icon.svg";
+import { MonoPaw } from "@/components/ui/mono-paw";
+import { cn } from "@/lib/utils";
 
 interface ProductPageContentProps {
   product: Product;
@@ -41,8 +46,20 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
   const [modelUnavailable, setModelUnavailable] = useState(false);
   const addItem = useAddToCart();
   const openCart = useOpenCart();
+  const preferParts = usePreferParts();
+  const preferFullPayment = usePreferFullPayment();
+  // On mobile the buttons sit under the card, and a pinned copy slides up only
+  // once they have been scrolled past (lib/pinned-cta.ts). Not for a sold-out
+  // product: a bar holding one dead button is viewport spent on nothing.
+  const inlineButtonsRef = useRef<HTMLDivElement>(null);
+  const scrolledPast = usePinnedCta(inlineButtonsRef);
+
+  const pinned = scrolledPast && !soldOut;
 
   const formattedPrice = formatPriceWithCurrency(product.price);
+  // «Від 513 ₴ / міс» — drawn only for a price that qualifies for Monobank
+  // instalments (lib/installments.ts), so a cheaper product has one button.
+  const partsLabel = fromMonthlyLabel(product.price);
 
   // GA4: one view_item per product opened.
   useEffect(() => {
@@ -89,11 +106,55 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
     ...details.filter((item) => item.id === "story"),
   ];
 
-  const handleAddToCart = () => {
-    if (soldOut) return;
+  const addAndOpenCart = () => {
     addItem(product, selectedSize?.value, selectedSize?.label);
     openCart();
   };
+
+  // A plain add drops a remembered «parts», so the drawer shows the total.
+  const handleAddToCart = () => {
+    if (soldOut) return;
+    preferFullPayment();
+    addAndOpenCart();
+  };
+
+  // The same add, with the intent to pay in parts remembered: the drawer then
+  // opens on «до оплати зараз» and the checkout on the instalment radio.
+  const handleAddInParts = () => {
+    if (soldOut) return;
+    preferParts();
+    addAndOpenCart();
+  };
+
+  // The paw peeks over the button's top-right corner, as in the design.
+  const partsButton = partsLabel && !soldOut && (
+    <div className="relative">
+      <CTAButton
+        variant="outline"
+        width="fill"
+        onClick={handleAddInParts}
+        icon={<PlusIcon className="size-6" />}
+        aria-label={`${partsLabel} — додати в кошик з оплатою частинами`}
+      >
+        {partsLabel}
+      </CTAButton>
+      <MonoPaw className="absolute -top-4 -right-4 size-12 lg:-top-8 lg:-right-8 lg:size-16" />
+    </div>
+  );
+
+  const mobileButtons = (
+    <>
+      {partsButton}
+      <CTAButton
+        width="fill"
+        onClick={handleAddToCart}
+        disabled={soldOut}
+        icon={soldOut ? null : <PlusIcon className="size-6" />}
+      >
+        {soldOut ? "Немає в наявності" : "Додати в кошик"}
+      </CTAButton>
+    </>
+  );
 
   return (
     <>
@@ -155,7 +216,17 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           </div>
         </div>
 
-        {/* Accordion below card */}
+        {/* Buttons below card. px-4, not the accordion's px-2: the paw
+            overhangs the button's right edge by 16px. */}
+        <div
+          ref={inlineButtonsRef}
+          inert={pinned}
+          className="mt-6 flex flex-col gap-4 px-4"
+        >
+          {mobileButtons}
+        </div>
+
+        {/* Accordion below buttons */}
         <div className="mt-4 px-2 md:px-4">
           <ProductInfoAccordion
             items={mobileInfoItems}
@@ -164,16 +235,19 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
         </div>
       </div>
 
-      {/* Fixed CTA — mobile only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm">
-        <CTAButton
-          width="fill"
-          onClick={handleAddToCart}
-          disabled={soldOut}
-          icon={soldOut ? null : <Plus className="w-5 h-5" />}
-        >
-          {soldOut ? "Немає в наявності" : "Додати в кошик"}
-        </CTAButton>
+      {/* Pinned copy — mobile only. Always mounted so it can slide, but inert
+          while hidden so neither the tab order nor a screen reader finds a
+          second set of the same buttons. Hidden, it drops a further 2rem so
+          the paw peeking over its top edge goes too. */}
+      <div
+        inert={!pinned}
+        aria-hidden={!pinned}
+        className={cn(
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col gap-4 px-4 pb-6 pt-3 bg-[#0000008A] backdrop-blur-sm transition-transform duration-300 ease-out motion-reduce:transition-none",
+          pinned ? "translate-y-0" : "translate-y-[calc(100%+2rem)]"
+        )}
+      >
+        {mobileButtons}
       </div>
 
       {/* ===== DESKTOP LAYOUT ===== */}
@@ -245,11 +319,12 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
                   className="flex flex-col gap-4 w-[420px] pointer-events-auto"
                 >
                   {sizeGuide && <ProductInfoAccordion items={[sizeGuide]} />}
+                  {partsButton && <div className="mt-6">{partsButton}</div>}
                   <CTAButton
                     width="fill"
                     onClick={handleAddToCart}
                     disabled={soldOut}
-                    icon={soldOut ? null : undefined}
+                    icon={soldOut ? null : <PlusIcon className="size-6" />}
                   >
                     {soldOut ? "Немає в наявності" : "Додати в кошик"}
                   </CTAButton>

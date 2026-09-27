@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidPhone } from "./phone.ts";
+import { DEFAULT_PARTS } from "./installments.ts";
 
 export const checkoutSchema = z.object({
   fullName: z.string().trim().min(2, "Вкажи ім'я та прізвище"),
@@ -31,7 +32,15 @@ export const checkoutSchema = z.object({
   cityName: z.string(),
   branchRef: z.string().min(1, "Вкажи відділення або поштомат"),
   branchName: z.string(),
-  paymentMethod: z.enum(["online", "cod"]),
+  // "parts" is Monobank's «Покупка частинами». Whether it may be chosen at all
+  // (the total is over the floor, the phone is Ukrainian) is decided by the
+  // server in app/api/orders/route.ts; the form only carries the choice.
+  paymentMethod: z.enum(["online", "parts", "cod"]),
+  // Always present, even when the method is not "parts", so switching to it
+  // never submits an undefined count; the server ignores it otherwise. The
+  // literals restate PARTS_OPTIONS from lib/installments.ts — a test there
+  // keeps the two lists equal.
+  parts: z.union([z.literal(4), z.literal(6), z.literal(8)]),
 });
 
 export type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -45,4 +54,5 @@ export const checkoutDefaults: CheckoutFormData = {
   branchRef: "",
   branchName: "",
   paymentMethod: "online",
+  parts: DEFAULT_PARTS,
 };

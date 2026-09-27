@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkoutSchema, checkoutDefaults } from "./checkout-schema.ts";
+import { PARTS_OPTIONS } from "./installments.ts";
 
 const valid = {
   ...checkoutDefaults,
@@ -12,6 +13,7 @@ const valid = {
   branchRef: "branch-ref",
   branchName: "Відділення №1",
   paymentMethod: "online" as const,
+  parts: 6 as const,
 };
 
 function emailIssue(input: unknown): string | undefined {
@@ -49,6 +51,15 @@ test("cash on delivery needs an email too", () => {
 
 test("a malformed address says so, rather than that the field is empty", () => {
   assert.equal(emailIssue({ ...valid, email: "lifter@" }), "Невірний email");
+});
+
+test("instalments are a payment method, with a part count from the fixed list", () => {
+  const withParts = (parts: number) =>
+    checkoutSchema.safeParse({ ...valid, paymentMethod: "parts", parts }).success;
+  for (const n of PARTS_OPTIONS) assert.equal(withParts(n), true, `${n}`);
+  assert.equal(withParts(5), false);
+  // The schema's literals and the domain list must be the same list.
+  assert.equal(withParts(Math.max(...PARTS_OPTIONS) + 2), false);
 });
 
 test("an address longer than the endpoint accepts is refused in the field", () => {

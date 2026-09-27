@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShoppingBag } from "lucide-react";
 import Clarity from "@microsoft/clarity";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { useAppliedPromo, useRejectPromo } from "@/hooks/use-promo";
+import {
+  usePartsPreference,
+  usePaymentMethodPreference,
+  useSetPartsPreference,
+  useSetPaymentMethodPreference,
+} from "@/hooks/use-payment-preference";
+import { partsAvailable, promoDiscountFor } from "@/lib/installments";
 import { gaItems, trackEvent } from "@/lib/gtag";
 import { TrackOnce } from "@/components/analytics/track-once";
 import {
@@ -48,12 +56,59 @@ export function CheckoutPage() {
   );
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  // The choice made on the product page («Від 513 ₴ / міс») or on a previous
+  // visit opens the checkout pre-selected, provided this cart still qualifies;
+  // a cart that does not gets the default rather than a refused method.
+  const preferredMethod = usePaymentMethodPreference();
+  const preferredParts = usePartsPreference();
+  const setPreferredMethod = useSetPaymentMethodPreference();
+  const setPreferredParts = useSetPartsPreference();
+
   const methods = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: checkoutDefaults,
     shouldFocusError: true,
     mode: "onTouched",
   });
+
+  // Seeded after hydration, not in defaultValues: through the hydration render
+  // a persisted store reports its *server* snapshot (the defaults), so reading
+  // it there gave the form «online» for a customer who had just pressed
+  // «Від 513 ₴ / міс» — and the write-back below then saved that over their
+  // choice. Once, after hydration, is when the store's value is real.
+  const hydrated = useIsHydrated();
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!hydrated || seeded.current) return;
+    seeded.current = true;
+    methods.setValue(
+      "paymentMethod",
+      preferredMethod === "parts" && !partsAvailable(subtotal)
+        ? "online"
+        : preferredMethod
+    );
+    methods.setValue("parts", preferredParts);
+  }, [hydrated, methods, preferredMethod, preferredParts, subtotal]);
+
+  // A code does not combine with instalments (promoDiscountFor): while they are
+  // picked the field is hidden and the code is neither counted nor sent. It is
+  // kept, not cleared, so switching back to another method brings it back.
+  const paymentMethod = useWatch({ control: methods.control, name: "paymentMethod" });
+  const inParts = paymentMethod === "parts";
+
+  // And the other way: what is picked here is what the cart drawer shows next
+  // time it opens, so the two never describe two different ways of paying. A
+  // subscription rather than a watched value in an effect, because it fires on
+  // changes only — never on the initial render, which is the defaults.
+  useEffect(() => {
+    const subscription = methods.watch((values, { name }) => {
+      if (name === "paymentMethod" && values.paymentMethod) {
+        setPreferredMethod(values.paymentMethod);
+      }
+      if (name === "parts" && values.parts) setPreferredParts(values.parts);
+    });
+    return () => subscription.unsubscribe();
+  }, [methods, setPreferredMethod, setPreferredParts]);
 
   if (submittedOrder) {
     return <CheckoutSuccess order={submittedOrder} />;
@@ -65,6 +120,7 @@ export function CheckoutPage() {
 
   const onSubmit = async (data: CheckoutFormData) => {
     setPaymentError(null);
+    const orderDiscount = promoDiscountFor(data.paymentMethod, discount);
 
     // PII: upgrade Clarity identity from anon UUID to customer email so post-payment
     // sessions are grouped with checkout sessions in the dashboard.
@@ -94,7 +150,7 @@ export function CheckoutPage() {
         quantity: i.quantity,
         price: i.product.price,
       })),
-      totals: { subtotal, discount, total: subtotal - discount },
+      totals: { subtotal, discount: orderDiscount, total: subtotal - orderDiscount },
       createdAt: new Date().toISOString(),
     };
 
@@ -114,7 +170,8 @@ export function CheckoutPage() {
             branchName: data.branchName,
           },
           paymentMethod: data.paymentMethod,
-          promoCode: appliedCode,
+          parts: data.paymentMethod === "parts" ? data.parts : null,
+          promoCode: data.paymentMethod === "parts" ? null : appliedCode,
           items: items.map((i) => ({
             productId: Number(i.product.id),
             size: i.size ?? null,
@@ -126,6 +183,7 @@ export function CheckoutPage() {
       const payload = (await res.json().catch(() => ({}))) as {
         orderId?: number;
         pageUrl?: string;
+        partsOrderId?: string;
         total?: number;
         discount?: number;
         error?: string;
@@ -160,6 +218,23 @@ export function CheckoutPage() {
         if (!payload.pageUrl) throw new Error("Немає посилання на оплату");
         window.location.href = payload.pageUrl;
         // Block the rest of the handler — page is leaving the SPA.
+        await new Promise(() => {});
+        return;
+      }
+
+      // Instalments: the bank has pushed the customer's phone; the result page
+      // waits for the answer. The purchase event fires there, on approval —
+      // not here, where nothing has been agreed to yet.
+      if (data.paymentMethod === "parts" && payload.total !== 0) {
+        if (!payload.partsOrderId) throw new Error("Немає номера заявки monobank");
+        // The order number and the server's total travel along for the
+        // purchase event only; the outcome itself is always read from the bank.
+        const params = new URLSearchParams({
+          order: payload.partsOrderId,
+          ref: String(payload.orderId ?? ""),
+          total: String(payload.total ?? ""),
+        });
+        window.location.href = `/payment-result/parts?${params}`;
         await new Promise(() => {});
         return;
       }
@@ -205,11 +280,20 @@ export function CheckoutPage() {
               >
                 <DeliveryFields />
               </CheckoutFormSection>
-              <CheckoutFormSection title="Промокод">
-                <PromoCodeField />
-              </CheckoutFormSection>
+              {!inParts && (
+                <CheckoutFormSection title="Промокод">
+                  <PromoCodeField />
+                </CheckoutFormSection>
+              )}
               <CheckoutFormSection title="Оплата">
                 <PaymentMethodRadio />
+                {/* Said, not silently dropped: a customer who applied a code
+                    would otherwise watch the discount vanish from the total. */}
+                {inParts && appliedCode && (
+                  <p className="mt-4 text-xs/4 tracking-[0.02em] lg:text-sm/5 lg:tracking-[0.01em] text-white/64">
+                    Промокод {appliedCode} не діє разом з оплатою частинами.
+                  </p>
+                )}
                 {paymentError && (
                   <p
                     role="alert"

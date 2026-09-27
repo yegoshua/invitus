@@ -12,21 +12,21 @@ interface RadioCardProps
 }
 
 /**
- * Full-width radio styled per the checkout prototype:
- * - 1.5px transparent border → coral when selected
- * - Hover lifts background subtly
- * - Indicator uses checkout/radio-* SVG icons
+ * Full-width radio, sized to the checkout's «Оплата» block in Figma
+ * (node 1544:10369 mobile, 1544:10204 desktop): 48px / 56px tall, 16px side
+ * padding, a 20px indicator, Body 2 text (14/20 → 16/24), 1px coral border
+ * when selected, hover lifts the background.
  */
 export const RadioCard = forwardRef<HTMLInputElement, RadioCardProps>(
   function RadioCard({ label, selected, className, ...inputProps }, ref) {
     return (
       <label
         className={cn(
-          "group relative flex items-center gap-4 w-full h-12 lg:h-14 px-5.5",
+          "group relative flex items-center gap-2 w-full h-12 lg:h-14 px-4",
           "bg-[var(--color-checkout-field)]",
           "rounded-[var(--radius-checkout-field)]",
-          "border-[1.5px] border-transparent",
-          "text-white text-[17px] font-medium text-left cursor-pointer",
+          "border border-transparent",
+          "text-white text-sm/5 lg:text-base/6 font-medium tracking-[0.01em] text-left cursor-pointer",
           "transition-[border-color,background] duration-150",
           "hover:bg-[#242424]",
           selected && "border-coral",
@@ -42,7 +42,7 @@ export const RadioCard = forwardRef<HTMLInputElement, RadioCardProps>(
         <span
           aria-hidden
           className={cn(
-            "shrink-0 inline-flex items-center justify-center w-[22px] h-[22px]",
+            "shrink-0 inline-flex items-center justify-center size-5",
             selected ? "text-coral" : "text-white/40"
           )}
         >

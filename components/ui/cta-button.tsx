@@ -14,7 +14,8 @@ import ArrowOutForwardIcon from "@/public/assets/icons/arrow-outforward-icon.svg
 // Renders as <Link> when `href` is given, otherwise as <button>.
 const ctaButtonVariants = cva(
   [
-    "group inline-flex items-center justify-center",
+    // Tailwind v4 leaves <button> on `cursor: default`; a CTA is a click.
+    "group inline-flex items-center justify-center cursor-pointer",
     // rounded-[24px] must be explicit: the project's rounded-3xl resolves to
     // calc(--radius + 12px) = 22px, not the spec'd 24px.
     "gap-3 h-16 rounded-[24px] py-[22px] pl-8 pr-7",

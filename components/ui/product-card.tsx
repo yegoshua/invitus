@@ -8,6 +8,8 @@ import {
   warmModelViewer,
 } from "@/components/models/model-viewer";
 import { formatPrice } from "@/lib/format";
+import { orFromMonthlyLabel } from "@/lib/installments";
+import { MonoPaw } from "@/components/ui/mono-paw";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
 
@@ -42,6 +44,9 @@ export function ProductCard({
   useWarmModelViewerWhenIdle();
 
   const formattedPrice = formatPrice(product.price);
+  // The instalment offer — the paw on the photo, «або від … / міс» after the
+  // price — on every card whose price qualifies, wherever the card is shown.
+  const partsLabel = orFromMonthlyLabel(product.price);
 
   // A card that decides the LCP does not get to spend half a second being
   // transparent first. Cards further down keep the entrance they always had.
@@ -90,6 +95,7 @@ export function ProductCard({
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {partsLabel && <MonoPaw className="absolute left-4 bottom-3 size-14" />}
           </div>
 
           <div className="px-5 lg:px-6 pt-4 pb-5 lg:pt-5 lg:pb-6">
@@ -98,6 +104,11 @@ export function ProductCard({
             </h3>
             <p className="font-golos text-base lg:text-lg leading-tight tracking-[0.01em] font-medium text-white mt-2 lg:mt-3">
               {formattedPrice} ₴
+              {partsLabel && (
+                <span className="ml-2 whitespace-nowrap text-sm/5 lg:text-base/6 tracking-normal text-white/64">
+                  {partsLabel}
+                </span>
+              )}
             </p>
           </div>
         </div>

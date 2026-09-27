@@ -24,6 +24,7 @@ const legalLinks = [
     label: "Публічна оферта",
   },
   { href: "/refund", label: "Повернення товару" },
+  { href: "/installments", label: "Покупка частинами" },
 ];
 
 export function Footer() {
@@ -65,7 +66,7 @@ export function Footer() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-0 mb-16 lg:mb-24">
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-6 lg:gap-10 text-white">
             <span>ФОП Григорян Р. Ю.</span>
-            <div className="flex flex-wrap gap-x-6 gap-y-2 lg:gap-10">
+            <div className="flex flex-wrap gap-x-6 gap-y-3 lg:gap-10">
               {legalLinks.map((link) =>
                 link.href.startsWith("http") ? (
                   <a

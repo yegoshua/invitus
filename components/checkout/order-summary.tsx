@@ -6,6 +6,14 @@ import { formatPrice } from "@/lib/format";
 import { cartSizeLabel } from "@/lib/size-display";
 import { useCartItems, useCartTotal } from "@/hooks/use-cart";
 import { useAppliedPromo, usePromoStatus } from "@/hooks/use-promo";
+import { useFormContext, useWatch } from "react-hook-form";
+import type { CheckoutFormData } from "@/lib/checkout-schema";
+import {
+  partsAvailable,
+  promoDiscountFor,
+  partsSchedule,
+  remainingLabel,
+} from "@/lib/installments";
 import { cn } from "@/lib/utils";
 
 interface OrderSummaryProps {
@@ -27,12 +35,23 @@ export function OrderSummary({
   // Only a discount the server has confirmed for this exact cart is ever shown;
   // while a re-check is in flight this reports nothing applied, so nobody reads
   // a total the invoice is about to disagree with.
-  const { discount } = useAppliedPromo();
+  const applied = useAppliedPromo();
   const promoStatus = usePromoStatus();
+  const { control } = useFormContext<CheckoutFormData>();
+  const method = useWatch({ control, name: "paymentMethod" });
+  const parts = useWatch({ control, name: "parts" });
+  // A code does not combine with instalments, so on them it shows no line.
+  const discount = promoDiscountFor(method, applied.discount);
 
   // Delivery is paid to Nova Poshta on collection, so "Тарифи оператора" is the
   // whole delivery line and the total is the goods, less any promo.
   const total = subtotal - discount;
+
+  // Instalments split the same total; nothing else changes. The schedule is
+  // the same arithmetic the chips and the cart drawer use, so the figure here
+  // is the figure the customer picked one section up.
+  const schedule =
+    method === "parts" && partsAvailable(total) ? partsSchedule(total, parts) : null;
 
   const isDesktop = variant === "desktop";
 
@@ -99,14 +118,28 @@ export function OrderSummary({
           <span>Доставка</span>
           <span className="font-medium">Тарифи оператора</span>
         </div>
-        <div className="flex justify-between items-baseline mt-4">
-          <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
-            ДО ОПЛАТИ:
+        {schedule && (
+          <div className="flex justify-between items-baseline mt-2 text-base leading-6 font-medium tracking-[0.01em] text-white">
+            <span>Оплата</span>
+            <span className="font-medium">Частинами • {schedule.parts} платежів</span>
+          </div>
+        )}
+        {/* One line, always: on a narrow phone the label gives way with an
+            ellipsis, the amount never wraps. */}
+        <div className="flex justify-between items-baseline gap-3 mt-4">
+          <span className="min-w-0 truncate font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
+            {schedule ? "До оплати зараз:" : "До оплати:"}
           </span>
-          <span className="font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
-            {formatPrice(total)} ₴
+          <span className="shrink-0 whitespace-nowrap font-heading font-bold text-base leading-6 tracking-[0.05em] uppercase text-white">
+            {formatPrice(schedule ? schedule.monthly : total)} ₴
           </span>
         </div>
+        {schedule && (
+          <div className="flex justify-between items-baseline mt-2 text-base leading-6 font-medium tracking-[0.01em] text-white/64">
+            <span>Далі щомісяця</span>
+            <span>{remainingLabel(schedule)}</span>
+          </div>
+        )}
       </div>
 
       {/* Held while a code is being checked: a customer who applies a code and
@@ -115,7 +148,11 @@ export function OrderSummary({
       <CTAButton
         type="submit"
         width="fill"
-        disabled={submitting || items.length === 0 || promoStatus === "checking"}
+        disabled={
+          submitting ||
+          items.length === 0 ||
+          (method !== "parts" && promoStatus === "checking")
+        }
       >
         До оплати
       </CTAButton>
