@@ -27,7 +27,7 @@ import {
   type OrderDraft,
 } from "@/lib/orders";
 import { reportFailure } from "@/lib/alerts";
-import { notifyNewOrder } from "@/lib/order-notifications";
+import { announceNewOrder } from "@/lib/order-messages";
 import { SITE_URL } from "@/lib/site";
 
 const orderRequestSchema = z.object({
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
     total: priced.total,
     promoCode: priced.promoCode,
   };
-  after(() => notifyNewOrder(notification));
+  after(() => announceNewOrder(notification));
 
   // Nothing left to charge — a promo covered the goods in full. Acquiring is
   // skipped rather than attempted: Monobank rejects an invoice for 0, and by

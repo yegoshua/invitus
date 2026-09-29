@@ -6,8 +6,16 @@ import { NextResponse } from "next/server";
 // Why a proxy:
 // 1. NP blocks direct browser fetches (CORS / Cloudflare anti-bot returns 401).
 // 2. Keeps the API key on the server — never leaves the bundle.
+//
+// Only the two lookups the checkout makes are relayed. The key is the shop's
+// sending account, which the Telegram «Створити ТТН» button uses to create
+// waybills; relaying any method would let anyone on the internet create,
+// delete or list that account's waybills — customers' names and phones
+// included — through this public endpoint.
 
 const NP_URL = "https://api.novaposhta.ua/v2.0/json/";
+
+const ALLOWED = new Set(["Address.searchSettlements", "AddressGeneral.getWarehouses"]);
 
 export async function POST(req: Request) {
   const apiKey =
@@ -43,6 +51,9 @@ export async function POST(req: Request) {
       { error: "modelName and calledMethod are required" },
       { status: 400 }
     );
+  }
+  if (!ALLOWED.has(`${modelName}.${calledMethod}`)) {
+    return NextResponse.json({ error: "Method not allowed" }, { status: 403 });
   }
 
   try {

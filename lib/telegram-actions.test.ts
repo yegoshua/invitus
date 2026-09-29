@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   ORDER_ACTIONS,
   acceptsOrderActionsFrom,
+  remainingActions,
   decodeCallback,
   encodeCallback,
 } from "./telegram-actions.ts";
@@ -68,4 +69,23 @@ test("buttons are accepted only from the orders group", () => {
 test("with no orders group configured, no chat may press a button", () => {
   assert.equal(acceptsOrderActionsFrom(-1002, { TELEGRAM_FINANCE_CHAT_ID: "-1002" }), false);
   assert.equal(acceptsOrderActionsFrom(0, { TELEGRAM_CHAT_ID: "" }), false);
+});
+
+test("buttons shrink to what is left to do, and vanish once there is a waybill", () => {
+  const keys = (statusId: number | null, hasWaybill = false) =>
+    remainingActions({ statusId, hasWaybill }).map((a) => a.key);
+  assert.deepEqual(keys(1), ["wip", "mkttn", "ttn", "cancel"]);
+  assert.deepEqual(keys(2), ["mkttn", "ttn", "cancel"]);
+  assert.deepEqual(keys(8), []);
+  assert.deepEqual(keys(19), []);
+  // A tracking code typed into the CRM by hand counts as a waybill too.
+  assert.deepEqual(keys(2, true), []);
+});
+
+test("only the waybill button makes a waybill, and both waybill buttons hand over to mono", () => {
+  const makes = ORDER_ACTIONS.filter((a) => a.createsWaybill).map((a) => a.key);
+  assert.deepEqual(makes, ["mkttn"]);
+  for (const key of ["mkttn", "ttn"]) {
+    assert.equal(ORDER_ACTIONS.find((a) => a.key === key)?.parts, "confirm");
+  }
 });

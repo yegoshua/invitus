@@ -21,6 +21,7 @@ import {
   answerCallbackQuery,
   editMessageText,
   escapeHtml,
+  sendTelegramMessage,
 } from "@/lib/telegram";
 import {
   acceptsOrderActionsFrom,
@@ -28,6 +29,15 @@ import {
   type OrderAction,
 } from "@/lib/telegram-actions";
 import { partsOrderIdOf, setKeyCrmOrderStatus } from "@/lib/orders";
+import { putKeyCrm } from "@/lib/keycrm";
+import {
+  fetchOrderForCard,
+  paymentMethodIds,
+  refreshOrderMessages,
+} from "@/lib/order-messages";
+import { notificationFromKeyCrmOrder } from "@/lib/order-card";
+import type { OrderLogEntry } from "@/lib/order-notifications";
+import { createWaybill, WaybillError } from "@/lib/nova-poshta-waybill";
 import { confirmPartsOrder, rejectPartsOrder } from "@/lib/monobank-parts";
 import { reportFailure } from "@/lib/alerts";
 
@@ -85,7 +95,7 @@ async function applyPartsAction(
       `[telegram webhook] could not read order ${orderId} for a parts action:`,
       err instanceof Error ? err.message : err
     );
-    return "⚠️ monobank: не вдалося перевірити, чи це покупка частинами";
+    return "⚠️ не вдалося перевірити, чи це покупка частинами";
   }
   if (!partsOrderId) return null;
 
@@ -95,8 +105,8 @@ async function applyPartsAction(
       : await rejectPartsOrder(partsOrderId);
     const state = `${result.state}/${result.order_sub_state}`;
     return confirm
-      ? `✅ monobank: покупку частинами активовано (${state})`
-      : `↩️ monobank: заявку на покупку частинами скасовано (${state})`;
+      ? `✅ покупку частинами активовано (${state})`
+      : `↩️ заявку на покупку частинами скасовано (${state})`;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[telegram webhook] parts ${action.parts} for order ${orderId} failed:`, msg);
@@ -112,8 +122,72 @@ async function applyPartsAction(
         : "Скасуй заявку в кабінеті monobank вручну, інакше ліміт клієнта лишиться зайнятим.",
       severity: "critical",
     });
-    return `⚠️ monobank: не вдалося (${msg.slice(0, 120)})`;
+    return `⚠️ не вдалося (${msg.slice(0, 120)})`;
   }
+}
+
+/**
+ * Orders whose waybill is being made on this instance right now. Two presses
+ * a second apart would otherwise both find no tracking code and both create a
+ * waybill — two parcels' worth of paperwork for one belt. Per instance only,
+ * which covers the realistic case (one impatient double tap lands on the same
+ * warm instance) without putting shared state in front of the button.
+ */
+const waybillsInFlight = new Set<number>();
+
+type WaybillOutcome =
+  | { ok: true; number: string; savedToCrm: boolean }
+  | { ok: false; reason: string; existing?: string };
+
+/**
+ * Make the Nova Poshta waybill for an order and write its number to KeyCRM.
+ *
+ * Refuses an online or instalment order that is not paid yet: a waybill is a
+ * promise to hand over goods, and an abandoned invoice would otherwise leave a
+ * parcel booked for nobody. Cash on delivery is paid at the branch, so it goes.
+ */
+async function makeWaybill(orderId: number): Promise<WaybillOutcome> {
+  const order = await fetchOrderForCard(orderId);
+  const card = notificationFromKeyCrmOrder(order, paymentMethodIds());
+  if (card.waybill) {
+    return { ok: false, reason: `ТТН уже є: ${card.waybill}`, existing: card.waybill };
+  }
+  if (card.paymentMethod !== "cod" && !card.paid) {
+    return {
+      ok: false,
+      reason: "Замовлення ще не оплачене — ТТН не створюю. Дочекайся оплати або створи вручну.",
+    };
+  }
+
+  const address = order.shipping?.address_payload;
+  const number = await createWaybill({
+    orderId,
+    fullName: order.shipping?.recipient_full_name || card.customer.fullName,
+    phone: order.shipping?.recipient_phone || card.customer.phone,
+    cityRef: address?.city_ref ?? "",
+    warehouseRef: address?.warehouse_ref ?? "",
+    total: card.total,
+    cashOnDelivery: card.paymentMethod === "cod",
+  });
+
+  // The waybill exists now whatever happens next, so a failed CRM write must
+  // not lose its number: it is in the message either way, and in an alert.
+  let savedToCrm = true;
+  try {
+    await putKeyCrm(`/order/${orderId}`, { shipping: { tracking_code: number } });
+  } catch (err) {
+    savedToCrm = false;
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[telegram webhook] waybill ${number} not saved to order ${orderId}:`, msg);
+    await reportFailure({
+      scope: "waybill.save",
+      title: "ТТН створено, але в KeyCRM не записано",
+      detail: msg,
+      context: { Замовлення: orderId, ТТН: number },
+      action: "Впиши номер ТТН у замовлення вручну.",
+    });
+  }
+  return { ok: true, number, savedToCrm };
 }
 
 export async function POST(req: Request) {
@@ -152,41 +226,98 @@ export async function POST(req: Request) {
 
   const { orderId, action } = decoded;
   const who = pressedBy(query.from);
+  const pressed = { chatId, messageId: query.message!.message_id };
+
+  // Making a waybill talks to Nova Poshta and KeyCRM in turn and can outlast
+  // the ~15s Telegram gives a callback, so it is answered up front; anything
+  // that goes wrong after this is said in the chat instead of in a popup.
+  let waybill: string | null = null;
+  if (action.createsWaybill) {
+    if (waybillsInFlight.has(orderId)) {
+      await answerCallbackQuery(query.id, "ТТН уже створюється");
+      return NextResponse.json({ ok: true, ignored: "waybill in flight" });
+    }
+    waybillsInFlight.add(orderId);
+    await answerCallbackQuery(query.id, "Створюю ТТН…");
+    try {
+      const outcome = await makeWaybill(orderId);
+      if (!outcome.ok) {
+        await sendTelegramMessage(
+          `⚠️ <b>ТТН для №${orderId} не створено</b>\n${escapeHtml(outcome.reason)}`
+        );
+        // A waybill that already exists still deserves an up-to-date card.
+        if (outcome.existing) await refreshOrderMessages(orderId, { pressed });
+        return NextResponse.json({ ok: false, handled: true });
+      }
+      waybill = outcome.number;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[telegram webhook] waybill for order ${orderId} failed:`, msg);
+      await sendTelegramMessage(
+        `⚠️ <b>ТТН для №${orderId} не створено</b>\n${escapeHtml(
+          err instanceof WaybillError ? msg : `Помилка: ${msg.slice(0, 200)}`
+        )}\nСтвори вручну в кабінеті Нової Пошти й натисни «📦 ТТН вже є».`
+      );
+      return NextResponse.json({ ok: false, handled: true });
+    } finally {
+      waybillsInFlight.delete(orderId);
+    }
+  }
 
   try {
     const { previousStatusId } = await setKeyCrmOrderStatus(orderId, action.statusId);
 
     const alreadyThere = previousStatusId === action.statusId;
-    await answerCallbackQuery(
-      query.id,
-      alreadyThere ? "Статус уже такий" : `Готово: ${action.done}`
-    );
+    if (!action.createsWaybill) {
+      await answerCallbackQuery(
+        query.id,
+        alreadyThere ? "Статус уже такий" : `Готово: ${action.done}`
+      );
+    }
 
     // A second press on the same status must not confirm the plan twice or
     // reject one that was just confirmed; Monobank would refuse anyway, but an
-    // alert for a no-op is noise.
-    const partsLine = alreadyThere ? null : await applyPartsAction(orderId, action);
+    // alert for a no-op is noise. A new waybill always hands over, though: it
+    // is the parcel the bank is waiting for.
+    const partsLine =
+      alreadyThere && !waybill ? null : await applyPartsAction(orderId, action);
 
-    // Rewrite the original message: record who did what and drop the buttons,
-    // so the same order cannot be marked twice and the group can see at a
-    // glance which orders are still untouched.
-    const original = query.message?.text ?? `Замовлення №${orderId}`;
-    await editMessageText(
-      chatId,
-      query.message!.message_id,
-      `${escapeHtml(original)}\n\n— <b>${escapeHtml(who)}</b> ${escapeHtml(
-        action.done
-      )}${partsLine ? `\n${escapeHtml(partsLine)}` : ""}`
-    );
+    // Record who did what and rewrite every message about the order from the
+    // CRM — the buttons shrink to what is left to do, and vanish once the
+    // order has its waybill or is cancelled.
+    const log: OrderLogEntry[] = [
+      { who, did: waybill ? `${action.done} ${waybill}` : action.done },
+      ...(partsLine ? [{ who: "monobank", did: partsLine }] : []),
+    ];
+    const refreshed = await refreshOrderMessages(orderId, { log, pressed });
+    if (!refreshed) {
+      // KeyCRM could not be read back. Fall back to the old rewrite of the
+      // pressed message alone, so the press is at least recorded.
+      const original = query.message?.text ?? `Замовлення №${orderId}`;
+      await editMessageText(
+        chatId,
+        pressed.messageId,
+        `${escapeHtml(original)}\n\n${log
+          .map((e) => `— <b>${escapeHtml(e.who)}</b> ${escapeHtml(e.did)}`)
+          .join("\n")}`
+      );
+    }
 
-    return NextResponse.json({ ok: true, orderId, statusId: action.statusId });
+    return NextResponse.json({ ok: true, orderId, statusId: action.statusId, waybill });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[telegram webhook] order ${orderId} → ${action.key} failed:`, msg);
 
     // show_alert: the manager pressed a button believing it worked, and the
-    // order is now in a different state in their head than in the CRM.
-    await answerCallbackQuery(query.id, `Не вдалося: ${msg.slice(0, 150)}`, true);
+    // order is now in a different state in their head than in the CRM. A
+    // waybill press was already answered, so it is said in the chat.
+    if (action.createsWaybill) {
+      await sendTelegramMessage(
+        `⚠️ <b>ТТН ${escapeHtml(waybill ?? "")} створено, але статус №${orderId} у KeyCRM не змінився</b>\n${escapeHtml(msg.slice(0, 200))}`
+      );
+    } else {
+      await answerCallbackQuery(query.id, `Не вдалося: ${msg.slice(0, 150)}`, true);
+    }
     await reportFailure({
       scope: "telegram.action",
       title: "Кнопка не спрацювала — статус у KeyCRM не змінився",

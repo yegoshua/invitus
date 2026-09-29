@@ -111,6 +111,9 @@ async function callTelegram<T>(
       // Telegram puts the real reason in the body ("chat not found", "bot was
       // blocked"), not the status — log it or every failure looks identical.
       const detail = await res.text().catch(() => "");
+      // A rewrite that changes nothing — the same refresh arriving twice, from
+      // the Monobank webhook and from KeyCRM's trigger — is not a failure.
+      if (detail.includes("message is not modified")) return null;
       console.error(`[telegram] ${method} ${res.status}: ${detail.slice(0, 300)}`);
       return null;
     }

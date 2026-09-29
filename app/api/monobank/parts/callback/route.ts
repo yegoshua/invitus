@@ -7,7 +7,7 @@
 //
 // Approval is what marks the KeyCRM payment paid. The money itself arrives
 // only after the plan is *confirmed* (/api/order/confirm), which the shop does
-// from the «ТТН створено» button — Monobank's rule is confirm on handover, and
+// from the waybill buttons — Monobank's rule is confirm on handover, and
 // for a parcel shop the handover is the dispatch. Marking paid now is what
 // tells the manager to go and pack it.
 //
@@ -19,7 +19,7 @@
 // When the order carries no uuid (the KeyCRM write failed at creation) the
 // fallback is Monobank's own /api/order/data, which echoes `store_order_id`.
 
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
   getPartsOrderData,
   verifyPartsSignature,
@@ -32,6 +32,7 @@ import {
 } from "@/lib/orders";
 import { notifyPartsRefused } from "@/lib/order-notifications";
 import { reportFailure } from "@/lib/alerts";
+import { refreshOrderMessages } from "@/lib/order-messages";
 
 interface CallbackPayload {
   order_id?: string;
@@ -159,6 +160,7 @@ export async function POST(req: Request) {
       { append: Boolean(recorded) }
     );
     console.log(`[parts callback] order ${orderId} marked paid`);
+    after(() => refreshOrderMessages(orderId));
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

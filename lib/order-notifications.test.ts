@@ -7,6 +7,8 @@ import {
   formatOrderPaid,
   formatPartsRefused,
   notifyNewOrder,
+  orderActionKeyboard,
+  ORDER_FOLLOW_UP,
   type NewOrderNotification,
 } from "./order-notifications.ts";
 
@@ -177,14 +179,20 @@ const ok = (chatId: string) =>
 
 test("a new order reaches the Finance chat as a copy without buttons", async () => {
   await withTelegram(ok, async (sent) => {
-    assert.equal(await notifyNewOrder(draft()), true);
+    const result = await notifyNewOrder(draft());
+    assert.equal(result.delivered, true);
+    assert.deepEqual(result.messages, [
+      { chatId: -100111, messageId: 1, buttons: true },
+      { chatId: -100222, messageId: 1, buttons: false },
+    ]);
 
-    const orders = sent.find((b) => b.chat_id === "-100111");
+    const orders = sent.find((b) => b.chat_id === "-100111" && b.reply_markup);
     const finance = sent.find((b) => b.chat_id === "-100222");
     assert.ok(orders && finance, "both chats are sent to");
     assert.ok(orders.reply_markup, "the orders group keeps its buttons");
     assert.equal("reply_markup" in finance, false);
     assert.equal(finance.text, orders.text);
+    assert.doesNotMatch(String(orders.text), /ЗлатОчка/);
     assert.equal(finance.parse_mode, "HTML");
   });
 });
@@ -196,8 +204,8 @@ test("a Finance chat that fails costs nothing to the orders group", async () => 
         ? new Response("Bad Request: chat not found", { status: 400 })
         : ok(chatId),
     async (sent) => {
-      assert.equal(await notifyNewOrder(draft()), true);
-      assert.equal(sent.length, 2);
+      assert.equal((await notifyNewOrder(draft())).delivered, true);
+      assert.equal(sent.length, 3);
     }
   );
 });
@@ -209,7 +217,7 @@ test("a Finance send that throws does not reject", async () => {
       return ok(chatId);
     },
     async () => {
-      assert.equal(await notifyNewOrder(draft()), true);
+      assert.equal((await notifyNewOrder(draft())).delivered, true);
     }
   );
 });
@@ -224,6 +232,42 @@ test("with no Finance chat configured, only the orders group is sent to", async 
     } finally {
       console.warn = originalWarn;
     }
-    assert.deepEqual(sent.map((b) => b.chat_id), ["-100111"]);
+    assert.deepEqual(sent.map((b) => b.chat_id), ["-100111", "-100111"]);
   });
+});
+
+test("the follow-up is its own message in the orders group, after the order", async () => {
+  await withTelegram(ok, async (sent) => {
+    await notifyNewOrder(draft());
+    const orders = sent.filter((b) => b.chat_id === "-100111");
+    assert.equal(orders.length, 2);
+    assert.ok(orders[0].reply_markup, "the order comes first");
+    assert.equal(orders[1].text, ORDER_FOLLOW_UP);
+    assert.equal(
+      sent.some((b) => b.chat_id === "-100222" && b.text === ORDER_FOLLOW_UP),
+      false,
+      "the Finance chat gets the order only"
+    );
+  });
+});
+
+test("no follow-up when the order itself did not go through", async () => {
+  await withTelegram(
+    (chatId) =>
+      chatId === "-100111"
+        ? new Response("Bad Request: chat not found", { status: 400 })
+        : ok(chatId),
+    async (sent) => {
+      const result = await notifyNewOrder(draft());
+      assert.equal(result.delivered, false);
+      assert.equal(sent.some((b) => b.text === ORDER_FOLLOW_UP), false);
+    }
+  );
+});
+
+test("the keyboard keeps cancel alone on the last row and empties when done", () => {
+  const rows = orderActionKeyboard(1041);
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows[2].map((b) => b.callback_data), ["o:1041:cancel"]);
+  assert.deepEqual(orderActionKeyboard(1041, { statusId: 8, hasWaybill: false }), []);
 });

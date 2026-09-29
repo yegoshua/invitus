@@ -11,7 +11,11 @@ import {
   sendTelegramMessage,
   type InlineKeyboard,
 } from "./telegram.ts";
-import { ORDER_ACTIONS, encodeCallback } from "./telegram-actions.ts";
+import {
+  WAYBILL_STATUS_ID,
+  encodeCallback,
+  remainingActions,
+} from "./telegram-actions.ts";
 
 export interface NotifiableLine {
   name: string;
@@ -32,7 +36,28 @@ export interface NewOrderNotification {
   discount: number;
   total: number;
   promoCode?: string | null;
+  /**
+   * Set once the money is in (or, for instalments, once the customer has
+   * confirmed in the app). The first message never has it; a refresh from the
+   * CRM does. `card` is the masked card when Monobank reported one.
+   */
+  paid?: { card?: string | null } | null;
+  /** The Nova Poshta waybill number, once there is one. */
+  waybill?: string | null;
 }
+
+/** One line appended under an order after someone acted on it. */
+export interface OrderLogEntry {
+  who: string;
+  did: string;
+}
+
+/**
+ * A running joke in the orders group. Sent as its own message straight after
+ * each order, so the order card itself — which is also copied to the Finance
+ * chat and rewritten in place as the order moves — carries only the order.
+ */
+export const ORDER_FOLLOW_UP = "ЗлатОчка -  Ебать у нее Очко, Ебать у нее Очко👉👌";
 
 /**
  * A link into KeyCRM when KEYCRM_APP_URL is set, and nothing at all when it is
@@ -54,14 +79,16 @@ export function formatNewOrder(order: NewOrderNotification): string {
       : order.paymentMethod === "parts"
         ? `Покупка частинами monobank${order.parts ? ` · ${order.parts} платежів` : ""}`
         : "Накладений платіж";
-  // Always unpaid at this point: the order is recorded before Monobank is even
-  // asked for an invoice, so nothing here can be "paid" yet. The change to
-  // paid arrives later, from KeyCRM's payment-status trigger. An instalment
-  // order is "paid" the moment the customer confirms in the app — the
-  // callback marks it — and the money itself follows the «ТТН створено»
-  // button, which is what tells Monobank to activate the plan.
-  const paymentStatus =
-    order.paymentMethod === "online"
+  // The first message is always unpaid: the order is recorded before Monobank
+  // is even asked for an invoice. `paid` arrives with the refresh that follows
+  // the payment — see lib/order-messages.ts. An instalment order is "paid" the
+  // moment the customer confirms in the app, and the money itself follows the
+  // waybill, which is what tells Monobank to activate the plan.
+  const paymentStatus = order.paid
+    ? order.paymentMethod === "parts"
+      ? "✅ Підтверджено в застосунку mono — гроші надійдуть після ТТН"
+      : `✅ <b>Оплачено</b>${order.paid.card ? ` · картка ${escapeHtml(order.paid.card)}` : ""}`
+    : order.paymentMethod === "online"
       ? "⏳ Не оплачено — очікує оплати"
       : order.paymentMethod === "parts"
         ? "⏳ Не оплачено — очікує підтвердження в застосунку mono"
@@ -108,10 +135,24 @@ export function formatNewOrder(order: NewOrderNotification): string {
     )}`
   );
 
+  if (order.waybill) parts.push(`📦 ТТН: <code>${escapeHtml(order.waybill)}</code>`);
+
   const link = orderLink(order.orderId);
   if (link) parts.push(`\n<a href="${link}">Відкрити в KeyCRM</a>`);
-  parts.push("ЗлатОчка -  Ебать у нее Очко, Ебать у нее Очко👉👌");
   return parts.join("\n");
+}
+
+/** The order card plus who did what to it, in the order it happened. */
+export function renderOrderMessage(
+  order: NewOrderNotification,
+  log: readonly OrderLogEntry[] = []
+): string {
+  const card = formatNewOrder(order);
+  if (log.length === 0) return card;
+  const lines = log.map(
+    (entry) => `— <b>${escapeHtml(entry.who)}</b> ${escapeHtml(entry.did)}`
+  );
+  return `${card}\n\n${lines.join("\n")}`;
 }
 
 export function formatOrderPaid(
@@ -153,43 +194,83 @@ export function formatKeyCrmStatusChange(params: {
 }
 
 /**
- * The buttons under a new order.
+ * The buttons under an order, for the state it is in now.
  *
- * One row so they stay readable on a phone. Cancel is deliberately last and on
- * its own row: it is the one press that cannot be undone from here.
+ * Taking the order on its own row, the two waybill buttons together, and
+ * cancel last and alone: it is the one press that cannot be undone from here.
+ * An order with nothing left to do gets an empty keyboard, which is what takes
+ * the buttons away when the message is rewritten.
  */
-export function orderActionKeyboard(orderId: number): InlineKeyboard {
+export function orderActionKeyboard(
+  orderId: number,
+  state: { statusId: number | null; hasWaybill: boolean } = {
+    statusId: null,
+    hasWaybill: false,
+  }
+): InlineKeyboard {
+  const actions = remainingActions(state);
+  const button = (a: (typeof actions)[number]) => ({
+    text: a.label,
+    callback_data: encodeCallback(orderId, a.key),
+  });
   return [
-    ORDER_ACTIONS.filter((a) => !a.destructive).map((a) => ({
-      text: a.label,
-      callback_data: encodeCallback(orderId, a.key),
-    })),
-    ORDER_ACTIONS.filter((a) => a.destructive).map((a) => ({
-      text: a.label,
-      callback_data: encodeCallback(orderId, a.key),
-    })),
-  ];
+    actions.filter((a) => !a.destructive && a.statusId !== WAYBILL_STATUS_ID).map(button),
+    actions.filter((a) => !a.destructive && a.statusId === WAYBILL_STATUS_ID).map(button),
+    actions.filter((a) => a.destructive).map(button),
+  ].filter((row) => row.length > 0);
+}
+
+/** A message we sent about an order, so it can be rewritten later. */
+export interface OrderMessageRef {
+  chatId: number;
+  messageId: number;
+  /** Whether it carries the buttons — the orders group's does, the copy not. */
+  buttons: boolean;
 }
 
 /**
- * The orders group gets the order with its buttons; the Finance chat gets the
- * same text as a copy with none (PRD #103, story 41) — the owners watch sales
- * there, they do not work orders there, and the buttons webhook would refuse a
- * press from it anyway.
+ * The orders group gets the order with its buttons and then the follow-up; the
+ * Finance chat gets the same order text as a copy with none (PRD #103, story
+ * 41) — the owners watch sales there, they do not work orders there, and the
+ * buttons webhook would refuse a press from it anyway.
  *
  * Sent side by side and settled independently: the copy failing, or the
  * Finance chat not being configured, never costs the orders group its message.
- * Resolves to whether the orders group got it. Never rejects.
+ * The follow-up waits for the order so the two land in that order.
+ *
+ * `delivered` is whether the orders group got the order; `messages` is every
+ * order message that was sent, for rewriting in place later. Never rejects.
  */
 export async function notifyNewOrder(
   order: NewOrderNotification
-): Promise<boolean> {
+): Promise<{ delivered: boolean; messages: OrderMessageRef[] }> {
   const text = formatNewOrder(order);
-  const [orders] = await Promise.allSettled([
-    sendTelegramMessage(text, { keyboard: orderActionKeyboard(order.orderId) }),
+  const [orders, finance] = await Promise.allSettled([
+    sendTelegramMessage(text, { keyboard: orderActionKeyboard(order.orderId) }).then(
+      async (sent) => {
+        if (sent) await sendTelegramMessage(escapeHtml(ORDER_FOLLOW_UP));
+        return sent;
+      }
+    ),
     sendTelegramMessage(text, { target: "finance" }),
   ]);
-  return orders.status === "fulfilled" && orders.value !== null;
+
+  const messages: OrderMessageRef[] = [];
+  if (orders.status === "fulfilled" && orders.value) {
+    messages.push({
+      chatId: orders.value.chat.id,
+      messageId: orders.value.message_id,
+      buttons: true,
+    });
+  }
+  if (finance.status === "fulfilled" && finance.value) {
+    messages.push({
+      chatId: finance.value.chat.id,
+      messageId: finance.value.message_id,
+      buttons: false,
+    });
+  }
+  return { delivered: messages.some((m) => m.buttons), messages };
 }
 
 /**
