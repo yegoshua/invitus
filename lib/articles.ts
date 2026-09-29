@@ -216,6 +216,9 @@ interface RawArticle {
   excerpt: string;
   category: string;
   publishedAt: string;
+  // Always present on a Strapi 5 entry; optional here only so a missing one
+  // costs the sitemap an accurate date rather than a crash.
+  updatedAt?: string | null;
   body: BlocksNode[] | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
@@ -250,6 +253,7 @@ export function indexArticles(raw: RawArticle[]): ArticleSummary[] {
       excerpt: article.excerpt,
       category: article.category,
       publishedAt: article.publishedAt,
+      updatedAt: article.updatedAt || article.publishedAt,
       // Computed, never stored: a field the author fills starts lying the first
       // time the text is edited. See lib/article-body.ts.
       readingTimeMinutes: readingTimeMinutes(article.body ?? []),
