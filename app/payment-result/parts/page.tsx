@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NO_INDEX } from "@/lib/site";
 import { cookies } from "next/headers";
 import { CheckoutHeader } from "@/components/checkout/checkout-header";
 import { PartsPending } from "@/components/checkout/parts-pending";
@@ -9,6 +10,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Покупка частинами | INVITUS",
+  robots: NO_INDEX,
 };
 
 // The order id may come from the cookie, which is per-request.

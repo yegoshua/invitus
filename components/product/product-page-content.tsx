@@ -167,7 +167,8 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
             <ProductMedia
               image={product.bgImage}
               fallbackSrc={PRODUCT_BG_FALLBACK}
-              alt=""
+              alt={`Фон товару ${product.name}`}
+              aria-hidden
               fill
               className="object-cover"
               priority
@@ -258,7 +259,8 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           <ProductMedia
             image={product.bgImage}
             fallbackSrc={PRODUCT_BG_FALLBACK}
-            alt=""
+            alt={`Фон товару ${product.name}`}
+            aria-hidden
             fill
             className="object-cover"
             priority

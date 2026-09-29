@@ -93,8 +93,8 @@ export interface ArticleSummary {
   /** Strapi's publish timestamp — the sort key; there is no separate date field. */
   publishedAt: string;
   /**
-   * Strapi's last-edit timestamp, falling back to `publishedAt`. Only the
-   * sitemap reads it — the page prints the publish date, not the edit date.
+   * Strapi's last-edit timestamp, falling back to `publishedAt`. Read by the
+   * sitemap and by the BlogPosting `dateModified`; the page prints no date.
    */
   updatedAt: string;
   /** Derived from the body, never stored. See lib/article-body.ts. */

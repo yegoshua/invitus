@@ -6,7 +6,7 @@ import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL } from "@/lib/site";
-import { organizationSchema } from "@/lib/structured-data";
+import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -48,6 +48,23 @@ export const metadata: Metadata = {
   // them here too would emit a second, competing <link rel="icon">.
   // Google Search Console: renders <meta name="google-site-verification" ...>
   // when GOOGLE_SITE_VERIFICATION is set (URL-prefix / HTML-tag method).
+  // Index and follow are what a crawler assumes anyway; spelling them out is
+  // for the audits that read a missing tag as "no control", and the Google
+  // directives let a result show a large image and a full-length snippet.
+  // Inherited by every page, so a page that must stay out of the index
+  // (checkout, payment result) overrides it with its own `robots`. Preview
+  // deploys need nothing here — Vercel sends X-Robots-Tag: noindex for them.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
   },
@@ -66,7 +83,7 @@ export default function RootLayout({
     <html lang="uk" className="dark">
       <body className={`${golosText.variable} ${drukWide.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
-        <JsonLd data={organizationSchema()} />
+        <JsonLd data={[organizationSchema(), websiteSchema()]} />
         <ClarityAnalytics />
         <GoogleAnalytics />
         <MetaPixel />

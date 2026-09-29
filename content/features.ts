@@ -14,6 +14,8 @@ export type FeatureCard =
   | {
       kind: "image";
       image: StaticImageData;
+      /** Describes the illustration; the card itself stays aria-hidden. */
+      alt: string;
       lgOrder: string;
     }
   | {
@@ -28,7 +30,12 @@ export type FeatureCard =
     };
 
 export const featureCards: FeatureCard[] = [
-  { kind: "image", image: FeatureImage1, lgOrder: "lg:order-1" },
+  {
+    kind: "image",
+    image: FeatureImage1,
+    alt: "Мішень — плюс 5% до рекорду з атлетичним поясом",
+    lgOrder: "lg:order-1",
+  },
   {
     kind: "stat",
     number: Stat5Percent,
@@ -40,7 +47,12 @@ export const featureCards: FeatureCard[] = [
     ],
     lgOrder: "lg:order-2",
   },
-  { kind: "image", image: FeatureImage2, lgOrder: "lg:order-4" },
+  {
+    kind: "image",
+    image: FeatureImage2,
+    alt: "Щит — захист попереку атлетичним поясом",
+    lgOrder: "lg:order-4",
+  },
   {
     kind: "stat",
     eyebrow: "3Х МЕНШЕ НАВАНТАЖЕННЯ",
@@ -53,7 +65,12 @@ export const featureCards: FeatureCard[] = [
     ],
     lgOrder: "lg:order-3",
   },
-  { kind: "image", image: FeatureImage3, lgOrder: "lg:order-5" },
+  {
+    kind: "image",
+    image: FeatureImage3,
+    alt: "Лайк — стиль на фото з екіпіруванням INVITUS",
+    lgOrder: "lg:order-5",
+  },
   {
     kind: "stat",
     eyebrow: "10 РІЗНИХ ВАРІАНТІВ В ЛІНІЙЦІ",

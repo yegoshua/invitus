@@ -100,7 +100,12 @@ function FeatureCardView({ card }: { card: FeatureCard }) {
   if (card.kind === "image") {
     return (
       <div className="relative bg-coral rounded-4xl lg:rounded-[40px] h-[468px] md:h-[620px] lg:h-[770px] flex items-center justify-center overflow-hidden">
-        <Image src={card.image} alt="" className="w-full h-full object-contain" />
+        <Image
+          src={card.image}
+          alt={card.alt}
+          aria-hidden
+          className="w-full h-full object-contain"
+        />
       </div>
     );
   }
@@ -124,7 +129,8 @@ function FeatureCardView({ card }: { card: FeatureCard }) {
       {/* Distortion overlay — above number, below text */}
       <Image
         src={CardDistortion}
-        alt=""
+        alt="Текстура фону картки"
+        aria-hidden
         fill
         className="object-cover pointer-events-none z-10"
       />

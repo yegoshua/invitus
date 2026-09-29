@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NO_INDEX } from "@/lib/site";
 import { cookies } from "next/headers";
 import { CheckoutHeader } from "@/components/checkout/checkout-header";
 import { ClearCartOnMount } from "@/components/checkout/clear-cart-on-mount";
@@ -14,6 +15,7 @@ import { getInvoiceStatus } from "@/lib/monobank";
 
 export const metadata: Metadata = {
   title: "Результат оплати | INVITUS",
+  robots: NO_INDEX,
 };
 
 // Status query must hit Monobank fresh every visit — never cache.

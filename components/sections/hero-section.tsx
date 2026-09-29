@@ -72,7 +72,7 @@ export function HeroSection() {
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
-            alt=""
+            alt="Лямки для станової тяги на грифі в залі для пауерліфтингу"
             aria-hidden="true"
             width={1920}
             height={1080}
