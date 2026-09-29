@@ -33,10 +33,14 @@ The «Факти про наш товар» list is the one the owner must check
 
 ## Photo library
 
+**Strapi media library.** `GET /api/upload/files?pagination[pageSize]=500` with `STRAPI_API_TOKEN`. Names are often camera names (`DSCF2696.jpg`), so build a contact sheet of the `small` formats with sharp and look at it rather than guessing from names. Download the chosen ones from the **original** `url` — `formats.large` is only ~667 px wide. The cover is shown at **16:9 with `object-cover`**, so crop a preview of a vertical shot to 16:9 before proposing it. The `…Wrist Wrap — фон` style entries are gradients with no product in them.
+
+**Never pull Instagram through its internal API or by scripting the page.** Tried once with the owner's logged-in session: the first request came back **429** — continuing risks a block on the brand account the shop sells from. The export below is the only way.
+
 If `content/photo-library/INDEX.md` does not exist, tell the owner, once per article, how to create it:
 
 1. Instagram → Налаштування → Центр облікових записів → Ваша інформація і дозволи → Завантажити вашу інформацію → лише «Дописи», формат **JSON**, якість медіа висока.
 2. Розпакувати архів у `content/photo-library/`.
 3. `pnpm photos:index`.
 
-Then continue with Pexels (scenes without product) and «потрібне фото: …» for the rest — a missing library does not block the brief.
+Meanwhile use the Strapi photos, Pexels for scenes without product, and «потрібне фото: …» for the rest — a missing export does not block the brief.

@@ -24,7 +24,7 @@ A Topic is a search query plus the intent behind it (choose / compare / learn te
 ## 2. Gather, then brief
 
 - **Our products**: URLs from `https://invitus.com.ua/sitemap.xml`; what the site says about a product from its live page. Only link to URLs found there.
-- **Photos**: search `content/photo-library/INDEX.md` (built by `pnpm photos:index`). Open each candidate with Read and confirm the product is actually in the frame. Missing library → say so and point to [BRIEF.md](BRIEF.md#photo-library).
+- **Photos**, two sources of our own: `content/photo-library/INDEX.md` (the Instagram export, `pnpm photos:index`) and the photo shoots already in Strapi's media library — see [BRIEF.md](BRIEF.md#photo-library) for how to search each. Look at every candidate and confirm the product is actually in the frame.
 - Photo rules: a product in the frame → Photo library only. A scene without our product → Pexels is allowed, with `PEXELS_API_KEY` from `.env.local`; unset → skip Pexels and say so, never paste a key into a tracked file. Generated images → never. Nothing fits → write «потрібне фото: …», do not substitute.
 - Existing articles in `content/articles/` → candidates for 1–2 internal links.
 
