@@ -14,6 +14,9 @@ import { getInvoiceStatus } from "@/lib/monobank";
 
 export const metadata: Metadata = {
   title: "Результат оплати | INVITUS",
+  // Overrides the root layout's index/follow, which would otherwise be
+  // inherited here and say the opposite of robots.txt's disallow.
+  robots: { index: false, follow: false },
 };
 
 // Status query must hit Monobank fresh every visit — never cache.

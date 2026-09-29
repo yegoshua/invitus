@@ -19,7 +19,7 @@ import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
 import PlusIcon from "@/public/assets/icons/cta-plus-icon.svg";
-import { MonoPaw } from "@/components/ui/mono-paw";
+import { MONO_PAW_LABEL, MonoPaw } from "@/components/ui/mono-paw";
 import { cn } from "@/lib/utils";
 
 interface ProductPageContentProps {
@@ -138,7 +138,10 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       >
         {partsLabel}
       </CTAButton>
-      <MonoPaw className="absolute -top-4 -right-4 size-12 lg:-top-8 lg:-right-8 lg:size-16" />
+      <MonoPaw
+        className="absolute -top-4 -right-4 size-12 lg:-top-8 lg:-right-8 lg:size-16"
+        label={MONO_PAW_LABEL}
+      />
     </div>
   );
 

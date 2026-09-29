@@ -15,13 +15,15 @@
 //     this markup describes the product. Picking one size's SKU to stand for
 //     the whole page would be a wrong identifier, which is worse than none.
 
-import { SITE_URL } from "./site";
-import type { Product, ProductImage } from "@/types";
+import { SITE_URL } from "./site.ts";
+import type { Article, Product, ProductImage } from "../types/index.ts";
 
 /** A JSON-LD node. Loose by design — schema.org shapes are open-ended. */
 export type JsonLdObject = Record<string, unknown>;
 
 const BRAND_NAME = "INVITUS";
+const LANGUAGE = "uk-UA";
+const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const CURRENCY = "UAH";
 const COUNTRY = "UA";
 const INSTAGRAM_URL = "https://www.instagram.com/invitus.ua";
@@ -49,7 +51,7 @@ export function organizationSchema(): JsonLdObject {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "@id": `${SITE_URL}/#organization`,
+    "@id": ORGANIZATION_ID,
     name: BRAND_NAME,
     url: `${SITE_URL}/`,
     logo: absolute(LOGO_PATH),
@@ -63,6 +65,26 @@ export function organizationSchema(): JsonLdObject {
       areaServed: COUNTRY,
       availableLanguage: ["uk"],
     },
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// WebSite
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * No `potentialAction` / SearchAction: that promises a search results page at
+ * a URL template, and the site has no search. Add it the day one exists.
+ */
+export function websiteSchema(): JsonLdObject {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
+    name: BRAND_NAME,
+    url: `${SITE_URL}/`,
+    inLanguage: LANGUAGE,
+    publisher: { "@id": ORGANIZATION_ID },
   };
 }
 
@@ -130,7 +152,7 @@ export function productSchema(
       // checks quantity — so "in stock" is what a visitor actually finds. The
       // day stock gating lands, this has to start following it.
       availability: "https://schema.org/InStock",
-      seller: { "@type": "Organization", "@id": `${SITE_URL}/#organization` },
+      seller: { "@type": "Organization", "@id": ORGANIZATION_ID },
       // No shippingDetails: the site charges nothing for delivery, the customer
       // pays Nova Poshta on collection. A rate of 0 here would read as free
       // shipping, which is a different promise from the one we make.
@@ -161,5 +183,34 @@ export function breadcrumbSchema(items: BreadcrumbItem[]): JsonLdObject {
       name: item.name,
       item: absolute(item.path),
     })),
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Blog
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Headline and description follow the same order generateMetadata uses for
+ * <title>: the SEO copy when an editor wrote one, the article's own otherwise.
+ * The author is the brand — Strapi has no author field, and a person's name
+ * nobody entered would be invented data.
+ */
+export function blogPostingSchema(article: Article): JsonLdObject {
+  const url = absolute(`/blog/${article.slug}`);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.seoTitle || article.title,
+    description: article.seoDescription || article.excerpt,
+    url,
+    mainEntityOfPage: url,
+    image: [absolute(article.cover.url)],
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt,
+    inLanguage: LANGUAGE,
+    author: { "@type": "Organization", "@id": ORGANIZATION_ID, name: BRAND_NAME },
+    publisher: { "@id": ORGANIZATION_ID },
   };
 }

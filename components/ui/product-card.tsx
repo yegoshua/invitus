@@ -9,7 +9,7 @@ import {
 } from "@/components/models/model-viewer";
 import { formatPrice } from "@/lib/format";
 import { orFromMonthlyLabel } from "@/lib/installments";
-import { MonoPaw } from "@/components/ui/mono-paw";
+import { MONO_PAW_LABEL, MonoPaw } from "@/components/ui/mono-paw";
 import { gaItem, trackEvent } from "@/lib/gtag";
 import type { Product } from "@/types";
 
@@ -95,7 +95,7 @@ export function ProductCard({
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            {partsLabel && <MonoPaw className="absolute left-4 bottom-3 size-14" />}
+            {partsLabel && <MonoPaw className="absolute left-4 bottom-3 size-14" label={MONO_PAW_LABEL} />}
           </div>
 
           <div className="px-5 lg:px-6 pt-4 pb-5 lg:pt-5 lg:pb-6">

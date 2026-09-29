@@ -19,6 +19,7 @@ import {
 } from "@/lib/api";
 import { ALL_FILTER_SLUG } from "@/lib/filter";
 import { breadcrumbSchema } from "@/lib/structured-data";
+import { categoryMetaDescription, categoryMetaTitle } from "@/lib/seo-copy";
 import type { Category } from "@/types";
 
 interface PageProps {
@@ -56,8 +57,8 @@ export async function generateMetadata({
     }
 
     return {
-      title: `${category.name} | INVITUS`,
-      description: `Купуйте ${category.name.toLowerCase()} від INVITUS. Українська якість для пауерліфтингу та важкої атлетики.`,
+      title: categoryMetaTitle(category),
+      description: categoryMetaDescription(category),
       // Query-less on purpose: ?filter= narrows the same catalog rather than
       // producing a new page, so every filtered view points the index back at
       // the bare category URL.

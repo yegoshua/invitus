@@ -17,6 +17,7 @@ import {
   getCategoryBySlug,
 } from "@/lib/api";
 import { breadcrumbSchema, productSchema } from "@/lib/structured-data";
+import { productMetaTitle } from "@/lib/seo-copy";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 
     return {
-      title: `${product.name} | INVITUS`,
+      title: productMetaTitle(product.name, product.category),
       description: product.description,
       alternates: { canonical: `/product/${slug}` },
     };

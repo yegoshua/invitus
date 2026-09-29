@@ -7,7 +7,9 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { ArticleBody } from "@/components/blog/article-body";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getArticle, getArticles } from "@/lib/articles";
+import { blogPostingSchema, breadcrumbSchema } from "@/lib/structured-data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -73,6 +75,16 @@ export default async function ArticlePage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd
+        data={[
+          blogPostingSchema(article),
+          breadcrumbSchema([
+            { name: "Головна", path: "/" },
+            { name: "Блог", path: "/blog" },
+            { name: article.title, path: `/blog/${article.slug}` },
+          ]),
+        ]}
+      />
       <Header />
       <main className="bg-black pt-24 lg:pt-32 pb-16 lg:pb-24">
         {/* No PageHero: the red banner belongs to /blog. An article opens on
