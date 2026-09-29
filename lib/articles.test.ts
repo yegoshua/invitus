@@ -73,3 +73,13 @@ test("the cover falls back to the title for its alt text", () => {
 test("an empty list is an empty list — zero published articles is a legitimate answer", () => {
   assert.deepEqual(indexArticles([]), []);
 });
+
+// The sitemap's lastModified. Strapi always sends updatedAt, but a missing one
+// should cost an accurate date, not the article's place in the sitemap.
+test("updatedAt comes from Strapi and falls back to publishedAt", () => {
+  const [edited] = indexArticles([raw({ updatedAt: "2026-09-10T09:00:00.000Z" })]);
+  const [untouched] = indexArticles([raw({ updatedAt: null })]);
+
+  assert.equal(edited.updatedAt, "2026-09-10T09:00:00.000Z");
+  assert.equal(untouched.updatedAt, "2026-08-01T10:00:00.000Z");
+});
