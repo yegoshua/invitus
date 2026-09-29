@@ -1,7 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { decodeInstagramText, readPosts, renderIndex } from "./photo-library.mts";
+import {
+  decodeInstagramText,
+  exportRootFor,
+  mergePosts,
+  readPosts,
+  renderIndex,
+} from "./photo-library.mts";
+
+// The script's I/O half — walking the export, writing INDEX.md — is exercised
+// by running it. What is tested here is every decision that would otherwise
+// fail quietly: a caption left as mojibake, a photo path that does not open
+// from where INDEX.md sits, a post listed twice, a day off by one.
 
 // Instagram's JSON export writes every UTF-8 byte as its own \u00XX escape, so
 // a Ukrainian caption parses as Latin-1 garbage. This is the string JSON.parse
@@ -71,6 +82,13 @@ test("a carousel takes its caption from the post and keeps only its photos", () 
   assert.deepEqual(post.images, ["media/posts/202407/222.jpg", "media/posts/202407/224.webp"]);
 });
 
+test("a post's date is its day in Kyiv, not in UTC", () => {
+  // 2024-05-19 22:30 UTC is already 01:30 on the 20th in Kyiv.
+  const late = { media: [{ uri: "media/posts/a.jpg", creation_timestamp: 1716157800, title: "" }] };
+
+  assert.equal(readPosts([late])[0].date, "2024-05-20");
+});
+
 test("a post with no photos is not in the library", () => {
   assert.deepEqual(readPosts([VIDEO_ONLY]), []);
 });
@@ -89,8 +107,66 @@ test("the index lists newest posts first, with caption and photo paths", () => {
   assert.match(index, /media\/posts\/202405\/111\.jpg/);
 });
 
+test("a post with no date goes last, not first", () => {
+  const index = renderIndex([
+    { date: null, caption: "Без дати", images: ["a.jpg"] },
+    { date: "2024-01-01", caption: "З датою", images: ["b.jpg"] },
+  ]);
+
+  assert.ok(index.indexOf("З датою") < index.indexOf("Без дати"));
+  assert.match(index, /невідома дата/);
+});
+
 test("a post without a caption says so rather than printing nothing", () => {
   const index = renderIndex([{ date: "2024-01-01", caption: "", images: ["a.jpg"] }]);
 
   assert.match(index, /без підпису/);
+});
+
+// ── export root ──────────────────────────────────────────────────────────────
+
+// Unzipping on macOS puts the whole export in a folder of its own, so the
+// `media/posts/…` a post names is relative to that folder, not to the library.
+test("the export root is the ancestor the photo path actually resolves from", () => {
+  const files = new Set(["/lib/instagram-invitus-2026/media/posts/202405/111.jpg"]);
+
+  const root = exportRootFor(
+    "/lib/instagram-invitus-2026/your_instagram_activity/media/posts_1.json",
+    "/lib",
+    "media/posts/202405/111.jpg",
+    (path) => files.has(path),
+  );
+
+  assert.equal(root, "/lib/instagram-invitus-2026");
+});
+
+test("a posts file whose photos resolve from nowhere is refused", () => {
+  assert.throws(
+    () => exportRootFor("/lib/x/posts_1.json", "/lib", "media/posts/1.jpg", () => false),
+    /media\/posts\/1\.jpg/,
+  );
+});
+
+// ── merging ──────────────────────────────────────────────────────────────────
+
+test("photos are listed relative to the library", () => {
+  const post = { date: "2024-05-20", caption: "Пояс", images: ["media/posts/202405/1.jpg"] };
+
+  const [merged] = mergePosts("/lib", [{ root: "/lib/export-a", posts: [post] }]);
+
+  assert.deepEqual(merged.images, ["export-a/media/posts/202405/1.jpg"]);
+});
+
+// Instagram names a photo after its media id, so the same post exported twice —
+// into the same folder or a new one — has the same file name both times.
+test("a post exported twice is listed once", () => {
+  const post = { date: "2024-05-20", caption: "Пояс", images: ["media/posts/202405/1.jpg"] };
+  const other = { date: "2024-05-21", caption: "Бинти", images: ["media/posts/202405/2.jpg"] };
+
+  const merged = mergePosts("/lib", [
+    { root: "/lib/export-a", posts: [post] },
+    { root: "/lib/export-b", posts: [post, other] },
+  ]);
+
+  assert.deepEqual(merged.map((entry) => entry.caption), ["Пояс", "Бинти"]);
 });

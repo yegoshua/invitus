@@ -18,17 +18,21 @@
 // fine, is the part worth getting right once.
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 
 const DEFAULT_DIR = "content/photo-library";
 const POSTS_FILE = /^posts_\d+\.json$/;
-const IMAGE_EXTENSION = /\.(jpe?g|png|webp|heic)$/i;
+// No HEIC: the skill has to *look* at a photo to confirm the product is in the
+// frame, and the publisher's copy step only gitignores these four.
+const IMAGE_EXTENSION = /\.(jpe?g|png|webp)$/i;
 
 export interface LibraryPost {
-  /** YYYY-MM-DD, UTC. */
-  date: string;
+  /** YYYY-MM-DD in Kyiv; null when the export gave no timestamp. */
+  date: string | null;
   caption: string;
-  /** Paths relative to the export root, as Instagram wrote them. */
+  /** As `readPosts` returns them: relative to the export root, as Instagram
+   *  wrote them. After `mergePosts`: relative to the library directory. */
   images: string[];
 }
 
@@ -57,13 +61,17 @@ export function decodeInstagramText(text: string): string {
   if ([...text].some((char) => char.codePointAt(0)! > 0xff)) return text;
 
   const decoded = Buffer.from(text, "latin1").toString("utf8");
-  return decoded.includes("�") ? text : decoded;
+  return decoded.includes("\uFFFD") ? text : decoded;
 }
 
 // ── posts ────────────────────────────────────────────────────────────────────
 
-function toDate(timestamp: number | undefined): string {
-  return timestamp ? new Date(timestamp * 1000).toISOString().slice(0, 10) : "невідома дата";
+// en-CA formats as YYYY-MM-DD. The day is Kyiv's, not UTC's: a post made at
+// half past midnight belongs to the day the team made it.
+const KYIV_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv" });
+
+function toDate(timestamp: number | undefined): string | null {
+  return timestamp ? KYIV_DAY.format(new Date(timestamp * 1000)) : null;
 }
 
 /**
@@ -93,15 +101,69 @@ export function readPosts(data: unknown): LibraryPost[] {
   });
 }
 
+// ── export root ──────────────────────────────────────────────────────────────
+
+/**
+ * The directory a posts file's photo paths are relative to.
+ *
+ * Instagram writes `media/posts/…` relative to the root of the archive, but
+ * where that root sits depends on how it was unpacked — macOS puts the whole
+ * thing in an `instagram-<name>-<date>-…` folder of its own. So rather than
+ * guess from folder names, walk up from the posts file to the library and take
+ * the first ancestor the photo actually resolves from.
+ */
+export function exportRootFor(
+  postsFile: string,
+  libraryDir: string,
+  photo: string,
+  exists: (path: string) => boolean,
+): string {
+  for (let dir = dirname(postsFile); ; dir = dirname(dir)) {
+    if (exists(join(dir, photo))) return dir;
+    if (dir === libraryDir || dir === dirname(dir)) break;
+  }
+
+  throw new Error(`${postsFile} names ${photo}, which is not under any folder between it and ${libraryDir}`);
+}
+
+// ── merging ──────────────────────────────────────────────────────────────────
+
+/**
+ * Every export's posts, with photo paths made relative to the library — which
+ * is where INDEX.md sits and what the skill opens them from.
+ *
+ * A post is identified by its first photo's file name: Instagram names a photo
+ * after its media id, so the same post from a second export, in the same folder
+ * or a new one, is recognised and listed once.
+ */
+export function mergePosts(
+  libraryDir: string,
+  exports: { root: string; posts: LibraryPost[] }[],
+): LibraryPost[] {
+  const byPhoto = new Map<string, LibraryPost>();
+
+  for (const { root, posts } of exports) {
+    for (const post of posts) {
+      const key = basename(post.images[0]);
+      if (byPhoto.has(key)) continue;
+
+      byPhoto.set(key, { ...post, images: post.images.map((uri) => relative(libraryDir, join(root, uri))) });
+    }
+  }
+
+  return [...byPhoto.values()];
+}
+
 // ── index ────────────────────────────────────────────────────────────────────
 
 export function renderIndex(posts: LibraryPost[]): string {
-  const sorted = [...posts].sort((a, b) => b.date.localeCompare(a.date));
+  // Newest first; a post with no date last rather than wherever its placeholder sorts.
+  const sorted = [...posts].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
 
   const entries = sorted.map((post) => {
     const caption = post.caption ? post.caption.replace(/\s*\n\s*/g, " ") : "_(без підпису)_";
     const images = post.images.map((path) => `- \`${path}\``).join("\n");
-    return `## ${post.date}\n\n${caption}\n\n${images}`;
+    return `## ${post.date ?? "невідома дата"}\n\n${caption}\n\n${images}`;
   });
 
   return `# Photo library\n\nЗгенеровано \`pnpm photos:index\`. Не редагувати руками.\n\n${entries.join("\n\n")}\n`;
@@ -124,10 +186,15 @@ async function main(): Promise<void> {
     throw new Error(`no posts_N.json under ${dir} — unpack the Instagram JSON export there first`);
   }
 
-  const posts: LibraryPost[] = [];
-  for (const file of files) {
-    posts.push(...readPosts(JSON.parse(await readFile(file, "utf8"))));
+  const exports: { root: string; posts: LibraryPost[] }[] = [];
+  for (const file of files.sort()) {
+    const posts = readPosts(JSON.parse(await readFile(file, "utf8")));
+    if (posts.length === 0) continue;
+
+    exports.push({ root: exportRootFor(file, dir, posts[0].images[0], existsSync), posts });
   }
+
+  const posts = mergePosts(dir, exports);
 
   await writeFile(join(dir, "INDEX.md"), renderIndex(posts));
   console.log(`Indexed ${posts.length} posts with photos → ${join(dir, "INDEX.md")}`);
