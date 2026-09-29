@@ -54,3 +54,9 @@ next-env.d.ts
 /content/articles/*.jpeg
 /content/articles/*.png
 /content/articles/*.webp
+
+# the brand's Instagram export (see scripts/photo-library.mts) — the repo is public
+/content/photo-library/
+
+# aaron-seo-geo research memory: keyword and competitor notes, not for a public repo
+/memory/
