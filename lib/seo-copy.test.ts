@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   categoryMetaDescription,
   categoryMetaTitle,
+  imageAlt,
   productMetaTitle,
 } from "./seo-copy.ts";
 
@@ -46,7 +47,7 @@ test("an unmapped category title falls back to its KeyCRM name", () => {
 // Every promise in the description is one the site keeps for every product in
 // the category: Nova Poshta delivery, online payment or cash on delivery, the
 // 14-day return from /refund. Instalments are not in it — they start at
-// 4 100 ₴, and most of the catalogue sits below that.
+// 4 100 ₴, and a product under that cannot be bought in parts.
 test("a category description names what is bought and how it arrives", () => {
   const description = categoryMetaDescription({ slug: "belts", name: "Атлетичні пояси" });
 
@@ -63,4 +64,23 @@ test("an unmapped category description still reads as a sentence", () => {
     categoryMetaDescription({ slug: "shirts", name: "Футболки" }),
     /^Футболки INVITUS — купити з доставкою Новою поштою/
   );
+});
+
+// Strapi's gallery shipped entries whose alt is a placeholder the editor never
+// replaced — production printed alt="product-image-1" under a belt photo.
+test("a placeholder alt from the CMS gives way to the product name", () => {
+  assert.equal(
+    imageAlt(["product-image-1"], "Final Selection Lifting Belt"),
+    "Final Selection Lifting Belt"
+  );
+  assert.equal(imageAlt(["IMG_2041.jpg", "image"], "Belt"), "Belt");
+  assert.equal(imageAlt([undefined, "", "  "], "Belt"), "Belt");
+});
+
+test("a real alt from the CMS is kept, first one wins", () => {
+  assert.equal(
+    imageAlt(["Пояс на помості", "product-image-1"], "Belt"),
+    "Пояс на помості"
+  );
+  assert.equal(imageAlt([undefined, "Застібка крупним планом"], "Belt"), "Застібка крупним планом");
 });

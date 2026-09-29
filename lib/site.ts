@@ -12,3 +12,10 @@ export const SITE_URL = (
 
 /** Hostname of the canonical origin, e.g. "invitus.com.ua". */
 export const SITE_HOST = new URL(SITE_URL).hostname;
+
+/**
+ * For the funnel pages robots.txt disallows (/checkout, /payment-result). The
+ * root layout declares index/follow, and without this override every such
+ * page would inherit it and say the opposite of robots.txt.
+ */
+export const NO_INDEX = { index: false, follow: false } as const;

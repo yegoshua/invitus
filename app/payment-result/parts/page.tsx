@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NO_INDEX } from "@/lib/site";
 import { cookies } from "next/headers";
 import { CheckoutHeader } from "@/components/checkout/checkout-header";
 import { PartsPending } from "@/components/checkout/parts-pending";
@@ -9,9 +10,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Покупка частинами | INVITUS",
-  // Overrides the root layout's index/follow, which would otherwise be
-  // inherited here and say the opposite of robots.txt's disallow.
-  robots: { index: false, follow: false },
+  robots: NO_INDEX,
 };
 
 // The order id may come from the cookie, which is per-request.

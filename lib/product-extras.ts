@@ -36,6 +36,7 @@
 
 import { getStrapiURL, getStrapiMedia } from "./strapi";
 import { slugify } from "./slugify";
+import { imageAlt } from "./seo-copy";
 import type {
   StrapiHomepage,
   StrapiProduct,
@@ -140,7 +141,7 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
         .filter((g) => g.image)
         .map((g) => ({
           url: getStrapiMedia(g.image.url),
-          alt: g.alt || g.image.alternativeText || p.name,
+          alt: imageAlt([g.alt, g.image.alternativeText], p.name),
         }));
 
       // Only variants carrying a SKU can be linked to a KeyCRM offer; the rest
@@ -157,13 +158,13 @@ async function fetchStrapiExtras(): Promise<ExtrasIndex> {
         heroImage: p.heroImage
           ? {
               url: getStrapiMedia(p.heroImage.url),
-              alt: p.heroImage.alternativeText || p.name,
+              alt: imageAlt([p.heroImage.alternativeText], p.name),
             }
           : undefined,
         bgImage: p.backgroundImage
           ? {
               url: getStrapiMedia(p.backgroundImage.url),
-              alt: p.backgroundImage.alternativeText || p.name,
+              alt: imageAlt([p.backgroundImage.alternativeText], p.name),
             }
           : undefined,
         galleryImages: galleryImages.length ? galleryImages : undefined,

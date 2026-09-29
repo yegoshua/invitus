@@ -1,9 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/** Alt text where the paw is the only thing on screen naming the bank. */
-export const MONO_PAW_LABEL = "Покупка частинами monobank";
-
 /**
  * monobank's paw — the mark the design puts on everything «частинами»: peeking
  * over the corner of the «Від … ₴ / міс» button and of the instalment radio.
@@ -12,26 +9,25 @@ export const MONO_PAW_LABEL = "Покупка частинами monobank";
  * (104 KB): it is never drawn above 64px, and 2× that is what a retina screen
  * needs.
  *
- * `label` is for the places where the paw is the only thing naming the bank:
- * the catalogue card and the product button say «від … / міс» and nothing
- * else, so there the image carries meaning and gets alt text. Where the label
- * beside it already says "monobank" (the checkout radio) it is left out and
- * the paw stays decorative — the same word read twice is noise.
+ * Always carries alt text. On the catalogue card and the product button the
+ * paw is the only thing naming the bank, so it is announced; at checkout the
+ * radio's label already says "monobank", so `decorative` hides it from screen
+ * readers — the same word read twice is noise — while crawlers still read it.
  */
 export function MonoPaw({
   className,
-  label,
+  decorative = false,
 }: {
   className?: string;
-  label?: string;
+  decorative?: boolean;
 }) {
   return (
     <Image
       src="/assets/img/mono-paw.webp"
-      alt={label ?? ""}
+      alt="Покупка частинами monobank"
       width={128}
       height={128}
-      aria-hidden={label ? undefined : true}
+      aria-hidden={decorative || undefined}
       className={cn("pointer-events-none select-none", className)}
     />
   );

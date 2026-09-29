@@ -191,10 +191,11 @@ export function breadcrumbSchema(items: BreadcrumbItem[]): JsonLdObject {
 // ──────────────────────────────────────────────────────────────────────────
 
 /**
- * Headline and description follow the same order generateMetadata uses for
- * <title>: the SEO copy when an editor wrote one, the article's own otherwise.
- * The author is the brand — Strapi has no author field, and a person's name
- * nobody entered would be invented data.
+ * The headline is the title the page prints in its h1, never `seoTitle`: that
+ * one exists for <title> only and appears nowhere a visitor can read it. The
+ * description is the excerpt the /blog card prints. The author is the brand —
+ * Strapi has no author field, and a person's name nobody entered would be
+ * invented data.
  */
 export function blogPostingSchema(article: Article): JsonLdObject {
   const url = absolute(`/blog/${article.slug}`);
@@ -202,8 +203,8 @@ export function blogPostingSchema(article: Article): JsonLdObject {
   return {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    headline: article.seoTitle || article.title,
-    description: article.seoDescription || article.excerpt,
+    headline: article.title,
+    description: article.excerpt,
     url,
     mainEntityOfPage: url,
     image: [absolute(article.cover.url)],

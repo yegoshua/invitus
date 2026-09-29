@@ -23,10 +23,12 @@ export function PageHero({ title }: Props) {
   return (
     <div className="bg-black pb-4 sm:p-3 lg:p-4 px-2">
       <section className="relative py-6 lg:pt-30 lg:pb-16 overflow-hidden rounded-[24px] lg:rounded-section mt-16 lg:mt-0">
-        {/* Background image */}
+        {/* Background image. Alt text for crawlers and SEO audits, aria-hidden
+            so a screen reader does not announce a gradient before the h1. */}
         <Image
           src="/assets/img/bg-catalog.png"
-          alt=""
+          alt="Кораловий градієнт INVITUS"
+          aria-hidden
           fill
           className="object-cover object-center pointer-events-none"
           priority

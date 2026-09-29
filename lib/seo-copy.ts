@@ -54,8 +54,8 @@ export function categoryMetaTitle(category: CategoryRef): string {
 /**
  * Only promises every product in the category is covered by: Nova Poshta
  * delivery, online payment or cash on delivery, the 14-day return on /refund.
- * Instalments are left out on purpose — they start at PARTS_MIN_TOTAL, which
- * most of the catalogue sits below.
+ * Instalments are left out on purpose — they start at PARTS_MIN_TOTAL, and a
+ * product priced under it cannot be bought that way.
  */
 export function categoryMetaDescription(category: CategoryRef): string {
   const phrase = PHRASES_BY_CATEGORY[category.slug]?.product;
@@ -64,4 +64,24 @@ export function categoryMetaDescription(category: CategoryRef): string {
     `${category.name} ${BRAND} — ${what} з доставкою Новою поштою по Україні. ` +
     "Оплата онлайн або після отримання, повернення 14 днів."
   );
+}
+
+// "product-image-1", "image", "IMG_2041.jpg", "photo 3" — what a CMS field holds
+// when nobody wrote alt text, and what production printed under belt photos.
+const PLACEHOLDER_ALT = /^(?:(?:product[-_ ]?)?(?:image|img|photo|foto|picture)[-_ ]?\d*|.+\.(?:jpe?g|png|webp|avif|gif|svg))$/i;
+
+/**
+ * The first candidate that actually describes the image, else `fallback`
+ * (the product name). Empty strings and placeholders are skipped rather than
+ * trusted, so an unfilled Strapi field never reaches the page.
+ */
+export function imageAlt(
+  candidates: ReadonlyArray<string | null | undefined>,
+  fallback: string
+): string {
+  for (const candidate of candidates) {
+    const alt = candidate?.trim();
+    if (alt && !PLACEHOLDER_ALT.test(alt)) return alt;
+  }
+  return fallback;
 }

@@ -65,16 +65,15 @@ test("BlogPosting is authored and published by the Organization", () => {
   assert.deepEqual(posting.publisher, ORGANIZATION);
 });
 
-// The headline is what Google shows; the SEO title, when an editor filled one,
-// is the phrase written for search and wins — the same order generateMetadata
-// uses for <title>.
-test("BlogPosting prefers the SEO title and description when Strapi has them", () => {
+// seoTitle/seoDescription feed <title> and the meta description only. The
+// page prints `title` in its h1, and structured data has to match the page.
+test("BlogPosting ignores the SEO title and description, which the page never prints", () => {
   const posting = blogPostingSchema(
     article({ seoTitle: "Як вибрати пояс для пауерліфтингу", seoDescription: "Гайд." })
   );
 
-  assert.equal(posting.headline, "Як вибрати пояс для пауерліфтингу");
-  assert.equal(posting.description, "Гайд.");
+  assert.equal(posting.headline, "Як обрати атлетичний пояс");
+  assert.equal(posting.description, "Товщина, застібка, розмір.");
 });
 
 test("a site-relative cover becomes absolute", () => {

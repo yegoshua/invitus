@@ -19,7 +19,7 @@ import { ModelViewer } from "@/components/models/model-viewer";
 import { ProductMedia } from "@/components/ui/product-media";
 import { CTAButton } from "@/components/ui/cta-button";
 import PlusIcon from "@/public/assets/icons/cta-plus-icon.svg";
-import { MONO_PAW_LABEL, MonoPaw } from "@/components/ui/mono-paw";
+import { MonoPaw } from "@/components/ui/mono-paw";
 import { cn } from "@/lib/utils";
 
 interface ProductPageContentProps {
@@ -138,10 +138,7 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
       >
         {partsLabel}
       </CTAButton>
-      <MonoPaw
-        className="absolute -top-4 -right-4 size-12 lg:-top-8 lg:-right-8 lg:size-16"
-        label={MONO_PAW_LABEL}
-      />
+      <MonoPaw className="absolute -top-4 -right-4 size-12 lg:-top-8 lg:-right-8 lg:size-16" />
     </div>
   );
 
@@ -170,7 +167,8 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
             <ProductMedia
               image={product.bgImage}
               fallbackSrc={PRODUCT_BG_FALLBACK}
-              alt=""
+              alt={`Фон товару ${product.name}`}
+              aria-hidden
               fill
               className="object-cover"
               priority
@@ -261,7 +259,8 @@ export function ProductPageContent({ product }: ProductPageContentProps) {
           <ProductMedia
             image={product.bgImage}
             fallbackSrc={PRODUCT_BG_FALLBACK}
-            alt=""
+            alt={`Фон товару ${product.name}`}
+            aria-hidden
             fill
             className="object-cover"
             priority
