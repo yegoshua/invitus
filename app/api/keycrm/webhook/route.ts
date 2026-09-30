@@ -14,14 +14,21 @@
 //
 // The secret rides in the query string because KeyCRM sends no custom headers —
 // it cannot do the Authorization bearer that /api/revalidate uses. That is
-// weaker (URLs reach access logs), so the secret guards nothing but the sending
-// of a chat message: this endpoint reads no data and writes nothing. Rotate it
-// by changing the env var and the trigger URL together.
+// weaker (URLs reach access logs), so the secret guards nothing but chat
+// messages: this endpoint sends one and rewrites the order's own messages from
+// KeyCRM, and writes nothing to the CRM. A forged call can at worst make the
+// group re-read what KeyCRM already says. Rotate it by changing the env var and
+// the trigger URL together.
+//
+// The rewrite is what catches a status or payment changed by hand in the CRM —
+// cash on delivery marked paid, an order moved on without the buttons — so
+// the order's own message stops offering buttons for work already done.
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { sendTelegramMessage } from "@/lib/telegram";
 import { formatKeyCrmStatusChange } from "@/lib/order-notifications";
+import { refreshOrderMessages } from "@/lib/order-messages";
 
 const HANDLED_EVENTS = new Set([
   "order.change_order_status",
@@ -104,9 +111,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, ignored: payload.event });
   }
 
+  const context = readContext(payload.context);
   const sent = await sendTelegramMessage(
-    formatKeyCrmStatusChange({ event: payload.event, ...readContext(payload.context) })
+    formatKeyCrmStatusChange({ event: payload.event, ...context })
   );
+  const orderId = context.orderId;
+  if (orderId) after(() => refreshOrderMessages(orderId));
 
   // 200 either way: a failed Telegram send is logged in sendTelegramMessage and
   // is not something a KeyCRM retry can fix — the status already changed.

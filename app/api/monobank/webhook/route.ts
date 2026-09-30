@@ -8,10 +8,11 @@
 // answer 200; only a failed signature check or a genuine server-side failure
 // gets a non-2xx.
 
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { verifyWebhookSignature, type InvoiceStatusValue } from "@/lib/monobank";
 import { markKeyCrmOrderPaid } from "@/lib/orders";
 import { reportFailure } from "@/lib/alerts";
+import { refreshOrderMessages } from "@/lib/order-messages";
 
 interface WebhookPayload {
   invoiceId: string;
@@ -81,6 +82,9 @@ export async function POST(req: Request) {
       `Monobank${card} · invoice ${payload.invoiceId}`
     );
     console.log(`[Monobank webhook] order ${orderId} marked paid`);
+    // The order's message still reads «Не оплачено» — rewrite it. After the
+    // response: Monobank is owed its 200, not a wait on Telegram.
+    after(() => refreshOrderMessages(orderId));
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
