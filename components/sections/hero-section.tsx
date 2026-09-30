@@ -8,17 +8,18 @@ import { readVideoConditions, shouldLoadDecorativeVideo } from "@/lib/video-cond
 import { useStableScreenHeight } from "@/hooks/use-stable-screen-height";
 
 // From the 27 MB camera original: 1920x1080, 60 -> 30 fps, chroma zeroed (it
-// is shown greyscale), a light denoise and CRF 30 — 2.3 MB. The denoise is
-// what makes that size possible: this clip is grainy, grain is noise to a
-// codec, and without it the same quality costs 6 MB. Compare with the 1.7 MB
-// 720p file this replaced — same weight class, a visibly cleaner picture.
+// is shown greyscale), a light denoise and CRF 28 — 4.4 MB. The denoise is
+// what makes even that size possible: this clip is grainy, grain is noise to
+// a codec, and CRF 28 without it costs 16 MB. This is the higher-quality half
+// of a pair; the same encode at CRF 30 is 2.3 MB and the difference between
+// them is hard to see on a still, let alone on a moving background.
 // Hosted on Blob, see lib/blob.ts; a recut gets a new path rather than
 // overwriting the old one, so a deployment still serving the old poster keeps
 // the video that matches it.
-const HERO_VIDEO_URL = blobUrl("hero/hero-gym-1080.mp4");
+const HERO_VIDEO_URL = blobUrl("hero/hero-gym-1080-hq.mp4");
 
 // The video's first frame, greyscale like the video, at 1280 wide and WebP
-// quality 50 — 36 KB. It is the LCP element and it is replaced within about a
+// quality 50 — 53 KB. It is the LCP element and it is replaced within about a
 // second, so it is sized for arriving fast rather than for being inspected;
 // full width at a quality that survives inspection is 66 KB. It stays in
 // public/, served same-origin: a DNS lookup plus a TLS handshake on that path
@@ -68,7 +69,7 @@ export function HeroSection() {
         {/* Background: the poster paints, the video fades in over it later */}
         <div className="absolute inset-0 z-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- the file is
-              already a 36 KB WebP; the image optimiser would add
+              already a 53 KB WebP; the image optimiser would add
               a round trip to the LCP path and save nothing. */}
           <img
             src={HERO_POSTER_URL}
